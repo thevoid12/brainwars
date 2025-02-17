@@ -1,0 +1,3 @@
+- [ ] design schema
+- [ ] set up our stack
+- [ ] create room feature
