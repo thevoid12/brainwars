@@ -1,0 +1,24 @@
+- user signs in
+- creates a room or joins existing room
+- **create a room:**
+- create a room with a room name 
+- enable/disable request for join (v2)
+- room will have unique room code
+- chat app with members (v2)
+- owner can pick existing pack
+- create customized question
+- eliminator contest (v3)
+- can create their own questions for quiz
+- can use gpt generated quiz
+- once the round is over we will delete the room but the questions and answers
+    can be saved (v2)
+- can kick out people from the room 
+- ability to rename and assign bots 
+- **bot design**
+- 2 min 
+- 3 min
+- 5 min
+- 7 min
+- they are system users 
+- once the round gets over we delete them
+
