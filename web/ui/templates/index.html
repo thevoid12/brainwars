@@ -1,0 +1,16 @@
+{{ define "content" }}
+<div class="container mx-auto p-4">
+  <!-- Alpine.js example -->
+  <div x-data="{ count: 0 }">
+    <button @click="count++" class="bg-blue-500 text-white px-4 py-2 rounded">
+      Count: <span x-text="count">0</span>
+    </button>
+  </div>
+
+  <!-- HTMX example -->
+  <button class="mt-4 bg-green-500 text-white px-4 py-2 rounded" hx-get="/message" hx-target="#message-area">
+    Load Message
+  </button>
+  <div id="message-area" class="mt-2"></div>
+</div>
+{{ end }}

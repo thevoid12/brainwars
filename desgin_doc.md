@@ -22,3 +22,7 @@
 - they are system users 
 - once the round gets over we delete them
 
+- **questions**
+- questions are not room bound but user bound. so eventhough he creates question in the room, the same questions can be reused
+
+- after the quiz everyone should know what are the right and wrong as well as each guy's time

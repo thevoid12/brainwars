@@ -1,0 +1,17 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema:
+      - "user/schema.sql"
+      - "room/schema.sql"
+      - "quiz/schema.sql"
+    queries:
+      - "user/user_query.sql"
+      - "room/room_query.sql"
+      - "quiz/quiz_query.sql"
+    gen:
+      go:
+        package: "dbal"
+        out: "../dbal"
+        sql_package: "pgx/v5"
+        output_models_file_name: "dbmodels.go"

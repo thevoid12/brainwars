@@ -1,3 +1,6 @@
-- [ ] design schema
-- [ ] set up our stack
+- [x] design doc
+- [x] set up our stack
+- [ ] base schema
 - [ ] create room feature
+- [ ] users join room feature(web socket)
+- [ ] static quiz 
