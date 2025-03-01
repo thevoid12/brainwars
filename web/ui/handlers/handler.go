@@ -62,12 +62,15 @@ func HomeHandler(c *gin.Context) {
 
 // Room
 func CreateRoomPageHandler(c *gin.Context) {
+
 	RenderTemplate(c, "home.html", gin.H{
 		"title": "About Page",
 	})
 }
 
 func CreateRoomHandler(c *gin.Context) {
+	userID := ""
+	roomDetails,err := room.CreateRoom(c, userID)
 	RenderTemplate(c, "home.html", gin.H{
 		"title": "About Page",
 	})
