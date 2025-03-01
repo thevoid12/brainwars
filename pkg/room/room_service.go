@@ -1,41 +1,71 @@
 package room
 
 import (
+	dbpkg "brainwars/pkg/db"
 	"brainwars/pkg/db/dbal"
+	logs "brainwars/pkg/logger"
 	"brainwars/pkg/room/model"
 	"context"
+	"encoding/json"
 
-	"modernc.org/libc/uuid/uuid"
+	"github.com/google/uuid"
 )
 
 // CreateRoom is a function that creates a room
-func CreateRoom(c *context.Context, req model.RoomReq) (roomDetails model.Room, err error) {
+func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room, err error) {
 
-	member:= []model.RoomMembers{}
-	members= append(member, model.RoomMembers{
+	l := logs.GetLoggerctx(ctx)
+	members := []model.RoomMembers{}
+	roomID := uuid.New()
+	members = append(members, model.RoomMembers{
 		UserID: req.UserID,
-		RoomID: req.RoomID,
+		RoomID: roomID,
 	})
+	jsonMembers, err := json.Marshal(members)
+	if err != nil {
+		l.Sugar().Error("error in marshalling room members", err)
+		return nil, err
+	}
 	params := dbal.CreateRoomParams{
 		RoomCode:    uuid.New().String(),
 		RoomOwner:   req.UserID,
-		RoomMembers: req.RoomMembers,
-		RoomChat:    req.RoomChat,
-		Leaderboard: req.Leaderboard,
-		RoomMeta:    req.RoomMeta,
-		RoomLock:    req.RoomLock,
-		IsActive:    req.IsActive,
-		IsDeleted:   req.IsDeleted,
-		CreatedBy:   req.CreatedBy,
-		UpdatedBy:   req.UpdatedBy,
+		RoomMembers: []byte(jsonMembers),
+		RoomChat:    []byte("[{}]"),
+		RoomMeta:    []byte("[{}]"),
+		RoomLock:    false,
+		IsActive:    true,
+		IsDeleted:   false,
+		CreatedBy:   req.UserID.String(),
+		UpdatedBy:   req.UserID.String(),
+		ID:          roomID,
 	}
+
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+	}
+	defer dbConn.Db.Close()
 
 	// Assuming you have a sqlc function to save the room details to the database
-
-	err = model.CreateRoom(c, req)
+	dBal := dbal.New(dbConn.Db)
+	room, err := dBal.CreateRoom(ctx, params)
 	if err != nil {
-		return model.RoomReq{}, err
+		l.Sugar().Error("Could not create room in database", err)
+		return nil, err
 	}
-
+	roomDetails = &model.Room{
+		ID:           room.ID,
+		Username:     room.U.String(), // Assuming RoomOwner is the username
+		RefreshToken: uuid.New(),            
+		UserType:     string(model.Human),    
+		UserMeta:     string(room.RoomMeta),
+		Premium:      false, // No equivalent field in CreateRoomParams
+		IsActive:     room.IsActive,
+		IsDeleted:    room.IsDeleted,
+		CreatedOn:    room.CreatedAt,
+		UpdatedOn:    room.UpdatedAt,
+	}
+	return room, nil
 	return req, nil
 }

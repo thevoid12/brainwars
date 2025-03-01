@@ -49,7 +49,6 @@ type Room struct {
 	RoomOwner   pgtype.UUID
 	RoomMembers []byte
 	RoomChat    []byte
-	Leaderboard []byte
 	RoomMeta    []byte
 	RoomLock    bool
 	IsActive    bool

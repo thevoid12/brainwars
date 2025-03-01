@@ -24,7 +24,7 @@ type RoomReq struct {
 // Room is a struct that defines the room model
 type Room struct {
 	ID           uuid.UUID
-	Username     string
+	RoomName     string
 	RefreshToken string
 	UserType     string
 	UserMeta     string

@@ -5,7 +5,6 @@ INSERT INTO room (
     room_owner, 
     room_members, 
     room_chat, 
-    leaderboard, 
     room_meta, 
     room_lock, 
     is_active, 
@@ -15,5 +14,5 @@ INSERT INTO room (
     created_by, 
     updated_by
 ) 
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), $11, $12)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), $10, $11)
 RETURNING *;

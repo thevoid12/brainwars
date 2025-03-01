@@ -18,7 +18,6 @@ INSERT INTO room (
     room_owner, 
     room_members, 
     room_chat, 
-    leaderboard, 
     room_meta, 
     room_lock, 
     is_active, 
@@ -28,16 +27,16 @@ INSERT INTO room (
     created_by, 
     updated_by
 ) 
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), $10, $11)
-RETURNING id, room_code, room_owner, room_members, room_chat, leaderboard, room_meta, room_lock, is_active, is_deleted, created_on, updated_on, created_by, updated_by
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), $10, $11)
+RETURNING id, room_code, room_owner, room_members, room_chat, room_meta, room_lock, is_active, is_deleted, created_on, updated_on, created_by, updated_by
 `
 
 type CreateRoomParams struct {
+	ID          pgtype.UUID
 	RoomCode    string
 	RoomOwner   pgtype.UUID
 	RoomMembers []byte
 	RoomChat    []byte
-	Leaderboard []byte
 	RoomMeta    []byte
 	RoomLock    bool
 	IsActive    bool
@@ -48,11 +47,11 @@ type CreateRoomParams struct {
 
 func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, error) {
 	row := q.db.QueryRow(ctx, createRoom,
+		arg.ID,
 		arg.RoomCode,
 		arg.RoomOwner,
 		arg.RoomMembers,
 		arg.RoomChat,
-		arg.Leaderboard,
 		arg.RoomMeta,
 		arg.RoomLock,
 		arg.IsActive,
@@ -67,7 +66,6 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 		&i.RoomOwner,
 		&i.RoomMembers,
 		&i.RoomChat,
-		&i.Leaderboard,
 		&i.RoomMeta,
 		&i.RoomLock,
 		&i.IsActive,

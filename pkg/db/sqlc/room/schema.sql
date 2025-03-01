@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS room (
   room_owner UUID NOT NULL,
   room_members JSONB NOT NULL,       
   room_chat JSONB NOT NULL,          
-  leaderboard JSONB NOT NULL,        
   room_meta JSONB NOT NULL,
   room_lock BOOLEAN NOT NULL DEFAULT false,
   is_active BOOLEAN NOT NULL,
