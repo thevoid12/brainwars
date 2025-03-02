@@ -19,6 +19,7 @@ type RoomReq struct {
 	UserID   uuid.UUID
 	Username string
 	UserMeta string
+	RoomName string
 }
 
 // Room is a struct that defines the room model
@@ -35,7 +36,11 @@ type Room struct {
 	UpdatedOn    time.Time
 }
 
-type RoomMembers struct {
+type RoomMemberReq struct {
 	UserID uuid.UUID
 	RoomID uuid.UUID
+}
+
+type UserIDReq struct {
+	UserID uuid.UUID
 }

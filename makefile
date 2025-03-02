@@ -39,3 +39,8 @@ bootstrap:
 	go install github.com/pressly/goose/v3/cmd/goose@latest
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 # to run: make bootstrap REPLACE_WITH=example DIRS="src include" FILE_PATTERN="*.go"
+
+sqlc:
+	@echo "**************************** sqlc generate ***************************************"#
+	cd pkg/db/sqlc && sqlc generate && cd ../../../ && go mod tidy
+	@echo "******************************************************************************"

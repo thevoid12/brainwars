@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"brainwars/pkg/room"
+	roommodel "brainwars/pkg/room/model"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -69,8 +72,11 @@ func CreateRoomPageHandler(c *gin.Context) {
 }
 
 func CreateRoomHandler(c *gin.Context) {
-	userID := ""
-	roomDetails,err := room.CreateRoom(c, userID)
+
+	_, err := room.CreateRoom(c, roommodel.RoomReq{})
+	if err != nil {
+
+	}
 	RenderTemplate(c, "home.html", gin.H{
 		"title": "About Page",
 	})

@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS room (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_code TEXT NOT NULL,
+  room_name TEXT,
   room_owner UUID NOT NULL,
   room_members JSONB NOT NULL,       
   room_chat JSONB NOT NULL,          

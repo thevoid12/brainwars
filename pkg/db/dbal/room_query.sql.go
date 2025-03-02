@@ -14,7 +14,8 @@ import (
 const createRoom = `-- name: CreateRoom :one
 INSERT INTO room (
     id, 
-    room_code, 
+    room_code,
+    room_name, 
     room_owner, 
     room_members, 
     room_chat, 
@@ -25,15 +26,16 @@ INSERT INTO room (
     created_on, 
     updated_on, 
     created_by, 
-    updated_by
+    updated_by    
 ) 
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), $10, $11)
-RETURNING id, room_code, room_owner, room_members, room_chat, room_meta, room_lock, is_active, is_deleted, created_on, updated_on, created_by, updated_by
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), $11, $12)
+RETURNING id, room_code, room_name, room_owner, room_members, room_chat, room_meta, room_lock, is_active, is_deleted, created_on, updated_on, created_by, updated_by
 `
 
 type CreateRoomParams struct {
 	ID          pgtype.UUID
 	RoomCode    string
+	RoomName    pgtype.Text
 	RoomOwner   pgtype.UUID
 	RoomMembers []byte
 	RoomChat    []byte
@@ -49,6 +51,7 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 	row := q.db.QueryRow(ctx, createRoom,
 		arg.ID,
 		arg.RoomCode,
+		arg.RoomName,
 		arg.RoomOwner,
 		arg.RoomMembers,
 		arg.RoomChat,
@@ -63,6 +66,7 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 	err := row.Scan(
 		&i.ID,
 		&i.RoomCode,
+		&i.RoomName,
 		&i.RoomOwner,
 		&i.RoomMembers,
 		&i.RoomChat,
@@ -76,4 +80,123 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 		&i.UpdatedBy,
 	)
 	return i, err
+}
+
+const getRoomByID = `-- name: GetRoomByID :many
+SELECT id, room_code, room_name, room_owner, room_members, room_chat, room_meta, room_lock, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room
+WHERE id = $1 AND is_deleted = false
+`
+
+func (q *Queries) GetRoomByID(ctx context.Context, id pgtype.UUID) ([]Room, error) {
+	rows, err := q.db.Query(ctx, getRoomByID, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Room
+	for rows.Next() {
+		var i Room
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomCode,
+			&i.RoomName,
+			&i.RoomOwner,
+			&i.RoomMembers,
+			&i.RoomChat,
+			&i.RoomMeta,
+			&i.RoomLock,
+			&i.IsActive,
+			&i.IsDeleted,
+			&i.CreatedOn,
+			&i.UpdatedOn,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRoomByUserID = `-- name: ListRoomByUserID :many
+SELECT id, room_code, room_name, room_owner, room_members, room_chat, room_meta, room_lock, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room
+WHERE room_owner = $1 AND is_deleted = false
+`
+
+func (q *Queries) ListRoomByUserID(ctx context.Context, roomOwner pgtype.UUID) ([]Room, error) {
+	rows, err := q.db.Query(ctx, listRoomByUserID, roomOwner)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Room
+	for rows.Next() {
+		var i Room
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomCode,
+			&i.RoomName,
+			&i.RoomOwner,
+			&i.RoomMembers,
+			&i.RoomChat,
+			&i.RoomMeta,
+			&i.RoomLock,
+			&i.IsActive,
+			&i.IsDeleted,
+			&i.CreatedOn,
+			&i.UpdatedOn,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateRoomByID = `-- name: UpdateRoomByID :exec
+UPDATE room
+SET 
+    room_name = $2,
+    room_members = $3,
+    room_chat = $4,
+    room_meta = $5,
+    room_lock = $6,
+    is_active = $7,
+    updated_on = NOW(),
+    updated_by = $8
+WHERE id = $1
+`
+
+type UpdateRoomByIDParams struct {
+	ID          pgtype.UUID
+	RoomName    pgtype.Text
+	RoomMembers []byte
+	RoomChat    []byte
+	RoomMeta    []byte
+	RoomLock    bool
+	IsActive    bool
+	UpdatedBy   string
+}
+
+func (q *Queries) UpdateRoomByID(ctx context.Context, arg UpdateRoomByIDParams) error {
+	_, err := q.db.Exec(ctx, updateRoomByID,
+		arg.ID,
+		arg.RoomName,
+		arg.RoomMembers,
+		arg.RoomChat,
+		arg.RoomMeta,
+		arg.RoomLock,
+		arg.IsActive,
+		arg.UpdatedBy,
+	)
+	return err
 }

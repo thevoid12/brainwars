@@ -46,6 +46,7 @@ type Question struct {
 type Room struct {
 	ID          pgtype.UUID
 	RoomCode    string
+	RoomName    pgtype.Text
 	RoomOwner   pgtype.UUID
 	RoomMembers []byte
 	RoomChat    []byte
