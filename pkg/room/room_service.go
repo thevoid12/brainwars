@@ -6,7 +6,6 @@ import (
 	logs "brainwars/pkg/logger"
 	"brainwars/pkg/room/model"
 	"context"
-	"encoding/json"
 	"errors"
 
 	"github.com/google/uuid"
@@ -263,41 +262,26 @@ func LeaveRoom(ctx context.Context, req model.RoomMemberReq) (err error) {
 		Valid: true,
 	})
 	if err != nil || len(room) != 0 {
-
 		l.Sugar().Error("Could not get room by ID in database", err)
 		return err
 	}
-	existingMembers := []*model.RoomMemberReq{}
-	err = json.Unmarshal(room[0].RoomMembers, &existingMembers)
-	if err != nil {
 
-		l.Sugar().Error("Could not unmarshal room members", err)
-		return err
-	}
-	updatedMembers := []*model.RoomMemberReq{}
-	for _, member := range existingMembers {
-		if member.UserID != req.UserID {
-			updatedMembers = append(updatedMembers, member)
-		}
-	}
-	jsonMembers, err := json.Marshal(updatedMembers)
-	if err != nil {
-		l.Sugar().Error("error in marshalling room members", err)
-		return err
-	}
-	err = dBal.UpdateRoomByID(ctx, dbal.UpdateRoomByIDParams{
-		ID:          room[0].ID,
-		RoomName:    room[0].RoomName,
-		RoomMembers: jsonMembers,
-		RoomChat:    room[0].RoomChat,
-		RoomMeta:    room[0].RoomMeta,
-		RoomLock:    room[0].RoomLock,
-		IsActive:    room[0].IsActive,
-		UpdatedBy:   req.UserID.String(),
+	err = dBal.UpdateRoomMemberByRoomAndUserID(ctx, dbal.UpdateRoomMemberByRoomAndUserIDParams{
+		RoomID: pgtype.UUID{
+			Bytes: req.RoomID,
+			Valid: true,
+		},
+		IsKicked:  false,
+		IsActive:  false,
+		UpdatedBy: req.UserID.String(),
+		UserID: pgtype.UUID{
+			Bytes: req.UserID,
+			Valid: true,
+		},
 	})
 	if err != nil {
-		l.Sugar().Error("Could not update room members in database", err)
-		return err
+		l.Sugar().Error("Could not uipdate room member by room and userID in database", err)
 	}
+
 	return nil
 }

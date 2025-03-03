@@ -526,3 +526,32 @@ func (q *Queries) UpdateRoomMemberByID(ctx context.Context, arg UpdateRoomMember
 	)
 	return err
 }
+
+const updateRoomMemberByRoomAndUserID = `-- name: UpdateRoomMemberByRoomAndUserID :exec
+UPDATE room_member
+SET 
+    is_kicked = $2,
+    is_active = $3,
+    updated_on = NOW(),
+    updated_by = $4
+WHERE room_id = $1 AND user_id = $5 AND is_deleted=false
+`
+
+type UpdateRoomMemberByRoomAndUserIDParams struct {
+	RoomID    pgtype.UUID
+	IsKicked  bool
+	IsActive  bool
+	UpdatedBy string
+	UserID    pgtype.UUID
+}
+
+func (q *Queries) UpdateRoomMemberByRoomAndUserID(ctx context.Context, arg UpdateRoomMemberByRoomAndUserIDParams) error {
+	_, err := q.db.Exec(ctx, updateRoomMemberByRoomAndUserID,
+		arg.RoomID,
+		arg.IsKicked,
+		arg.IsActive,
+		arg.UpdatedBy,
+		arg.UserID,
+	)
+	return err
+}

@@ -75,6 +75,14 @@ SET
     updated_by = $4
 WHERE id = $1;
 
+-- name: UpdateRoomMemberByRoomAndUserID :exec
+UPDATE room_member
+SET 
+    is_kicked = $2,
+    is_active = $3,
+    updated_on = NOW(),
+    updated_by = $4
+WHERE room_id = $1 AND user_id = $5 AND is_deleted=false;
 
 --------------------------------------- leaderboard ------------------------------------------------------------------------
 -- name: CreatLeaderBoard :one
