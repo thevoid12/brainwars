@@ -44,3 +44,20 @@ type RoomMemberReq struct {
 type UserIDReq struct {
 	UserID uuid.UUID
 }
+
+/******** Leader board ***************/
+type Leaderboard struct {
+	RoomID uuid.UUID
+	UserID uuid.UUID
+	Score  float64
+}
+type EditLeaderBoardReq struct {
+	UserID uuid.UUID
+	RoomID uuid.UUID
+	Score  float64
+}
+
+type RoomLBReq struct {
+	UserID uuid.UUID
+	RoomID uuid.UUID
+}

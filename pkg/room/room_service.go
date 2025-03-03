@@ -92,6 +92,29 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 		return nil, err
 	}
 
+	lbParams := dbal.CreatLeaderBoardParams{
+		ID: pgtype.UUID{
+			Bytes: uuid.New(),
+			Valid: true,
+		},
+		RoomID: pgtype.UUID{
+			Bytes: room.ID.Bytes,
+			Valid: true,
+		},
+		UserID: pgtype.UUID{
+			Bytes: req.UserID,
+			Valid: true,
+		},
+		Score:     0,
+		CreatedBy: req.UserID.String(),
+		UpdatedBy: req.UserID.String(),
+	}
+	_, err = dBal.CreatLeaderBoard(ctx, lbParams)
+	if err != nil {
+		l.Sugar().Error("Could not create new leaderboard in database", err)
+		return nil, err
+	}
+
 	roomDetails = &model.Room{
 		ID:           room.ID.Bytes,
 		RoomName:     room.RoomName.String,
@@ -284,4 +307,68 @@ func LeaveRoom(ctx context.Context, req model.RoomMemberReq) (err error) {
 	}
 
 	return nil
+}
+
+/********************** LEADER BOARD **************************************/
+func CreateLeaderBoard(ctx context.Context) {
+
+}
+
+func UpdateLeaderBoard(ctx context.Context, req model.EditLeaderBoardReq) (err error) {
+	l := logs.GetLoggerctx(ctx)
+
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return err
+	}
+
+	dBal := dbal.New(dbConn.Db)
+
+	err = dBal.UpdateLeaderBoardScoreByUserIDAndRoomID(ctx, dbal.UpdateLeaderBoardScoreByUserIDAndRoomIDParams{
+		RoomID: pgtype.UUID{
+			Bytes: req.RoomID,
+			Valid: true,
+		},
+		UserID: pgtype.UUID{
+			Bytes: req.UserID,
+			Valid: true,
+		},
+		Score:     float64(req.Score),
+		UpdatedBy: req.UserID.String(),
+	})
+	if err != nil {
+		l.Sugar().Error("Update leader board score by user id and room id failed", err)
+		return err
+	}
+
+	return nil
+}
+
+func ListLeaderBoardByRoomID(ctx context.Context, req model.RoomLBReq) (leaderBoard []*model.Leaderboard, err error) {
+	l := logs.GetLoggerctx(ctx)
+
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+	}
+
+	dBal := dbal.New(dbConn.Db)
+	dbRecord, err := dBal.ListLeaderBoardByRoomID(ctx, pgtype.UUID{
+		Bytes: req.UserID,
+		Valid: true,
+	})
+	if err != nil {
+		l.Sugar().Error("List leaderboard by room id failed", err)
+		return nil, err
+	}
+	for _, lb := range dbRecord {
+		leaderBoard = append(leaderBoard, &model.Leaderboard{
+			RoomID: lb.ID.Bytes,
+			UserID: lb.UserID.Bytes,
+			Score:  lb.Score,
+		})
+	}
+	return leaderBoard, err
 }
