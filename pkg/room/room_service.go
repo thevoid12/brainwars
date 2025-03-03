@@ -10,7 +10,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -171,7 +171,16 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 
 	dBal := dbal.New(tx)
 
-	roomMembers, err := dBal.GetRoomMemberByRoomAndUserID(ctx, dbal.GetRoomMemberByRoomAndUserIDParams{
+	room, err := dBal.GetRoomByID(ctx, pgtype.UUID{
+		Bytes: req.RoomID,
+		Valid: true,
+	})
+	if err != nil {
+		l.Sugar().Error("Could not get room by ID in database", err)
+		return nil, err
+	}
+
+	existingMembers, err := dBal.GetRoomMemberByRoomAndUserID(ctx, dbal.GetRoomMemberByRoomAndUserIDParams{
 		RoomID: pgtype.UUID{
 			Bytes: req.RoomID,
 			Valid: true,
@@ -181,20 +190,14 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 			Valid: true,
 		},
 	})
-	if err != nil || len(roomMembers) != 0 {
-		l.Sugar().Error("Could not get room by ID in database", err)
+	if err != nil || len(existingMembers) != 0 {
+		l.Sugar().Error("Could not get room member by room and user ID in database", err)
 		return nil, err
 	}
 
-	existingMembers := []*model.RoomMemberReq{}
-	err = json.Unmarshal(room[0].RoomMembers, &existingMembers)
-	if err != nil {
-		l.Sugar().Error("Could not unmarshal room members", err)
-		return nil, err
-	}
 	alreadyJoined := false
 	for _, member := range existingMembers {
-		if member.UserID == req.UserID {
+		if member.UserID.Bytes == req.UserID {
 			alreadyJoined = true
 			break
 		}
@@ -202,24 +205,25 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 	if alreadyJoined {
 		return nil, errors.New("user already joined the room")
 	}
-	existingMembers = append(existingMembers, &model.RoomMemberReq{
-		UserID: req.UserID,
-		RoomID: req.RoomID,
-	})
-	jsonMembers, err := json.Marshal(existingMembers)
-	if err != nil {
-		l.Sugar().Error("error in marshalling room members", err)
-		return nil, err
-	}
-	err = dBal.UpdateRoomByID(ctx, dbal.UpdateRoomByIDParams{
-		ID:          room[0].ID,
-		RoomName:    room[0].RoomName,
-		RoomMembers: jsonMembers,
-		RoomChat:    room[0].RoomChat,
-		RoomMeta:    room[0].RoomMeta,
-		RoomLock:    room[0].RoomLock,
-		IsActive:    room[0].IsActive,
-		UpdatedBy:   req.UserID.String(),
+	_, err = dBal.CreateRoomMember(ctx, dbal.CreateRoomMemberParams{
+		ID: pgtype.UUID{
+			Bytes: uuid.New(),
+			Valid: true,
+		},
+		RoomID: pgtype.UUID{
+			Bytes: room[0].ID.Bytes,
+			Valid: true,
+		},
+		UserID: pgtype.UUID{
+			Bytes: req.UserID,
+			Valid: false,
+		},
+		IsBot:     false,
+		IsKicked:  false,
+		IsActive:  true,
+		IsDeleted: false,
+		CreatedBy: req.UserID.String(),
+		UpdatedBy: req.RoomID.String(),
 	})
 	if err != nil {
 		l.Sugar().Error("Could not update room members in database", err)
@@ -229,7 +233,7 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 	roomDetails = &model.Room{
 		ID:           room[0].ID.Bytes,
 		RoomName:     room[0].RoomName.String,
-		RefreshToken: string(uuid.New().String()),
+		RefreshToken: uuid.New().String(),
 		UserType:     string(model.Human),
 		UserMeta:     string(room[0].RoomMeta),
 		Premium:      false,
@@ -238,6 +242,7 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 		CreatedOn:    room[0].CreatedOn.Time,
 		UpdatedOn:    room[0].UpdatedOn.Time,
 	}
+
 	return roomDetails, nil
 }
 
