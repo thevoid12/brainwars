@@ -10,40 +10,29 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // CreateRoom is a function that creates a room
 func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room, err error) {
-
 	l := logs.GetLoggerctx(ctx)
-	members := []model.RoomMemberReq{}
 	roomID := uuid.New()
-	members = append(members, model.RoomMemberReq{
-		UserID: req.UserID,
-		RoomID: roomID,
-	})
-	jsonMembers, err := json.Marshal(members)
-	if err != nil {
-		l.Sugar().Error("error in marshalling room members", err)
-		return nil, err
-	}
 	params := dbal.CreateRoomParams{
 		RoomCode: uuid.New().String(),
 		RoomOwner: pgtype.UUID{
 			Bytes: req.UserID,
 			Valid: true,
 		},
-		RoomMembers: []byte(jsonMembers),
-		RoomChat:    []byte("[{}]"),
-		RoomMeta:    []byte("[{}]"),
-		RoomLock:    false,
-		IsActive:    true,
-		IsDeleted:   false,
-		CreatedBy:   req.UserID.String(),
-		UpdatedBy:   req.UserID.String(),
+		RoomChat:  []byte("[{}]"),
+		RoomMeta:  []byte("[{}]"),
+		RoomLock:  false,
+		IsActive:  true,
+		IsDeleted: false,
+		CreatedBy: req.UserID.String(),
+		UpdatedBy: req.UserID.String(),
 		ID: pgtype.UUID{
-			Bytes: uuid.New(),
+			Bytes: roomID,
 			Valid: true,
 		},
 	}
@@ -53,19 +42,61 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
-	// Assuming you have a sqlc function to save the room details to the database
-	dBal := dbal.New(dbConn.Db)
+	// Start Transaction
+	tx, err := dbConn.Db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		l.Sugar().Error("Could not begin transaction", err)
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx) // Rollback if any error occurs
+			l.Sugar().Error("Transaction rolled back due to error", err)
+		} else {
+			tx.Commit(ctx) // Commit only if there is no error
+		}
+	}()
+
+	// Use the transaction for DB operations
+	dBal := dbal.New(tx)
+
 	room, err := dBal.CreateRoom(ctx, params)
 	if err != nil {
 		l.Sugar().Error("Could not create room in database", err)
 		return nil, err
 	}
+	roomMemberParams := dbal.CreateRoomMemberParams{
+		ID: pgtype.UUID{
+			Bytes: uuid.New(),
+			Valid: true,
+		},
+		RoomID: pgtype.UUID{
+			Bytes: roomID,
+			Valid: true,
+		},
+		UserID: pgtype.UUID{
+			Bytes: req.UserID,
+			Valid: true,
+		},
+		IsBot:     false,
+		IsKicked:  false,
+		IsActive:  true,
+		IsDeleted: false,
+		CreatedBy: req.UserID.String(),
+		UpdatedBy: req.UserID.String(),
+	}
+	_, err = dBal.CreateRoomMember(ctx, roomMemberParams)
+	if err != nil {
+		l.Sugar().Error("Could not create new room member in database", err)
+		return nil, err
+	}
+
 	roomDetails = &model.Room{
 		ID:           room.ID.Bytes,
 		RoomName:     room.RoomName.String,
-		RefreshToken: string(uuid.New().String()),
+		RefreshToken: uuid.New().String(),
 		UserType:     string(model.Human),
 		UserMeta:     string(room.RoomMeta),
 		Premium:      false,
@@ -74,6 +105,7 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 		CreatedOn:    room.CreatedOn.Time,
 		UpdatedOn:    room.UpdatedOn.Time,
 	}
+
 	return roomDetails, nil
 }
 
@@ -121,15 +153,39 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 	}
 	defer dbConn.Db.Close()
 
-	dBal := dbal.New(dbConn.Db)
-	room, err := dBal.GetRoomByID(ctx, pgtype.UUID{
-		Bytes: req.RoomID,
-		Valid: true,
+	// Start Transaction
+	tx, err := dbConn.Db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		l.Sugar().Error("Could not begin transaction", err)
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx) // Rollback if any error occurs
+			l.Sugar().Error("Transaction rolled back due to error", err)
+		} else {
+			tx.Commit(ctx) // Commit only if there is no error
+		}
+	}()
+
+	dBal := dbal.New(tx)
+
+	roomMembers, err := dBal.GetRoomMemberByRoomAndUserID(ctx, dbal.GetRoomMemberByRoomAndUserIDParams{
+		RoomID: pgtype.UUID{
+			Bytes: req.RoomID,
+			Valid: true,
+		},
+		UserID: pgtype.UUID{
+			Bytes: req.UserID,
+			Valid: true,
+		},
 	})
-	if err != nil || len(room) != 0 {
+	if err != nil || len(roomMembers) != 0 {
 		l.Sugar().Error("Could not get room by ID in database", err)
 		return nil, err
 	}
+
 	existingMembers := []*model.RoomMemberReq{}
 	err = json.Unmarshal(room[0].RoomMembers, &existingMembers)
 	if err != nil {
@@ -240,5 +296,3 @@ func LeaveRoom(ctx context.Context, req model.RoomMemberReq) (err error) {
 	}
 	return nil
 }
-
-
