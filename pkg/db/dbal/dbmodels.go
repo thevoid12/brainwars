@@ -9,17 +9,18 @@ import (
 )
 
 type Answer struct {
-	ID           pgtype.UUID
-	RoomID       pgtype.UUID
-	UserID       pgtype.UUID
-	QuestionID   pgtype.UUID
-	AnswerOption int32
-	IsCorrect    bool
-	AnswerTime   pgtype.Timestamp
-	CreatedOn    pgtype.Timestamp
-	UpdatedOn    pgtype.Timestamp
-	CreatedBy    string
-	UpdatedBy    string
+	ID             pgtype.UUID
+	RoomID         pgtype.UUID
+	UserID         pgtype.UUID
+	QuestionID     pgtype.UUID
+	QuestionDataID pgtype.UUID
+	AnswerOption   int32
+	IsCorrect      bool
+	AnswerTime     pgtype.Timestamp
+	CreatedOn      pgtype.Timestamp
+	UpdatedOn      pgtype.Timestamp
+	CreatedBy      string
+	UpdatedBy      string
 }
 
 type Leaderboard struct {
@@ -36,6 +37,7 @@ type Leaderboard struct {
 type Question struct {
 	ID           pgtype.UUID
 	RoomID       pgtype.UUID
+	Topic        pgtype.Text
 	QuestionData []byte
 	CreatedOn    pgtype.Timestamp
 	UpdatedOn    pgtype.Timestamp
