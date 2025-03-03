@@ -44,20 +44,19 @@ type Question struct {
 }
 
 type Room struct {
-	ID          pgtype.UUID
-	RoomCode    string
-	RoomName    pgtype.Text
-	RoomOwner   pgtype.UUID
-	RoomMembers []byte
-	RoomChat    []byte
-	RoomMeta    []byte
-	RoomLock    bool
-	IsActive    bool
-	IsDeleted   bool
-	CreatedOn   pgtype.Timestamp
-	UpdatedOn   pgtype.Timestamp
-	CreatedBy   string
-	UpdatedBy   string
+	ID        pgtype.UUID
+	RoomCode  string
+	RoomName  pgtype.Text
+	RoomOwner pgtype.UUID
+	RoomChat  []byte
+	RoomMeta  []byte
+	RoomLock  bool
+	IsActive  bool
+	IsDeleted bool
+	CreatedOn pgtype.Timestamp
+	UpdatedOn pgtype.Timestamp
+	CreatedBy string
+	UpdatedBy string
 }
 
 type RoomMember struct {
