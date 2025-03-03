@@ -42,5 +42,5 @@ bootstrap:
 
 sqlc:
 	@echo "**************************** sqlc generate ***************************************"#
-	cd pkg/db/sqlc && sqlc generate && cd ../../../ && go mod tidy
+	cd pkg/db/sqlc && sqlc generate && cd ../../../ 
 	@echo "******************************************************************************"
