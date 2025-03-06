@@ -16,11 +16,16 @@ import (
 func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 	l := logs.GetLoggerctx(ctx)
 
-	json.Unmarshal()
+	quesJson, err := json.Marshal(req.QuestionData)
+	if err != nil {
+		l.Sugar().Error("Could not marshal question data", err)
+		return err
+	}
+
 	params := dbal.CreateQuestionParams{
 		RoomID:       pgtype.UUID{Bytes: req.RoomID, Valid: true},
 		Topic:        pgtype.Text{String: req.Topic, Valid: true},
-		QuestionData: req.QuestionData,
+		QuestionData: quesJson,
 		CreatedBy:    req.CreatedBy,
 		UpdatedBy:    req.CreatedBy,
 	}
@@ -45,10 +50,17 @@ func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 // UpdateQuestionByID updates a question by its ID
 func UpdateQuestionByID(ctx context.Context, req model.EditQuestionReq) error {
 	l := logs.GetLoggerctx(ctx)
+
+	quesJson, err := json.Marshal(req.QuestionData)
+	if err != nil {
+		l.Sugar().Error("Could not marshal question data", err)
+		return err
+	}
+
 	params := dbal.UpdateQuestionByIDParams{
 		ID:           pgtype.UUID{Bytes: req.ID, Valid: true},
 		Topic:        pgtype.Text{String: req.Topic, Valid: true},
-		QuestionData: req.QuestionData,
+		QuestionData: quesJson,
 		UpdatedBy:    req.UpdatedBy,
 	}
 
@@ -60,7 +72,7 @@ func UpdateQuestionByID(ctx context.Context, req model.EditQuestionReq) error {
 	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
-	err = dBal.UpdateQuestion(ctx, params)
+	err = dBal.UpdateQuestionByID(ctx, params)
 	if err != nil {
 		l.Sugar().Error("Could not update question in database", err)
 		return err
@@ -88,11 +100,17 @@ func ListQuestionsByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Ques
 	}
 
 	for _, question := range questions {
+		qs := []*model.QuestionData{}
+		err := json.Unmarshal(question.QuestionData, &qs)
+		if err != nil {
+			l.Sugar().Error("Could not unmarshal question data", err)
+			return nil, err
+		}
 		questionDetails = append(questionDetails, &model.Question{
 			ID:           question.ID.Bytes,
 			RoomID:       question.RoomID.Bytes,
 			Topic:        question.Topic.String,
-			QuestionData: string(question.QuestionData),
+			QuestionData: qs,
 			CreatedOn:    question.CreatedOn.Time,
 			UpdatedOn:    question.UpdatedOn.Time,
 			CreatedBy:    question.CreatedBy,
@@ -107,13 +125,13 @@ func ListQuestionsByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Ques
 func CreateAnswer(ctx context.Context, req model.AnswerReq) error {
 	l := logs.GetLoggerctx(ctx)
 	params := dbal.CreateAnswerParams{
-		RoomID:         req.RoomID,
-		UserID:         req.UserID,
-		QuestionID:     req.QuestionID,
-		QuestionDataID: req.QuestionDataID,
+		RoomID:         pgtype.UUID{Bytes: req.RoomID, Valid: true},
+		UserID:         pgtype.UUID{Bytes: req.UserID, Valid: true},
+		QuestionID:     pgtype.UUID{Bytes: req.QuestionID, Valid: true},
+		QuestionDataID: pgtype.UUID{Bytes: req.QuestionDataID, Valid: true},
 		AnswerOption:   req.AnswerOption,
 		IsCorrect:      req.IsCorrect,
-		AnswerTime:     req.AnswerTime,
+		AnswerTime:     pgtype.Timestamp{Time: req.AnswerTime, Valid: true},
 		CreatedBy:      req.CreatedBy,
 		UpdatedBy:      req.CreatedBy,
 	}
@@ -136,13 +154,13 @@ func CreateAnswer(ctx context.Context, req model.AnswerReq) error {
 }
 
 // UpdateAnswer updates an existing answer in the database
-func UpdateAnswer(ctx context.Context, req model.AnswerUpdateReq) error {
+func UpdateAnswer(ctx context.Context, req model.EditAnswerReq) error {
 	l := logs.GetLoggerctx(ctx)
 	params := dbal.UpdateAnswerParams{
 		ID:           pgtype.UUID{Bytes: req.ID, Valid: true},
 		AnswerOption: req.AnswerOption,
 		IsCorrect:    req.IsCorrect,
-		AnswerTime:   req.AnswerTime,
+		AnswerTime:   pgtype.Timestamp{Time: req.AnswerTime, Valid: true},
 		UpdatedBy:    req.UpdatedBy,
 	}
 
