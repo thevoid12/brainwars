@@ -16,6 +16,7 @@ import (
 )
 
 // SetupGame is a function that sets up a game from room creation,member addition,question generation
+// TODO: make everything in transaction
 func SetupGame(ctx context.Context, req model.RoomReq, joinRoomIDs []model.UserIDReq, questReq *quizmodel.QuizReq) error {
 	l := logs.GetLoggerctx(ctx)
 	// Create a room
@@ -326,6 +327,37 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 		IsDeleted: room[0].IsDeleted,
 		CreatedOn: room[0].CreatedOn.Time,
 		UpdatedOn: room[0].UpdatedOn.Time,
+	}
+
+	return roomDetails, nil
+}
+
+// JoinRoomWithRoomCode is a function that joins a member into a room with a room code
+// TODO: (V2) implement ability to lock the room so that someone cant join
+func JoinRoomWithRoomCode(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.Room, err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+
+	dbRoom, err := dBal.GetRoomByRoomCode(ctx, req.RoomCode)
+	if err != nil {
+		l.Sugar().Error("Could not get room by room code in database", err)
+		return nil, err
+	}
+
+	roomDetails, err = JoinRoom(ctx, model.RoomMemberReq{
+		UserID: req.UserID,
+		RoomID: dbRoom[0].ID.Bytes,
+	})
+	if err != nil {
+		l.Sugar().Error("Could not join room", err)
+		return nil, err
 	}
 
 	return roomDetails, nil

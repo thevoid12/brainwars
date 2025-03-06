@@ -47,8 +47,9 @@ type Room struct {
 }
 
 type RoomMemberReq struct {
-	UserID uuid.UUID
-	RoomID uuid.UUID
+	UserID   uuid.UUID
+	RoomID   uuid.UUID
+	RoomCode string
 }
 
 type UserIDReq struct {

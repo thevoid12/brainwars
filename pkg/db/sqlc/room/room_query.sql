@@ -27,6 +27,10 @@ WHERE room_owner = $1 AND is_deleted = false;
 SELECT * FROM room
 WHERE id = $1 AND is_deleted = false;
 
+-- name: GetRoomByRoomCode :many
+SELECT * FROM room
+WHERE room_code = $1 AND is_deleted = false;
+
 -- name: UpdateRoomByID :exec
 UPDATE room
 SET 
