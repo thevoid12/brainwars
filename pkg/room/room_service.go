@@ -4,6 +4,8 @@ import (
 	dbpkg "brainwars/pkg/db"
 	"brainwars/pkg/db/dbal"
 	logs "brainwars/pkg/logger"
+	"brainwars/pkg/quiz"
+	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room/model"
 	"context"
 	"errors"
@@ -12,6 +14,56 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+// SetupGame is a function that sets up a game from room creation,member addition,question generation
+func SetupGame(ctx context.Context, req model.RoomReq, joinRoomIDs []model.UserIDReq, questReq *quizmodel.QuizReq) error {
+	l := logs.GetLoggerctx(ctx)
+	// Create a room
+	roomDetails, err := CreateRoom(ctx, req)
+	if err != nil {
+		l.Sugar().Error("Could not create room", err)
+		return err
+	}
+
+	// Add room members
+	for _, membersID := range joinRoomIDs {
+		_, err = JoinRoom(ctx, model.RoomMemberReq{
+			UserID: membersID.UserID,
+			RoomID: roomDetails.ID,
+		})
+		if err != nil {
+			l.Sugar().Error("Could not join room", err)
+			return err
+		}
+	}
+
+	// create questions on that topic which llm will generate
+	questionData, err := quiz.GenerateQuiz(ctx, &quizmodel.QuizReq{
+		Topic: questReq.Topic,
+		Count: questReq.Count,
+	})
+	if err != nil {
+		l.Sugar().Error("Could not generate quiz", err)
+		return err
+	}
+
+	questionReq := quizmodel.QuestionReq{
+		RoomID:       roomDetails.ID,
+		Topic:        questReq.Topic,
+		QuestionData: questionData,
+		CreatedBy:    roomDetails.CreatedBy,
+		Count:        questReq.Count,
+	}
+
+	// Create questions
+	err = quiz.CreateQuestion(ctx, questionReq)
+	if err != nil {
+		l.Sugar().Error("Could not create question", err)
+		return err
+	}
+
+	return nil
+}
 
 // CreateRoom is a function that creates a room
 func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room, err error) {
@@ -34,6 +86,11 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 			Bytes: roomID,
 			Valid: true,
 		},
+		RoomName: pgtype.Text{
+			String: req.RoomName,
+			Valid:  req.RoomName != "",
+		},
+		GameType: string(req.GameType),
 	}
 
 	dbConn, err := dbpkg.InitDB()
@@ -124,8 +181,10 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 		Premium:      false,
 		IsActive:     room.IsActive,
 		IsDeleted:    room.IsDeleted,
+		CreatedBy:    req.UserID,
 		CreatedOn:    room.CreatedOn.Time,
 		UpdatedOn:    room.UpdatedOn.Time,
+		GameType:     model.GT(room.GameType),
 	}
 
 	return roomDetails, nil
@@ -157,10 +216,12 @@ func ListRoom(ctx context.Context, req model.UserIDReq) (roomDetails []*model.Ro
 			UserType:     string(model.Human),
 			UserMeta:     string(room.RoomMeta),
 			Premium:      false,
-			IsActive:     room.IsActive,
-			IsDeleted:    room.IsDeleted,
-			CreatedOn:    room.CreatedOn.Time,
-			UpdatedOn:    room.UpdatedOn.Time,
+			GameType:     model.GT(room.GameType),
+
+			IsActive:  room.IsActive,
+			IsDeleted: room.IsDeleted,
+			CreatedOn: room.CreatedOn.Time,
+			UpdatedOn: room.UpdatedOn.Time,
 		})
 	}
 	return roomDetails, nil
@@ -259,10 +320,12 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 		UserType:     string(model.Human),
 		UserMeta:     string(room[0].RoomMeta),
 		Premium:      false,
-		IsActive:     room[0].IsActive,
-		IsDeleted:    room[0].IsDeleted,
-		CreatedOn:    room[0].CreatedOn.Time,
-		UpdatedOn:    room[0].UpdatedOn.Time,
+		GameType:     model.GT(room[0].GameType),
+
+		IsActive:  room[0].IsActive,
+		IsDeleted: room[0].IsDeleted,
+		CreatedOn: room[0].CreatedOn.Time,
+		UpdatedOn: room[0].UpdatedOn.Time,
 	}
 
 	return roomDetails, nil

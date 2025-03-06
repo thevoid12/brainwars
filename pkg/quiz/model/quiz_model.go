@@ -6,14 +6,21 @@ import (
 	"github.com/google/uuid"
 )
 
+type QuizReq struct {
+	Topic string
+	Count int
+}
+
 type Options struct {
 	ID     uuid.UUID
 	Option string
 }
+
 type QuestionData struct {
+	ID       uuid.UUID // unique id for each question
 	Question string
-	Options
-	Answer uuid.UUID // option id: which option is correct
+	Options  []Options
+	Answer   uuid.UUID // option id: which option is correct
 }
 
 // QuestionReq represents the request to create a question
@@ -21,7 +28,8 @@ type QuestionReq struct {
 	RoomID       uuid.UUID
 	Topic        string
 	QuestionData []*QuestionData
-	CreatedBy    string
+	CreatedBy    uuid.UUID
+	Count        int
 }
 
 // EditQuestionReq represents the request to update a question

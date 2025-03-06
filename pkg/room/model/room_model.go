@@ -14,12 +14,20 @@ const (
 	Human UserType = "HUMAN"
 )
 
+type GT string
+
+const (
+	SP GT = "SINGLE_PLAYER"
+	MP GT = "MULTI_PLAYER"
+)
+
 // RoomReq is a struct that defines the request body for creating a room
 type RoomReq struct {
 	UserID   uuid.UUID
 	Username string
 	UserMeta string
 	RoomName string
+	GameType GT
 }
 
 // Room is a struct that defines the room model
@@ -30,8 +38,10 @@ type Room struct {
 	UserType     string
 	UserMeta     string
 	Premium      bool
+	GameType     GT
 	IsActive     bool
 	IsDeleted    bool
+	CreatedBy    uuid.UUID
 	CreatedOn    time.Time
 	UpdatedOn    time.Time
 }

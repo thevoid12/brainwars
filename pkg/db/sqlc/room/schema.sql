@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS room (
   room_chat JSONB NOT NULL,          
   room_meta JSONB NOT NULL,
   room_lock BOOLEAN NOT NULL DEFAULT false,
+  game_TYPE TEXT NOT NULL,
   is_active BOOLEAN NOT NULL,
   is_deleted BOOLEAN NOT NULL,
   created_on TIMESTAMP NOT NULL DEFAULT NOW(),

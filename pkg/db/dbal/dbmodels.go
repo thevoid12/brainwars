@@ -53,6 +53,7 @@ type Room struct {
 	RoomChat  []byte
 	RoomMeta  []byte
 	RoomLock  bool
+	GameType  string
 	IsActive  bool
 	IsDeleted bool
 	CreatedOn pgtype.Timestamp

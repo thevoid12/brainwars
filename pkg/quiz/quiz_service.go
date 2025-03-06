@@ -12,6 +12,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+// llm generates the questions based on the topic and count
+// and returns the questions in the form of QuestionData
+// which is a slice of QuestionData
+func GenerateQuiz(ctx context.Context, req *model.QuizReq) (questData []*model.QuestionData, err error) {
+
+	return questData, nil
+}
+
 // CreateQuestion creates a new question in the database
 func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 	l := logs.GetLoggerctx(ctx)
@@ -26,8 +34,8 @@ func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 		RoomID:       pgtype.UUID{Bytes: req.RoomID, Valid: true},
 		Topic:        pgtype.Text{String: req.Topic, Valid: true},
 		QuestionData: quesJson,
-		CreatedBy:    req.CreatedBy,
-		UpdatedBy:    req.CreatedBy,
+		CreatedBy:    req.CreatedBy.String(),
+		UpdatedBy:    req.CreatedBy.String(),
 	}
 
 	dbConn, err := dbpkg.InitDB()
