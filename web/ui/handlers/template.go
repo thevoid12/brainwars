@@ -14,7 +14,7 @@ func RenderTemplate(c *gin.Context, pageTemplate string, data gin.H) {
 	// Define the paths to the layout and page templates
 	templatePaths := []string{
 		filepath.Join(viper.GetString("app.uiTemplates"), "layout.html"),
-		filepath.Join(viper.GetString("app.uiTemplates"), "layout.html"),
+		filepath.Join(viper.GetString("app.uiTemplates"), pageTemplate), // Load the actual page template
 	}
 
 	// Parse the templates

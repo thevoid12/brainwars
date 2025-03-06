@@ -12,7 +12,7 @@ type QuizReq struct {
 }
 
 type Options struct {
-	ID     uuid.UUID
+	ID     int
 	Option string
 }
 
@@ -20,7 +20,7 @@ type QuestionData struct {
 	ID       uuid.UUID // unique id for each question
 	Question string
 	Options  []Options
-	Answer   uuid.UUID // option id: which option is correct
+	Answer   int // option id: which option is correct
 }
 
 // QuestionReq represents the request to create a question

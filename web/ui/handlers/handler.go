@@ -3,6 +3,7 @@ package handlers
 import (
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -52,14 +53,16 @@ import (
 // }
 
 func LandingPageHandler(c *gin.Context) {
+	fmt.Println("hiiii")
 	RenderTemplate(c, "brainwars.html", gin.H{
 		"title": "brain war",
 	})
 }
 
 func HomeHandler(c *gin.Context) {
+	fmt.Println("hlo")
 	RenderTemplate(c, "home.html", gin.H{
-		"title": "About Page",
+		"title": "home Page",
 	})
 }
 

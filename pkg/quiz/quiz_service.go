@@ -16,7 +16,20 @@ import (
 // and returns the questions in the form of QuestionData
 // which is a slice of QuestionData
 func GenerateQuiz(ctx context.Context, req *model.QuizReq) (questData []*model.QuestionData, err error) {
-
+	questData = []*model.QuestionData{}
+	// sample
+	questData = append(questData, &model.QuestionData{
+		ID:       uuid.New(),
+		Question: "this is test question 1",
+		Options:  []model.Options{{ID: 1, Option: "ans 1"}, {ID: 2, Option: "ans 2"}, {ID: 3, Option: "ans 3"}, {ID: 4, Option: "ans 4"}},
+		Answer:   1,
+	})
+	questData = append(questData, &model.QuestionData{
+		ID:       uuid.New(),
+		Question: "this is test question 2",
+		Options:  []model.Options{{ID: 1, Option: "ans 1"}, {ID: 2, Option: "ans 2"}, {ID: 3, Option: "ans 3"}, {ID: 4, Option: "ans 4"}},
+		Answer:   2,
+	})
 	return questData, nil
 }
 
