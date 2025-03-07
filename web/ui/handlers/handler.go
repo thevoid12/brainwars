@@ -109,6 +109,20 @@ func CreateRoomHandler(c *gin.Context) {
 	})
 }
 
+// after the room is created, the user can join the room
+// websocket connection is created after the person joins the room
+func JoinRoomHandler(c *gin.Context) {
+	// ctx := c.Request.Context() // this context has logger in it
+	// _, err := room.JoinRoomWithRoomCode(ctx, roommodel.RoomMemberReq{
+	// 	UserID:   uuid.UUID{},
+	// 	RoomID:   uuid.UUID{},
+	// 	RoomCode: "",
+	// })
+	RenderTemplate(c, "home.html", gin.H{
+		"title": "About Page",
+	})
+}
+
 func ListAllRoomsHanlder(c *gin.Context) {
 	RenderTemplate(c, "home.html", gin.H{
 		"title": "About Page",

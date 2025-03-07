@@ -33,7 +33,7 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 	rSecure.GET("/room", handlers.CreateRoomPageHandler)
 	rSecure.POST("/croom", handlers.CreateRoomHandler)
 	rSecure.GET("/lroom", handlers.ListAllRoomsHanlder)
-
+	rSecure.POST("/jroom", handlers.JoinRoomHandler)
 	//questions
 	rSecure.GET("/quest", handlers.CreateQuestionPageHanlder)
 	rSecure.POST("/cquest", handlers.CreateQuestionsHandler)

@@ -70,6 +70,12 @@ func SetupGame(ctx context.Context, req model.RoomReq, joinRoomIDs []model.UserI
 func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room, err error) {
 	l := logs.GetLoggerctx(ctx)
 	roomID := uuid.New()
+	var roomStatus model.RoomStatus
+	if req.GameType == model.SP {
+		roomStatus = model.Started // no one can join other than active state
+	} else {
+		roomStatus = model.Active
+	}
 	params := dbal.CreateRoomParams{
 		RoomCode: uuid.New().String(),
 		RoomOwner: pgtype.UUID{
@@ -91,7 +97,8 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 			String: req.RoomName,
 			Valid:  req.RoomName != "",
 		},
-		GameType: string(req.GameType),
+		GameType:   string(req.GameType),
+		RoomStatus: string(roomStatus),
 	}
 
 	dbConn, err := dbpkg.InitDB()
