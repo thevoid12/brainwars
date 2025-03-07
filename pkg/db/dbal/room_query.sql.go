@@ -74,25 +74,27 @@ INSERT INTO room (
   updated_on, 
   created_by, 
   updated_by,
-  game_type
+  game_type,
+  room_status
 ) 
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), $10, $11, $12)
-RETURNING id, room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, is_active, is_deleted, created_on, updated_on, created_by, updated_by
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), $10, $11, $12,$13)
+RETURNING id, room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, room_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by
 `
 
 type CreateRoomParams struct {
-	ID        pgtype.UUID
-	RoomCode  string
-	RoomName  pgtype.Text
-	RoomOwner pgtype.UUID
-	RoomChat  []byte
-	RoomMeta  []byte
-	RoomLock  bool
-	IsActive  bool
-	IsDeleted bool
-	CreatedBy string
-	UpdatedBy string
-	GameType  string
+	ID         pgtype.UUID
+	RoomCode   string
+	RoomName   pgtype.Text
+	RoomOwner  pgtype.UUID
+	RoomChat   []byte
+	RoomMeta   []byte
+	RoomLock   bool
+	IsActive   bool
+	IsDeleted  bool
+	CreatedBy  string
+	UpdatedBy  string
+	GameType   string
+	RoomStatus string
 }
 
 // --------------------------------- room table ---------------------------------------------------------------------
@@ -110,6 +112,7 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 		arg.CreatedBy,
 		arg.UpdatedBy,
 		arg.GameType,
+		arg.RoomStatus,
 	)
 	var i Room
 	err := row.Scan(
@@ -121,6 +124,7 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 		&i.RoomMeta,
 		&i.RoomLock,
 		&i.GameType,
+		&i.RoomStatus,
 		&i.IsActive,
 		&i.IsDeleted,
 		&i.CreatedOn,
@@ -229,7 +233,7 @@ func (q *Queries) GetLeaderBoardByID(ctx context.Context, id pgtype.UUID) ([]Lea
 }
 
 const getRoomByID = `-- name: GetRoomByID :many
-SELECT id, room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room
+SELECT id, room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, room_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room
 WHERE id = $1 AND is_deleted = false
 `
 
@@ -251,6 +255,7 @@ func (q *Queries) GetRoomByID(ctx context.Context, id pgtype.UUID) ([]Room, erro
 			&i.RoomMeta,
 			&i.RoomLock,
 			&i.GameType,
+			&i.RoomStatus,
 			&i.IsActive,
 			&i.IsDeleted,
 			&i.CreatedOn,
@@ -269,7 +274,7 @@ func (q *Queries) GetRoomByID(ctx context.Context, id pgtype.UUID) ([]Room, erro
 }
 
 const getRoomByRoomCode = `-- name: GetRoomByRoomCode :many
-SELECT id, room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room
+SELECT id, room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, room_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room
 WHERE room_code = $1 AND is_deleted = false
 `
 
@@ -291,6 +296,7 @@ func (q *Queries) GetRoomByRoomCode(ctx context.Context, roomCode string) ([]Roo
 			&i.RoomMeta,
 			&i.RoomLock,
 			&i.GameType,
+			&i.RoomStatus,
 			&i.IsActive,
 			&i.IsDeleted,
 			&i.CreatedOn,
@@ -387,7 +393,7 @@ func (q *Queries) ListLeaderBoardByRoomID(ctx context.Context, roomID pgtype.UUI
 }
 
 const listRoomByUserID = `-- name: ListRoomByUserID :many
-SELECT id, room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room
+SELECT id, room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, room_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room
 WHERE room_owner = $1 AND is_deleted = false
 `
 
@@ -409,6 +415,7 @@ func (q *Queries) ListRoomByUserID(ctx context.Context, roomOwner pgtype.UUID) (
 			&i.RoomMeta,
 			&i.RoomLock,
 			&i.GameType,
+			&i.RoomStatus,
 			&i.IsActive,
 			&i.IsDeleted,
 			&i.CreatedOn,
@@ -520,19 +527,21 @@ SET
   is_active = $6,
   updated_on = NOW(),
   updated_by = $7,
-  game_type = $8
+  game_type = $8,
+  room_status = $9
 WHERE id = $1
 `
 
 type UpdateRoomByIDParams struct {
-	ID        pgtype.UUID
-	RoomName  pgtype.Text
-	RoomChat  []byte
-	RoomMeta  []byte
-	RoomLock  bool
-	IsActive  bool
-	UpdatedBy string
-	GameType  string
+	ID         pgtype.UUID
+	RoomName   pgtype.Text
+	RoomChat   []byte
+	RoomMeta   []byte
+	RoomLock   bool
+	IsActive   bool
+	UpdatedBy  string
+	GameType   string
+	RoomStatus string
 }
 
 func (q *Queries) UpdateRoomByID(ctx context.Context, arg UpdateRoomByIDParams) error {
@@ -545,6 +554,7 @@ func (q *Queries) UpdateRoomByID(ctx context.Context, arg UpdateRoomByIDParams) 
 		arg.IsActive,
 		arg.UpdatedBy,
 		arg.GameType,
+		arg.RoomStatus,
 	)
 	return err
 }

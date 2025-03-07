@@ -52,7 +52,7 @@ func SetupGame(ctx context.Context, req model.RoomReq, joinRoomIDs []model.UserI
 		RoomID:       roomDetails.ID,
 		Topic:        questReq.Topic,
 		QuestionData: questionData,
-		CreatedBy:    roomDetails.CreatedBy,
+		CreatedBy:    string(roomDetails.CreatedBy),
 		Count:        questReq.Count,
 	}
 
@@ -174,20 +174,97 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 	}
 
 	roomDetails = &model.Room{
-		ID:           room.ID.Bytes,
-		RoomName:     room.RoomName.String,
-		RefreshToken: uuid.New().String(),
-		UserType:     string(model.Human),
-		UserMeta:     string(room.RoomMeta),
-		Premium:      false,
-		IsActive:     room.IsActive,
-		IsDeleted:    room.IsDeleted,
-		CreatedBy:    req.UserID,
-		CreatedOn:    room.CreatedOn.Time,
-		UpdatedOn:    room.UpdatedOn.Time,
-		GameType:     model.GT(room.GameType),
+		ID:        room.ID.Bytes,
+		RoomName:  room.RoomName.String,
+		UserType:  string(model.Human),
+		UserMeta:  string(room.RoomMeta),
+		Premium:   false,
+		IsActive:  room.IsActive,
+		IsDeleted: room.IsDeleted,
+		CreatedBy: req.UserID.String(),
+		CreatedOn: room.CreatedOn.Time,
+		UpdatedOn: room.UpdatedOn.Time,
+		GameType:  model.GT(room.GameType),
 	}
 
+	return roomDetails, nil
+}
+
+func UpdateRoom(ctx context.Context, req model.EditRoomReq) (err error) {
+	l := logs.GetLoggerctx(ctx)
+
+	room, err := GetRoomByID(ctx, req.ID)
+	if err != nil {
+		return err
+	}
+
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return err
+
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+	err = dBal.UpdateRoomByID(ctx, dbal.UpdateRoomByIDParams{
+		ID: pgtype.UUID{
+			Bytes: room.ID,
+			Valid: true,
+		},
+		RoomName: pgtype.Text{
+			String: req.RoomName,
+			Valid:  true,
+		},
+		RoomChat:   []byte(room.RoomChat),
+		RoomMeta:   []byte(room.RoomMeta),
+		RoomLock:   req.RoomLock,
+		IsActive:   room.IsActive,
+		UpdatedBy:  "TODO", // TODO: TAKE THE CURRENT USER DETAIL FROM THE CONTEXT
+		GameType:   string(req.GameType),
+		RoomStatus: string(req.Roomstatus),
+	})
+	if err != nil {
+		l.Sugar().Error("Could not update room by ID in database", err)
+		return err
+	}
+
+	return nil
+}
+
+func GetRoomByID(ctx context.Context, roomID uuid.UUID) (roomDetails *model.Room, err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+	dbrecord, err := dBal.GetRoomByID(ctx, pgtype.UUID{
+		Bytes: roomID,
+		Valid: true,
+	})
+	if err != nil {
+		l.Sugar().Error("Could not get room by ID in database", err)
+		return nil, err
+	}
+
+	roomDetails = &model.Room{
+		ID:         dbrecord[0].ID.Bytes,
+		RoomName:   dbrecord[0].RoomName.String,
+		RoomMeta:   string(dbrecord[0].RoomMeta),
+		RoomChat:   string(dbrecord[0].RoomChat),
+		GameType:   model.GT(dbrecord[0].GameType),
+		Roomstatus: model.RoomStatus(dbrecord[0].RoomStatus),
+		IsActive:   dbrecord[0].IsActive,
+		IsDeleted:  dbrecord[0].IsDeleted,
+		CreatedBy:  dbrecord[0].CreatedBy,
+		CreatedOn:  dbrecord[0].CreatedOn.Time,
+		UpdatedOn:  dbrecord[0].UpdatedOn.Time,
+	}
 	return roomDetails, nil
 }
 
@@ -211,13 +288,12 @@ func ListRoom(ctx context.Context, req model.UserIDReq) (roomDetails []*model.Ro
 	}
 	for _, room := range rooms {
 		roomDetails = append(roomDetails, &model.Room{
-			ID:           room.ID.Bytes,
-			RoomName:     room.RoomName.String,
-			RefreshToken: string(uuid.New().String()),
-			UserType:     string(model.Human),
-			UserMeta:     string(room.RoomMeta),
-			Premium:      false,
-			GameType:     model.GT(room.GameType),
+			ID:       room.ID.Bytes,
+			RoomName: room.RoomName.String,
+			UserType: string(model.Human),
+			UserMeta: string(room.RoomMeta),
+			Premium:  false,
+			GameType: model.GT(room.GameType),
 
 			IsActive:  room.IsActive,
 			IsDeleted: room.IsDeleted,
@@ -308,12 +384,11 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 	}
 
 	roomDetails = &model.Room{
-		ID:           room[0].ID.Bytes,
-		RoomName:     room[0].RoomName.String,
-		RefreshToken: uuid.New().String(),
-		UserMeta:     string(room[0].RoomMeta),
-		Premium:      false,
-		GameType:     model.GT(room[0].GameType),
+		ID:       room[0].ID.Bytes,
+		RoomName: room[0].RoomName.String,
+		UserMeta: string(room[0].RoomMeta),
+		Premium:  false,
+		GameType: model.GT(room[0].GameType),
 
 		IsActive:  room[0].IsActive,
 		IsDeleted: room[0].IsDeleted,
@@ -432,7 +507,7 @@ func UpdateLeaderBoard(ctx context.Context, req model.EditLeaderBoardReq) (err e
 	return nil
 }
 
-func ListLeaderBoardByRoomID(ctx context.Context, req model.RoomLBReq) (leaderBoard []*model.Leaderboard, err error) {
+func ListLeaderBoardByRoomID(ctx context.Context, req model.RoomIDReq) (leaderBoard []*model.Leaderboard, err error) {
 	l := logs.GetLoggerctx(ctx)
 
 	dbConn, err := dbpkg.InitDB()

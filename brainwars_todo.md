@@ -5,3 +5,4 @@
 - [ ] users join room feature(web socket)
 - [ ] static quiz for v1
 - [ ] error rendering on screen pop up
+- [ ] validate and sanitize all models

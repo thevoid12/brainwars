@@ -21,6 +21,15 @@ const (
 	MP GT = "MULTI_PLAYER"
 )
 
+type RoomStatus string
+
+const (
+	Started RoomStatus = "STARTED"
+	Ended   RoomStatus = "ENDED"
+	Active  RoomStatus = "ACTIVE" // room is created but the game has not started so people can join in
+	Deleted RoomStatus = "DELETED"
+)
+
 // RoomReq is a struct that defines the request body for creating a room
 type RoomReq struct {
 	UserID   uuid.UUID
@@ -32,18 +41,29 @@ type RoomReq struct {
 
 // Room is a struct that defines the room model
 type Room struct {
-	ID           uuid.UUID
-	RoomName     string
-	RefreshToken string
-	UserType     string
-	UserMeta     string
-	Premium      bool
-	GameType     GT
-	IsActive     bool
-	IsDeleted    bool
-	CreatedBy    uuid.UUID
-	CreatedOn    time.Time
-	UpdatedOn    time.Time
+	ID         uuid.UUID
+	RoomName   string
+	UserType   string
+	UserMeta   string
+	RoomMeta   string
+	RoomChat   string
+	Premium    bool
+	GameType   GT
+	Roomstatus RoomStatus
+	IsActive   bool
+	IsDeleted  bool
+	CreatedBy  string
+	CreatedOn  time.Time
+	UpdatedOn  time.Time
+}
+
+type EditRoomReq struct {
+	ID         uuid.UUID
+	UserMeta   string
+	RoomName   string
+	RoomLock   bool
+	GameType   GT
+	Roomstatus RoomStatus
 }
 
 type RoomMemberReq struct {
@@ -68,7 +88,7 @@ type EditLeaderBoardReq struct {
 	Score  float64
 }
 
-type RoomLBReq struct {
+type RoomIDReq struct {
 	UserID uuid.UUID
 	RoomID uuid.UUID
 }

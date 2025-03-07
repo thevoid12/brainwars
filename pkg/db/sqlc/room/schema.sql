@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS room (
   room_meta JSONB NOT NULL,
   room_lock BOOLEAN NOT NULL DEFAULT false,
   game_TYPE TEXT NOT NULL,
+  room_status TEXT NOT NULL, -- game started,game ended,game about to start
   is_active BOOLEAN NOT NULL,
   is_deleted BOOLEAN NOT NULL,
   created_on TIMESTAMP NOT NULL DEFAULT NOW(),

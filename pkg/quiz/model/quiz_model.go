@@ -28,7 +28,7 @@ type QuestionReq struct {
 	RoomID       uuid.UUID
 	Topic        string
 	QuestionData []*QuestionData
-	CreatedBy    uuid.UUID
+	CreatedBy    string
 	Count        int
 }
 

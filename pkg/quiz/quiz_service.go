@@ -47,8 +47,8 @@ func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 		RoomID:       pgtype.UUID{Bytes: req.RoomID, Valid: true},
 		Topic:        pgtype.Text{String: req.Topic, Valid: true},
 		QuestionData: quesJson,
-		CreatedBy:    req.CreatedBy.String(),
-		UpdatedBy:    req.CreatedBy.String(),
+		CreatedBy:    req.CreatedBy,
+		UpdatedBy:    req.CreatedBy,
 	}
 
 	dbConn, err := dbpkg.InitDB()
