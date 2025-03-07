@@ -10,13 +10,19 @@ import (
 )
 
 // Helper function to render the error template
-func RenderErrorTemplate(c *gin.Context, errorMessage string, errormsg error) {
-	layoutTmpl, err := template.ParseFiles(filepath.Join(viper.GetString("app.uiTemplates"), "layout.html"))
+func RenderErrorTemplate(c *gin.Context, pageTemplate, errorMessage string, errormsg error) {
+	// Define the paths to the layout and page templates
+	templatePaths := []string{
+		filepath.Join(viper.GetString("app.uiTemplates"), "layout.html"),
+		filepath.Join(viper.GetString("app.uiTemplates"), pageTemplate), // Load the actual page template
+	}
+
+	// Parse the templates
+	layoutTmpl, err := template.ParseFiles(templatePaths...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load template"})
 		return
 	}
-
 	actualerr := ""
 	if errormsg != nil {
 		actualerr = errormsg.Error()
@@ -31,4 +37,5 @@ func RenderErrorTemplate(c *gin.Context, errorMessage string, errormsg error) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to execute template"})
 		return
 	}
+
 }

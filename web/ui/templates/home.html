@@ -1,3 +1,18 @@
 {{ define "content" }}
-<h1>hiiiiiiiiiiii</h1>
+{{.welcome}}
+<form action="/bw/croom" method="post">
+  <select name="game-type">
+    <option value="1">Single player</option>
+    <option value="2">Multi player</option>
+  </select>
+  <label for="bots">Select Bots:</label>
+  <select id="bots" name="bots" multiple>
+    <option value="1m">1 minute</option>
+    <option value="2m">2 min</option>
+    <option value="5m">5 min</option>
+  </select>
+  <input type="text" id="topic" name="topic" placeholder="Enter topic">
+  <button type="submit">Submit</button>
+  <submit></submit>
+</form>
 {{ end }}

@@ -9,8 +9,9 @@
 </head>
 
 <body class="bg-gray-100">
-  <h1>TEST: Layout Loaded</h1>
-  {{ template "content" . }}
+  <div id="outer-page-content">
+    {{ template "content" . }}
+  </div>
 </body>
 
 </html>

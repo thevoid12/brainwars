@@ -24,7 +24,7 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 	//secure group
 	rSecure := router.Group("/bw")
 
-	//rSecure.Use(middleware.ContextMiddleware(ctx))
+	rSecure.Use(middleware.ContextMiddleware(ctx))
 	// index
 
 	rSecure.GET("/brainwars", handlers.LandingPageHandler)

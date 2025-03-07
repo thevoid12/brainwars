@@ -114,3 +114,5 @@ Show bots in leaderboard like users with:
 Right/Wrong answers
 Time Taken
 Random comment like "I almost won!"
+
+- upload a pdf and create questions out of it

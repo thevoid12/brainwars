@@ -264,7 +264,7 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 		return nil, err
 	}
 
-	existingMembers, err := dBal.GetRoomMemberByRoomAndUserID(ctx, dbal.GetRoomMemberByRoomAndUserIDParams{
+	existingMember, err := dBal.GetRoomMemberByRoomAndUserID(ctx, dbal.GetRoomMemberByRoomAndUserIDParams{
 		RoomID: pgtype.UUID{
 			Bytes: req.RoomID,
 			Valid: true,
@@ -274,19 +274,12 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 			Valid: true,
 		},
 	})
-	if err != nil || len(existingMembers) != 0 {
+	if err != nil || len(existingMember) != 0 {
 		l.Sugar().Error("Could not get room member by room and user ID in database", err)
 		return nil, err
 	}
 
-	alreadyJoined := false
-	for _, member := range existingMembers {
-		if member.UserID.Bytes == req.UserID {
-			alreadyJoined = true
-			break
-		}
-	}
-	if alreadyJoined {
+	if len(existingMember) > 0 {
 		return nil, errors.New("user already joined the room")
 	}
 	_, err = dBal.CreateRoomMember(ctx, dbal.CreateRoomMemberParams{
@@ -300,7 +293,7 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 		},
 		UserID: pgtype.UUID{
 			Bytes: req.UserID,
-			Valid: false,
+			Valid: true,
 		},
 		IsBot:     false,
 		IsKicked:  false,
@@ -318,7 +311,6 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 		ID:           room[0].ID.Bytes,
 		RoomName:     room[0].RoomName.String,
 		RefreshToken: uuid.New().String(),
-		UserType:     string(model.Human),
 		UserMeta:     string(room[0].RoomMeta),
 		Premium:      false,
 		GameType:     model.GT(room[0].GameType),

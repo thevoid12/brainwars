@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
+	"brainwars/pkg/room/model"
 	roommodel "brainwars/pkg/room/model"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // func IndexHandler(c *gin.Context) {
@@ -61,8 +64,10 @@ func LandingPageHandler(c *gin.Context) {
 
 func HomeHandler(c *gin.Context) {
 	fmt.Println("hlo")
+	// get the user credentials
 	RenderTemplate(c, "home.html", gin.H{
-		"title": "home Page",
+		"title":   "home Page",
+		"user-id": "00000000-0000-0000-0000-000000000001",
 	})
 }
 
@@ -75,13 +80,32 @@ func CreateRoomPageHandler(c *gin.Context) {
 }
 
 func CreateRoomHandler(c *gin.Context) {
+	ctx := c.Request.Context() // this context has logger in it
 
-	_, err := room.CreateRoom(c, roommodel.RoomReq{})
+	c.Request.ParseForm()
+	fmt.Println(c.Request.Form)
+	roomreq := roommodel.RoomReq{
+		UserID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		Username: "admin",
+		UserMeta: "[{}]",
+		RoomName: "test room",
+		GameType: model.SP,
+	}
+	joinRoomIDs := []roommodel.UserIDReq{
+		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000002")},
+		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000003")},
+	}
+	questReq := &quizmodel.QuizReq{
+		Topic: "test topic",
+		Count: 10,
+	}
+	err := room.SetupGame(ctx, roomreq, joinRoomIDs, questReq)
 	if err != nil {
-
+		RenderErrorTemplate(c, "home.html", "Failed to Setup game", err)
 	}
 	RenderTemplate(c, "home.html", gin.H{
-		"title": "About Page",
+		"title":   "About Page",
+		"user-id": "00000000-0000-0000-0000-000000000001",
 	})
 }
 

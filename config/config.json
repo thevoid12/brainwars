@@ -1,6 +1,6 @@
 {
   "logger": {
-    "filepath": "goboilerplate.logs",
+    "filepath": "brainwars.logs",
     "level": "debug"
   },
   "app": {
