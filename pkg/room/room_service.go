@@ -8,6 +8,7 @@ import (
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room/model"
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/google/uuid"
@@ -254,6 +255,9 @@ func GetRoomByID(ctx context.Context, roomID uuid.UUID) (roomDetails *model.Room
 		Bytes: roomID,
 		Valid: true,
 	})
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		l.Sugar().Error("Could not get room by ID in database", err)
 		return nil, err
@@ -404,6 +408,82 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 	}
 
 	return roomDetails, nil
+}
+
+func ListRoomMembersByRoomID(ctx context.Context, req model.RoomIDReq) (roomMembers []*model.RoomMember, err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+	dbRecord, err := dBal.ListRoomMembersByRoomID(ctx, pgtype.UUID{
+		Bytes: req.RoomID,
+		Valid: true,
+	})
+	if err != nil {
+		l.Sugar().Error("Could not list room members by room ID in database", err)
+		return nil, err
+	}
+	for _, member := range dbRecord {
+		roomMembers = append(roomMembers, &model.RoomMember{
+			ID:        member.ID.Bytes,
+			RoomID:    member.RoomID.Bytes,
+			UserID:    member.UserID.Bytes,
+			IsBot:     member.IsBot,
+			IsKicked:  member.IsKicked,
+			IsActive:  member.IsActive,
+			IsDeleted: member.IsDeleted,
+			CreatedBy: member.CreatedBy,
+			UpdatedBy: member.UpdatedBy,
+		})
+	}
+	return roomMembers, nil
+}
+
+func GetRoomMemberByRoomAndUserID(ctx context.Context, req model.RoomMemberReq) (roomMember *model.RoomMember, err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+	dbRecord, err := dBal.GetRoomMemberByRoomAndUserID(ctx, dbal.GetRoomMemberByRoomAndUserIDParams{
+		RoomID: pgtype.UUID{
+			Bytes: req.RoomID,
+			Valid: true,
+		},
+		UserID: pgtype.UUID{
+			Bytes: req.UserID,
+			Valid: true,
+		},
+	})
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		l.Sugar().Error("Could not get room member by room and user ID in database", err)
+		return nil, err
+	}
+
+	roomMember = &model.RoomMember{
+		ID:        dbRecord[0].ID.Bytes,
+		RoomID:    dbRecord[0].RoomID.Bytes,
+		UserID:    dbRecord[0].UserID.Bytes,
+		IsBot:     dbRecord[0].IsBot,
+		IsKicked:  dbRecord[0].IsKicked,
+		IsActive:  dbRecord[0].IsActive,
+		IsDeleted: dbRecord[0].IsDeleted,
+		CreatedBy: dbRecord[0].CreatedBy,
+		UpdatedBy: dbRecord[0].UpdatedBy,
+	}
+	return roomMember, nil
 }
 
 // JoinRoomWithRoomCode is a function that joins a member into a room with a room code

@@ -66,6 +66,23 @@ type EditRoomReq struct {
 	Roomstatus RoomStatus
 }
 
+type RoomMember struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	RoomID    uuid.UUID
+	RoomCode  string
+	UserType  UserType
+	IsBot     bool
+	JoinedOn  time.Time
+	IsKicked  bool
+	IsActive  bool
+	IsDeleted bool
+	CreatedBy string
+	UpdatedBy string
+	CreatedOn time.Time
+	UpdatedOn time.Time
+}
+
 type RoomMemberReq struct {
 	UserID   uuid.UUID
 	RoomID   uuid.UUID

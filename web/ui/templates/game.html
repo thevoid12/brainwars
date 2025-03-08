@@ -1,0 +1,16 @@
+{{ define "content" }}
+<h1>gameeeeeee</h1>
+<script>
+  window.onload = function () {
+    if (window["WebSocket"]) {
+      console.log("WebSocket is supported");
+      let protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+      let conn = new WebSocket(protocol + window.location.host + "/bw/ws");
+
+    } else {
+      alert("WebSockets are not supported in this browser.");
+    }
+  };
+
+</script>
+{{ end }}

@@ -112,15 +112,44 @@ func CreateRoomHandler(c *gin.Context) {
 // after the room is created, the user can join the room
 // websocket connection is created after the person joins the room
 func JoinRoomHandler(c *gin.Context) {
-	// ctx := c.Request.Context() // this context has logger in it
-	// _, err := room.JoinRoomWithRoomCode(ctx, roommodel.RoomMemberReq{
-	// 	UserID:   uuid.UUID{},
-	// 	RoomID:   uuid.UUID{},
-	// 	RoomCode: "",
-	// })
-	RenderTemplate(c, "home.html", gin.H{
-		"title": "About Page",
+	ctx := c.Request.Context() // this context has logger in it
+	// check if there is a room that exists
+	roomDetail, err := room.GetRoomByID(ctx, uuid.UUID{})
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "unable to join room", err)
+	}
+	if roomDetail == nil {
+		RenderErrorTemplate(c, "home.html", "there is no room", err)
+	}
+
+	// check if he has already joined the room if he has then redirect him to the room
+	roomMember, err := room.GetRoomMemberByRoomAndUserID(ctx, roommodel.RoomMemberReq{
+		UserID: uuid.UUID{},
+		RoomID: uuid.UUID{},
 	})
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "Failed to join room", err)
+	}
+	if roomMember == nil {
+		_, err := room.JoinRoomWithRoomCode(ctx, roommodel.RoomMemberReq{
+			UserID:   uuid.UUID{},
+			RoomID:   uuid.UUID{},
+			RoomCode: "",
+		})
+		if err != nil {
+			RenderErrorTemplate(c, "home.html", "Failed to join room", err)
+		}
+	}
+
+	RenderTemplate(c, "gameroom.html", gin.H{
+		"title":  "About Page",
+		"roomID": "00000000-0000-0000-0000-000000000005",
+		"userID": "00000000-0000-0000-0000-000000000001",
+	})
+}
+
+func GameHandler(c *gin.Context) {
+	RenderTemplate(c, "game.html", gin.H{})
 }
 
 func ListAllRoomsHanlder(c *gin.Context) {

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"brainwars/pkg/websocket"
 	"brainwars/web/middleware"
 	assests "brainwars/web/ui/assets"
 	"brainwars/web/ui/handlers"
@@ -21,6 +22,7 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 
 	router.LoadHTMLGlob("web/ui/templates/*")
 
+	manager := websocket.NewManager()
 	//secure group
 	rSecure := router.Group("/bw")
 
@@ -34,6 +36,9 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 	rSecure.POST("/croom", handlers.CreateRoomHandler)
 	rSecure.GET("/lroom", handlers.ListAllRoomsHanlder)
 	rSecure.POST("/jroom", handlers.JoinRoomHandler)
+	rSecure.GET("/game", handlers.GameHandler)
+	rSecure.GET("/ws", manager.ServeWS)
+
 	//questions
 	rSecure.GET("/quest", handlers.CreateQuestionPageHanlder)
 	rSecure.POST("/cquest", handlers.CreateQuestionsHandler)
