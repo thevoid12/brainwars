@@ -114,7 +114,9 @@ func CreateRoomHandler(c *gin.Context) {
 func JoinRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
 	// check if there is a room that exists
-	roomDetail, err := room.GetRoomByID(ctx, uuid.UUID{})
+	roomCode := "8bd9c332-ea09-434c-b439-5b3a39d3de5f"
+	userID := "00000000-0000-0000-0000-000000000001"
+	roomDetail, err := room.GetRoomByRoomCode(ctx, roomCode)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "unable to join room", err)
 	}
@@ -124,8 +126,8 @@ func JoinRoomHandler(c *gin.Context) {
 
 	// check if he has already joined the room if he has then redirect him to the room
 	roomMember, err := room.GetRoomMemberByRoomAndUserID(ctx, roommodel.RoomMemberReq{
-		UserID: uuid.UUID{},
-		RoomID: uuid.UUID{},
+		UserID: uuid.MustParse(userID),
+		RoomID: roomDetail.ID,
 	})
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Failed to join room", err)
@@ -141,10 +143,10 @@ func JoinRoomHandler(c *gin.Context) {
 		}
 	}
 
-	RenderTemplate(c, "gameroom.html", gin.H{
-		"title":  "About Page",
-		"roomID": "00000000-0000-0000-0000-000000000005",
-		"userID": "00000000-0000-0000-0000-000000000001",
+	RenderTemplate(c, "game.html", gin.H{
+		"title":    "game room",
+		"roomCode": "8bd9c332-ea09-434c-b439-5b3a39d3de5f",
+		"userID":   "00000000-0000-0000-0000-000000000001",
 	})
 }
 

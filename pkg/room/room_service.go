@@ -279,6 +279,42 @@ func GetRoomByID(ctx context.Context, roomID uuid.UUID) (roomDetails *model.Room
 	return roomDetails, nil
 }
 
+func GetRoomByRoomCode(ctx context.Context, roomCode string) (roomDetails *model.Room, err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+	dbrecord, err := dBal.GetRoomByRoomCode(ctx, roomCode)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		l.Sugar().Error("Could not get room by ID in database", err)
+		return nil, err
+	}
+
+	roomDetails = &model.Room{
+		ID:         dbrecord[0].ID.Bytes,
+		RoomName:   dbrecord[0].RoomName.String,
+		RoomMeta:   string(dbrecord[0].RoomMeta),
+		RoomChat:   string(dbrecord[0].RoomChat),
+		GameType:   model.GT(dbrecord[0].GameType),
+		Roomstatus: model.RoomStatus(dbrecord[0].RoomStatus),
+		IsActive:   dbrecord[0].IsActive,
+		IsDeleted:  dbrecord[0].IsDeleted,
+		CreatedBy:  dbrecord[0].CreatedBy,
+		CreatedOn:  dbrecord[0].CreatedOn.Time,
+		UpdatedOn:  dbrecord[0].UpdatedOn.Time,
+	}
+	return roomDetails, nil
+}
+
 func ListRoom(ctx context.Context, req model.UserIDReq) (roomDetails []*model.Room, err error) {
 	l := logs.GetLoggerctx(ctx)
 	dbConn, err := dbpkg.InitDB()
