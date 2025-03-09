@@ -20,6 +20,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/spf13/viper"
 )
 
 var websocketUpgrader = websocket.Upgrader{
@@ -124,7 +125,7 @@ func (c *Client) readMessages(ctx context.Context) {
 	}
 	// Configure how to handle Pong responses
 	c.connection.SetPongHandler(c.pongHandler)
-
+	c.connection.SetReadLimit(viper.GetInt64("ws.maxReadSize")) // max read size limit bytes
 	for {
 		_, payload, err := c.connection.ReadMessage()
 		if err != nil {

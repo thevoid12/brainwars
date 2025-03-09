@@ -6,5 +6,8 @@
   "app": {
     "port": "8080",
     "uiTemplates": "web/ui/templates/"
+  },
+  "ws": {
+    "maxReadSize": 512
   }
 }
