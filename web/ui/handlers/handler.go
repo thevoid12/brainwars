@@ -160,6 +160,15 @@ func ListAllRoomsHanlder(c *gin.Context) {
 	})
 }
 
+func GetQuestionHandler(c *gin.Context) {
+	// ctx := c.Request.Context()
+
+	// get a generated question
+
+	// after getting the question i display the question
+	RenderTemplate(c, "game.html", gin.H{})
+}
+
 func CreateQuestionPageHanlder(c *gin.Context) {
 	RenderTemplate(c, "home.html", gin.H{
 		"title": "About Page",

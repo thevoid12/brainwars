@@ -41,7 +41,9 @@ func checkOrigin(r *http.Request) bool {
 type Manager struct {
 	clients map[string]ClientList // map key is roomCode value is the list of clients in that room
 	sync.RWMutex
-	handlers map[string]EventHandler
+	handlers         map[string]EventHandler
+	botEventChannels map[string][]chan Event // Event channels for bots by room code
+
 }
 
 type ClientList map[*Client]bool
@@ -51,6 +53,9 @@ type Client struct {
 	manager    *Manager
 	egress     chan Event
 	roomCode   string
+	isBot      bool      // Flag to identify bot clients
+	botType    string    // Empty for real users, "30sec", "1min", "2min" for bots
+	userID     uuid.UUID // Store the user ID for easier reference
 }
 
 type NewMessageEvent struct {
@@ -71,12 +76,15 @@ func NewManager(ctx context.Context) *Manager {
 	return m
 }
 
-func NewClient(conn *websocket.Conn, manager *Manager, roomCode string) *Client {
+func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bool, botType string, userID uuid.UUID) *Client {
 	return &Client{
 		connection: conn,
 		manager:    manager,
 		egress:     make(chan Event),
 		roomCode:   roomCode,
+		isBot:      isBot,
+		botType:    botType,
+		userID:     userID,
 	}
 }
 

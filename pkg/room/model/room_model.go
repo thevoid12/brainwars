@@ -98,6 +98,8 @@ type RoomMemberReq struct {
 	RoomID           uuid.UUID
 	RoomMemberStatus RoomMemberStatus
 	RoomCode         string
+	IsBot            bool
+	BotType         botType,
 }
 
 type UserIDReq struct {
