@@ -117,6 +117,14 @@ func (m *Manager) removeClient(client *Client) {
 func (c *Client) readMessages(ctx context.Context) {
 	l := logs.GetLoggerctx(ctx)
 	defer c.manager.removeClient(c)
+
+	if err := c.connection.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		l.Sugar().Error("set read deadline failed", err)
+		return
+	}
+	// Configure how to handle Pong responses
+	c.connection.SetPongHandler(c.pongHandler)
+
 	for {
 		_, payload, err := c.connection.ReadMessage()
 		if err != nil {
@@ -154,9 +162,17 @@ func (c *Client) writeMessages(ctx context.Context) {
 			data, _ := json.Marshal(message)
 			c.connection.WriteMessage(websocket.TextMessage, data)
 		case <-ticker.C:
+			log.Println("ping")
 			c.connection.WriteMessage(websocket.PingMessage, nil)
 		}
 	}
+}
+
+// pongHandler is used to handle PongMessages for the Client
+func (c *Client) pongHandler(pongMsg string) error {
+	// Current time + Pong Wait time
+	log.Println("pong")
+	return c.connection.SetReadDeadline(time.Now().Add(pongWait))
 }
 
 func (m *Manager) routeEvent(event Event, c *Client) error {
