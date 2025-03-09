@@ -4,10 +4,7 @@ import (
 	logs "brainwars/pkg/logger"
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
-	"brainwars/web/ui/handlers"
 	"context"
-
-	"github.com/gin-gonic/gin"
 )
 
 func JoinGameAsBots(ctx context.Context, req roommodel.RoomMemberReq, roomCode string) error {
@@ -33,11 +30,11 @@ func JoinGameAsBots(ctx context.Context, req roommodel.RoomMemberReq, roomCode s
 			return err
 		}
 	}
-	handlers.RenderTemplate(c, "game.html", gin.H{
-		"title":    "game room",
-		"roomCode": "8bd9c332-ea09-434c-b439-5b3a39d3de5f",
-		"userID":   "00000000-0000-0000-0000-000000000001",
-	})
+	// handlers.RenderTemplate(c, "game.html", gin.H{
+	// 	"title":    "game room",
+	// 	"roomCode": "8bd9c332-ea09-434c-b439-5b3a39d3de5f",
+	// 	"userID":   "00000000-0000-0000-0000-000000000001",
+	// })
 
 	return nil
 }

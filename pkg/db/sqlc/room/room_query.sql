@@ -74,6 +74,10 @@ WHERE room_id = $1 AND is_deleted = false;
 SELECT * FROM room_member
 WHERE room_id = $1 AND user_id = $2 AND is_deleted = false;
 
+-- name: GetRoomMemberByID :many
+SELECT * FROM room_member
+WHERE id = $1 AND is_deleted = false;
+
 -- name: UpdateRoomMemberByID :exec
 UPDATE room_member
 SET 

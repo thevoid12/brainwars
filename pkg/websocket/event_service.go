@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 )
@@ -16,7 +17,7 @@ type Event struct {
 
 // EventHandler is a function signature that is used to affect messages on the socket and triggered
 // depending on the type
-type EventHandler func(event Event, c *Client) error
+type EventHandler func(ctx context.Context, event Event, c *Client) error
 
 const (
 	// EventSendMessage is the event name for new chat messages sent
@@ -27,7 +28,10 @@ const (
 	EventChangeRoom = "change_room"
 
 	EventStartGame = "start_game"
-	EventEndGame   = "end_game"
+	//EventReadyGame is that the user is ready to start the game
+	EventReadyGame  = "ready_game"
+	EventEndGame    = "end_game"
+	EventGameStatus = "game_status"
 )
 
 type Payload struct {
@@ -46,5 +50,7 @@ var (
 
 func (m *Manager) setupEventHandlers() {
 	m.handlers[EventSendMessage] = SendMessageHandler
-	m.handlers[EventChangeRoom] = ChatRoomHandler
+	m.handlers[EventReadyGame] = ReadyGameMessageHandler
+	//m.handlers[EventStartGame] = StartGameMessageHandler
+	// m.handlers[EventChangeRoom] = ChatRoomHandler
 }

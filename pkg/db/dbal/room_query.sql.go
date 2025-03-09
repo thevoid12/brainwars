@@ -314,6 +314,44 @@ func (q *Queries) GetRoomByRoomCode(ctx context.Context, roomCode string) ([]Roo
 	return items, nil
 }
 
+const getRoomMemberByID = `-- name: GetRoomMemberByID :many
+SELECT id, room_id, user_id, is_bot, joined_on, room_member_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room_member
+WHERE id = $1 AND is_deleted = false
+`
+
+func (q *Queries) GetRoomMemberByID(ctx context.Context, id pgtype.UUID) ([]RoomMember, error) {
+	rows, err := q.db.Query(ctx, getRoomMemberByID, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RoomMember
+	for rows.Next() {
+		var i RoomMember
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomID,
+			&i.UserID,
+			&i.IsBot,
+			&i.JoinedOn,
+			&i.RoomMemberStatus,
+			&i.IsActive,
+			&i.IsDeleted,
+			&i.CreatedOn,
+			&i.UpdatedOn,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRoomMemberByRoomAndUserID = `-- name: GetRoomMemberByRoomAndUserID :many
 SELECT id, room_id, user_id, is_bot, joined_on, room_member_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room_member
 WHERE room_id = $1 AND user_id = $2 AND is_deleted = false

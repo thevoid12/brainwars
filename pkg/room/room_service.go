@@ -554,6 +554,37 @@ func JoinRoomWithRoomCode(ctx context.Context, req model.RoomMemberReq) (roomDet
 	return roomDetails, nil
 }
 
+func UpdateRoomMemberByID(ctx context.Context, req model.RoomMemberReq) (err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return err
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+
+	_, err = dBal.GetRoomMemberByID(ctx, pgtype.UUID{Bytes: req.ID, Valid: true})
+	if err != nil {
+		l.Sugar().Error("Could not get room member by ID in database", err)
+		return err
+	}
+
+	err = dBal.UpdateRoomMemberByID(ctx, dbal.UpdateRoomMemberByIDParams{
+		ID:               pgtype.UUID{Bytes: req.ID, Valid: true},
+		RoomMemberStatus: string(req.RoomMemberStatus),
+		IsActive:         true,
+		UpdatedBy:        req.UserID.String(),
+	})
+	if err != nil {
+		l.Sugar().Error("Could not join room", err)
+		return err
+	}
+
+	return nil
+}
+
 func LeaveRoom(ctx context.Context, req model.RoomMemberReq) (err error) {
 	l := logs.GetLoggerctx(ctx)
 	dbConn, err := dbpkg.InitDB()

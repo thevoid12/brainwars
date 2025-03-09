@@ -9,6 +9,8 @@ package websocket
 
 import (
 	logs "brainwars/pkg/logger"
+	"brainwars/pkg/room"
+	roommodel "brainwars/pkg/room/model"
 	"context"
 	"encoding/json"
 	"errors"
@@ -19,6 +21,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
 )
@@ -137,7 +140,7 @@ func (c *Client) readMessages(ctx context.Context) {
 			l.Sugar().Error("error unmarshalling message:", err)
 			break
 		}
-		if err := c.manager.routeEvent(request, c); err != nil {
+		if err := c.manager.routeEvent(ctx, request, c); err != nil {
 			l.Sugar().Error("error routing event:", err)
 			break
 		}
@@ -176,17 +179,16 @@ func (c *Client) pongHandler(pongMsg string) error {
 	return c.connection.SetReadDeadline(time.Now().Add(pongWait))
 }
 
-func (m *Manager) routeEvent(event Event, c *Client) error {
+func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error {
 	if handler, ok := m.handlers[event.Type]; ok {
-		return handler(event, c)
+		return handler(ctx, event, c)
 	}
 	return ErrEventNotSupported
 }
 
 // functions which we use after creating websocket manager
-func SendMessageHandler(event Event, c *Client) error {
+func SendMessageHandler(ctx context.Context, event Event, c *Client) error {
 	var msgEvent Payload
-	fmt.Println(event.Payload)
 	if err := json.Unmarshal(event.Payload, &msgEvent); err != nil {
 		return fmt.Errorf("bad payload: %v", err)
 	}
@@ -202,15 +204,95 @@ func SendMessageHandler(event Event, c *Client) error {
 	return nil
 }
 
-func ChatRoomHandler(event Event, c *Client) error {
-	var changeRoomEvent ChangeRoomEvent
-	if err := json.Unmarshal(event.Payload, &changeRoomEvent); err != nil {
+func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error {
+	l := logs.GetLoggerctx(ctx)
+
+	var msgEvent Payload
+	if err := json.Unmarshal(event.Payload, &msgEvent); err != nil {
 		return fmt.Errorf("bad payload: %v", err)
 	}
-	c.manager.Lock()
-	c.manager.removeClient(c)
-	c.roomCode = changeRoomEvent.Name
-	c.manager.addClient(c)
-	c.manager.Unlock()
+	err := room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
+		ID:               uuid.UUID{},
+		UserID:           uuid.UUID{},
+		RoomID:           uuid.UUID{},
+		RoomMemberStatus: roommodel.ReadyQuiz,
+		RoomCode:         "",
+	})
+	if err != nil {
+		l.Sugar().Error("update room member by id failed", err)
+		return err
+	}
+
+	var gameStatus Payload
+	gameStatus = Payload{
+		Data: "the user +____+ is ready", // TODO: fill in the user
+		Time: time.Now(),
+	}
+	data, err := json.Marshal(gameStatus)
+	if err != nil {
+		l.Sugar().Error("marshal game status failed", err)
+		return err
+	}
+
+	// letting everyone know that this client is ready
+	outgoing := Event{Type: "game_status", Payload: data}
+
+	for client := range c.manager.clients[c.roomCode] {
+		client.egress <- outgoing
+	}
+
+	// get room member info's if all are ready then start the game
+	roomMembers, err := room.ListRoomMembersByRoomID(ctx, roommodel.RoomIDReq{
+		UserID: uuid.UUID{},
+		RoomID: uuid.UUID{},
+	})
+	if err != nil {
+		l.Sugar().Error("List Room member by room id failed", err)
+		return err
+	}
+	// if all okay start the game and get the first question and
+	// broadcast to all the users including all the bots as well
+	isokay := true
+	for _, roommember := range roomMembers {
+		if (!roommember.IsBot) && roommember.RoomMemberStatus != roommodel.ReadyQuiz {
+			isokay = false
+			break
+		}
+	}
+
+	if isokay { // everything  is cool everyone is ready so we start the game
+		gameReadyNotification := struct {
+			Status  string `json:"status"`
+			Message string `json:"message"`
+		}{
+			Status:  "start_game",
+			Message: "All players are ready. Game can begin.",
+		}
+
+		notifyData, err := json.Marshal(gameReadyNotification)
+		if err != nil {
+			l.Sugar().Errorf("Failed to marshal game ready notification: %v", err)
+			return nil
+		}
+
+		// Broadcast ready-to-start notification
+		readyEvent := Event{Type: "start_game", Payload: notifyData}
+		for client := range c.manager.clients[c.roomCode] {
+			client.egress <- readyEvent
+		}
+	}
 	return nil
 }
+
+// func ChatRoomHandler(event Event, c *Client) error {
+// 	var changeRoomEvent ChangeRoomEvent
+// 	if err := json.Unmarshal(event.Payload, &changeRoomEvent); err != nil {
+// 		return fmt.Errorf("bad payload: %v", err)
+// 	}
+// 	c.manager.Lock()
+// 	c.manager.removeClient(c)
+// 	c.roomCode = changeRoomEvent.Name
+// 	c.manager.addClient(c)
+// 	c.manager.Unlock()
+// 	return nil
+// }

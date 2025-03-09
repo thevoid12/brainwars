@@ -43,7 +43,7 @@ type RoomMemberStatus string
 
 const (
 	JoinQuiz   RoomMemberStatus = "JOIN_QUIZ"
-	StartQuiz  RoomMemberStatus = "START_QUIZ"
+	ReadyQuiz  RoomMemberStatus = "READY_QUIZ"
 	LeaveQuiz  RoomMemberStatus = "LEAVE_QUIZ"
 	KickedQuiz RoomMemberStatus = "KICKED_QUIZ" // KICKED OUT OF THE ROOM
 )
@@ -93,6 +93,7 @@ type RoomMember struct {
 }
 
 type RoomMemberReq struct {
+	ID               uuid.UUID
 	UserID           uuid.UUID
 	RoomID           uuid.UUID
 	RoomMemberStatus RoomMemberStatus
