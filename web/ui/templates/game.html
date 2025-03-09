@@ -6,7 +6,18 @@
       console.log("WebSocket is supported");
       let protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
       let conn = new WebSocket(protocol + window.location.host + "/bw/ws");
-
+      conn.onopen = function (e) {
+        console.log("Connection established!");
+        var payload = { data: "welcome boys!", time: new Date().toISOString() }
+        let data = JSON.stringify({ type: "send_message", payload: payload });
+        conn.send(data);
+      };
+      conn.onmessage = function (e) {
+        console.log(e.data);
+      };
+      conn.onclose = function (e) {
+        console.log("Connection closed!");
+      };
     } else {
       alert("WebSockets are not supported in this browser.");
     }

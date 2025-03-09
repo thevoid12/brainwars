@@ -22,7 +22,7 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 
 	router.LoadHTMLGlob("web/ui/templates/*")
 
-	manager := websocket.NewManager()
+	manager := websocket.NewManager(ctx)
 	//secure group
 	rSecure := router.Group("/bw")
 
