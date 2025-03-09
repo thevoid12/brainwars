@@ -39,6 +39,15 @@ type RoomReq struct {
 	GameType GT
 }
 
+type RoomMemberStatus string
+
+const (
+	JoinQuiz   RoomMemberStatus = "JOIN_QUIZ"
+	StartQuiz  RoomMemberStatus = "START_QUIZ"
+	LeaveQuiz  RoomMemberStatus = "LEAVE_QUIZ"
+	KickedQuiz RoomMemberStatus = "KICKED_QUIZ" // KICKED OUT OF THE ROOM
+)
+
 // Room is a struct that defines the room model
 type Room struct {
 	ID         uuid.UUID
@@ -67,26 +76,27 @@ type EditRoomReq struct {
 }
 
 type RoomMember struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	RoomID    uuid.UUID
-	RoomCode  string
-	UserType  UserType
-	IsBot     bool
-	JoinedOn  time.Time
-	IsKicked  bool
-	IsActive  bool
-	IsDeleted bool
-	CreatedBy string
-	UpdatedBy string
-	CreatedOn time.Time
-	UpdatedOn time.Time
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	RoomID           uuid.UUID
+	RoomCode         string
+	UserType         UserType
+	IsBot            bool
+	JoinedOn         time.Time
+	RoomMemberStatus RoomMemberStatus
+	IsActive         bool
+	IsDeleted        bool
+	CreatedBy        string
+	UpdatedBy        string
+	CreatedOn        time.Time
+	UpdatedOn        time.Time
 }
 
 type RoomMemberReq struct {
-	UserID   uuid.UUID
-	RoomID   uuid.UUID
-	RoomCode string
+	UserID           uuid.UUID
+	RoomID           uuid.UUID
+	RoomMemberStatus RoomMemberStatus
+	RoomCode         string
 }
 
 type UserIDReq struct {

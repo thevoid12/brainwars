@@ -2,7 +2,20 @@
 - [x] set up our stack
 - [x] base schema
 - [x] create room feature
-- [ ] users join room feature(web socket)
-- [ ] static quiz for v1
+- [x] users join room feature(web socket)
+- [x] static quiz for v1
 - [ ] error rendering on screen pop up
 - [ ] validate and sanitize all models
+- [ ] when a person leaves the room or got disconnected we need to update room member table
+
+- ## starting quiz 
+- [x] all users( including bot) joins the room.
+- [ ] each question duration should be given while room creation
+- [ ] they shouldnt add a bot which takes more time than room each question time
+- [ ] all users should click start game (bot not needed) room_members table should have a new col status
+- [ ] if a user leaves before starting a game we need to remove him( ie if his connection is not active or he leaves explicitly)
+- [ ] first question comes to all
+- [ ] once solved he can click next and live leaderboard gets updated
+- [ ] there is another checklist shown with the status of others submitted the question or not
+- [ ] if all submits before the deadline (other than bots) we move to next question or if the question time gets over
+- [ ] finally we show whats right and whats wrong answer after the end of quiz

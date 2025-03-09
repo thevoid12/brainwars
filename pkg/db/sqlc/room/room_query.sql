@@ -55,7 +55,7 @@ INSERT INTO room_member (
   user_id, 
   is_bot, 
   joined_on, 
-  is_kicked, 
+  room_member_status, 
   is_active, 
   is_deleted, 
   created_on, 
@@ -77,7 +77,7 @@ WHERE room_id = $1 AND user_id = $2 AND is_deleted = false;
 -- name: UpdateRoomMemberByID :exec
 UPDATE room_member
 SET 
-  is_kicked = $2,
+  room_member_status = $2,
   is_active = $3,
   updated_on = NOW(),
   updated_by = $4
@@ -86,7 +86,7 @@ WHERE id = $1;
 -- name: UpdateRoomMemberByRoomAndUserID :exec
 UPDATE room_member
 SET 
-  is_kicked = $2,
+  room_member_status = $2,
   is_active = $3,
   updated_on = NOW(),
   updated_by = $4

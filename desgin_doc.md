@@ -1,4 +1,5 @@
 ![design](design.png)
+![design_2](design_2.png)
 - user signs in
 - creates a room or joins existing room
 - **create a room:**

@@ -145,8 +145,9 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 			Bytes: req.UserID,
 			Valid: true,
 		},
-		IsBot:     false,
-		IsKicked:  false,
+		IsBot:            false,
+		RoomMemberStatus: string(model.JoinQuiz),
+
 		IsActive:  true,
 		IsDeleted: false,
 		CreatedBy: req.UserID.String(),
@@ -418,12 +419,12 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 			Bytes: req.UserID,
 			Valid: true,
 		},
-		IsBot:     false,
-		IsKicked:  false,
-		IsActive:  true,
-		IsDeleted: false,
-		CreatedBy: req.UserID.String(),
-		UpdatedBy: req.RoomID.String(),
+		IsBot:            false,
+		RoomMemberStatus: string(req.RoomMemberStatus),
+		IsActive:         true,
+		IsDeleted:        false,
+		CreatedBy:        req.UserID.String(),
+		UpdatedBy:        req.RoomID.String(),
 	})
 	if err != nil {
 		l.Sugar().Error("Could not update room members in database", err)
@@ -466,15 +467,15 @@ func ListRoomMembersByRoomID(ctx context.Context, req model.RoomIDReq) (roomMemb
 	}
 	for _, member := range dbRecord {
 		roomMembers = append(roomMembers, &model.RoomMember{
-			ID:        member.ID.Bytes,
-			RoomID:    member.RoomID.Bytes,
-			UserID:    member.UserID.Bytes,
-			IsBot:     member.IsBot,
-			IsKicked:  member.IsKicked,
-			IsActive:  member.IsActive,
-			IsDeleted: member.IsDeleted,
-			CreatedBy: member.CreatedBy,
-			UpdatedBy: member.UpdatedBy,
+			ID:               member.ID.Bytes,
+			RoomID:           member.RoomID.Bytes,
+			UserID:           member.UserID.Bytes,
+			IsBot:            member.IsBot,
+			RoomMemberStatus: model.RoomMemberStatus(member.RoomMemberStatus),
+			IsActive:         member.IsActive,
+			IsDeleted:        member.IsDeleted,
+			CreatedBy:        member.CreatedBy,
+			UpdatedBy:        member.UpdatedBy,
 		})
 	}
 	return roomMembers, nil
@@ -509,15 +510,15 @@ func GetRoomMemberByRoomAndUserID(ctx context.Context, req model.RoomMemberReq) 
 	}
 
 	roomMember = &model.RoomMember{
-		ID:        dbRecord[0].ID.Bytes,
-		RoomID:    dbRecord[0].RoomID.Bytes,
-		UserID:    dbRecord[0].UserID.Bytes,
-		IsBot:     dbRecord[0].IsBot,
-		IsKicked:  dbRecord[0].IsKicked,
-		IsActive:  dbRecord[0].IsActive,
-		IsDeleted: dbRecord[0].IsDeleted,
-		CreatedBy: dbRecord[0].CreatedBy,
-		UpdatedBy: dbRecord[0].UpdatedBy,
+		ID:               dbRecord[0].ID.Bytes,
+		RoomID:           dbRecord[0].RoomID.Bytes,
+		UserID:           dbRecord[0].UserID.Bytes,
+		IsBot:            dbRecord[0].IsBot,
+		RoomMemberStatus: model.RoomMemberStatus(dbRecord[0].RoomMemberStatus),
+		IsActive:         dbRecord[0].IsActive,
+		IsDeleted:        dbRecord[0].IsDeleted,
+		CreatedBy:        dbRecord[0].CreatedBy,
+		UpdatedBy:        dbRecord[0].UpdatedBy,
 	}
 	return roomMember, nil
 }
@@ -579,9 +580,9 @@ func LeaveRoom(ctx context.Context, req model.RoomMemberReq) (err error) {
 			Bytes: req.RoomID,
 			Valid: true,
 		},
-		IsKicked:  false,
-		IsActive:  false,
-		UpdatedBy: req.UserID.String(),
+		RoomMemberStatus: string(req.RoomMemberStatus),
+		IsActive:         false,
+		UpdatedBy:        req.UserID.String(),
 		UserID: pgtype.UUID{
 			Bytes: req.UserID,
 			Valid: true,

@@ -1,0 +1,43 @@
+package bots
+
+import (
+	logs "brainwars/pkg/logger"
+	"brainwars/pkg/room"
+	roommodel "brainwars/pkg/room/model"
+	"brainwars/web/ui/handlers"
+	"context"
+
+	"github.com/gin-gonic/gin"
+)
+
+func JoinGameAsBots(ctx context.Context, req roommodel.RoomMemberReq, roomCode string) error {
+	l := logs.GetLoggerctx(ctx)
+	// check if he has already joined the room if he has then redirect him to the room
+	roomMember, err := room.GetRoomMemberByRoomAndUserID(ctx, roommodel.RoomMemberReq{
+		UserID: req.UserID,
+		RoomID: req.RoomID,
+	})
+	if err != nil {
+		l.Sugar().Error("get room member by room and user ID failed", err)
+		return err
+	}
+
+	if roomMember == nil {
+		_, err := room.JoinRoomWithRoomCode(ctx, roommodel.RoomMemberReq{
+			UserID:   roomMember.UserID,
+			RoomID:   roomMember.RoomID,
+			RoomCode: roomCode,
+		})
+		if err != nil {
+			l.Sugar().Error("join room with room code failed", err)
+			return err
+		}
+	}
+	handlers.RenderTemplate(c, "game.html", gin.H{
+		"title":    "game room",
+		"roomCode": "8bd9c332-ea09-434c-b439-5b3a39d3de5f",
+		"userID":   "00000000-0000-0000-0000-000000000001",
+	})
+
+	return nil
+}

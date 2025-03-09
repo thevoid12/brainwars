@@ -143,7 +143,7 @@ INSERT INTO room_member (
   user_id, 
   is_bot, 
   joined_on, 
-  is_kicked, 
+  room_member_status, 
   is_active, 
   is_deleted, 
   created_on, 
@@ -152,19 +152,19 @@ INSERT INTO room_member (
   updated_by    
 )   
 VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7, NOW(), NOW(), $8, $9)
-RETURNING id, room_id, user_id, is_bot, joined_on, is_kicked, is_active, is_deleted, created_on, updated_on, created_by, updated_by
+RETURNING id, room_id, user_id, is_bot, joined_on, room_member_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by
 `
 
 type CreateRoomMemberParams struct {
-	ID        pgtype.UUID
-	RoomID    pgtype.UUID
-	UserID    pgtype.UUID
-	IsBot     bool
-	IsKicked  bool
-	IsActive  bool
-	IsDeleted bool
-	CreatedBy string
-	UpdatedBy string
+	ID               pgtype.UUID
+	RoomID           pgtype.UUID
+	UserID           pgtype.UUID
+	IsBot            bool
+	RoomMemberStatus string
+	IsActive         bool
+	IsDeleted        bool
+	CreatedBy        string
+	UpdatedBy        string
 }
 
 // ------------------------------------ Room Member ------------------------------------------------------------------------
@@ -174,7 +174,7 @@ func (q *Queries) CreateRoomMember(ctx context.Context, arg CreateRoomMemberPara
 		arg.RoomID,
 		arg.UserID,
 		arg.IsBot,
-		arg.IsKicked,
+		arg.RoomMemberStatus,
 		arg.IsActive,
 		arg.IsDeleted,
 		arg.CreatedBy,
@@ -187,7 +187,7 @@ func (q *Queries) CreateRoomMember(ctx context.Context, arg CreateRoomMemberPara
 		&i.UserID,
 		&i.IsBot,
 		&i.JoinedOn,
-		&i.IsKicked,
+		&i.RoomMemberStatus,
 		&i.IsActive,
 		&i.IsDeleted,
 		&i.CreatedOn,
@@ -315,7 +315,7 @@ func (q *Queries) GetRoomByRoomCode(ctx context.Context, roomCode string) ([]Roo
 }
 
 const getRoomMemberByRoomAndUserID = `-- name: GetRoomMemberByRoomAndUserID :many
-SELECT id, room_id, user_id, is_bot, joined_on, is_kicked, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room_member
+SELECT id, room_id, user_id, is_bot, joined_on, room_member_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room_member
 WHERE room_id = $1 AND user_id = $2 AND is_deleted = false
 `
 
@@ -339,7 +339,7 @@ func (q *Queries) GetRoomMemberByRoomAndUserID(ctx context.Context, arg GetRoomM
 			&i.UserID,
 			&i.IsBot,
 			&i.JoinedOn,
-			&i.IsKicked,
+			&i.RoomMemberStatus,
 			&i.IsActive,
 			&i.IsDeleted,
 			&i.CreatedOn,
@@ -434,7 +434,7 @@ func (q *Queries) ListRoomByUserID(ctx context.Context, roomOwner pgtype.UUID) (
 }
 
 const listRoomMembersByRoomID = `-- name: ListRoomMembersByRoomID :many
-SELECT id, room_id, user_id, is_bot, joined_on, is_kicked, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room_member
+SELECT id, room_id, user_id, is_bot, joined_on, room_member_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room_member
 WHERE room_id = $1 AND is_deleted = false
 `
 
@@ -453,7 +453,7 @@ func (q *Queries) ListRoomMembersByRoomID(ctx context.Context, roomID pgtype.UUI
 			&i.UserID,
 			&i.IsBot,
 			&i.JoinedOn,
-			&i.IsKicked,
+			&i.RoomMemberStatus,
 			&i.IsActive,
 			&i.IsDeleted,
 			&i.CreatedOn,
@@ -562,7 +562,7 @@ func (q *Queries) UpdateRoomByID(ctx context.Context, arg UpdateRoomByIDParams) 
 const updateRoomMemberByID = `-- name: UpdateRoomMemberByID :exec
 UPDATE room_member
 SET 
-  is_kicked = $2,
+  room_member_status = $2,
   is_active = $3,
   updated_on = NOW(),
   updated_by = $4
@@ -570,16 +570,16 @@ WHERE id = $1
 `
 
 type UpdateRoomMemberByIDParams struct {
-	ID        pgtype.UUID
-	IsKicked  bool
-	IsActive  bool
-	UpdatedBy string
+	ID               pgtype.UUID
+	RoomMemberStatus string
+	IsActive         bool
+	UpdatedBy        string
 }
 
 func (q *Queries) UpdateRoomMemberByID(ctx context.Context, arg UpdateRoomMemberByIDParams) error {
 	_, err := q.db.Exec(ctx, updateRoomMemberByID,
 		arg.ID,
-		arg.IsKicked,
+		arg.RoomMemberStatus,
 		arg.IsActive,
 		arg.UpdatedBy,
 	)
@@ -589,7 +589,7 @@ func (q *Queries) UpdateRoomMemberByID(ctx context.Context, arg UpdateRoomMember
 const updateRoomMemberByRoomAndUserID = `-- name: UpdateRoomMemberByRoomAndUserID :exec
 UPDATE room_member
 SET 
-  is_kicked = $2,
+  room_member_status = $2,
   is_active = $3,
   updated_on = NOW(),
   updated_by = $4
@@ -597,17 +597,17 @@ WHERE room_id = $1 AND user_id = $5 AND is_deleted=false
 `
 
 type UpdateRoomMemberByRoomAndUserIDParams struct {
-	RoomID    pgtype.UUID
-	IsKicked  bool
-	IsActive  bool
-	UpdatedBy string
-	UserID    pgtype.UUID
+	RoomID           pgtype.UUID
+	RoomMemberStatus string
+	IsActive         bool
+	UpdatedBy        string
+	UserID           pgtype.UUID
 }
 
 func (q *Queries) UpdateRoomMemberByRoomAndUserID(ctx context.Context, arg UpdateRoomMemberByRoomAndUserIDParams) error {
 	_, err := q.db.Exec(ctx, updateRoomMemberByRoomAndUserID,
 		arg.RoomID,
-		arg.IsKicked,
+		arg.RoomMemberStatus,
 		arg.IsActive,
 		arg.UpdatedBy,
 		arg.UserID,

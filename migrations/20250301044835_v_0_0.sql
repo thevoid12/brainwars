@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS room_member (
   user_id UUID NOT NULL ,
   is_bot BOOLEAN NOT NULL DEFAULT false,
   joined_on TIMESTAMP NOT NULL,
-  is_kicked BOOLEAN NOT NULL,
+  room_member_status TEXT NOT NULL,
   is_active BOOLEAN NOT NULL,
   is_deleted BOOLEAN NOT NULL,
   created_on TIMESTAMP NOT NULL DEFAULT NOW(),

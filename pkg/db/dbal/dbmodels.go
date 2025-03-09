@@ -64,18 +64,18 @@ type Room struct {
 }
 
 type RoomMember struct {
-	ID        pgtype.UUID
-	RoomID    pgtype.UUID
-	UserID    pgtype.UUID
-	IsBot     bool
-	JoinedOn  pgtype.Timestamp
-	IsKicked  bool
-	IsActive  bool
-	IsDeleted bool
-	CreatedOn pgtype.Timestamp
-	UpdatedOn pgtype.Timestamp
-	CreatedBy string
-	UpdatedBy string
+	ID               pgtype.UUID
+	RoomID           pgtype.UUID
+	UserID           pgtype.UUID
+	IsBot            bool
+	JoinedOn         pgtype.Timestamp
+	RoomMemberStatus string
+	IsActive         bool
+	IsDeleted        bool
+	CreatedOn        pgtype.Timestamp
+	UpdatedOn        pgtype.Timestamp
+	CreatedBy        string
+	UpdatedBy        string
 }
 
 type User struct {
