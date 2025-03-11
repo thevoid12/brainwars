@@ -41,9 +41,8 @@ func checkOrigin(r *http.Request) bool {
 type Manager struct {
 	clients map[string]ClientList // map key is roomCode value is the list of clients in that room
 	sync.RWMutex
-	handlers         map[string]EventHandler
-	botEventChannels map[string][]chan Event // Event channels for bots by room code
-
+	handlers   map[string]EventHandler
+	roomStates map[string]*roommodel.RoomStatus
 }
 
 type ClientList map[*Client]bool
@@ -52,6 +51,7 @@ type Client struct {
 	connection *websocket.Conn
 	manager    *Manager
 	egress     chan Event
+	botEvents  chan Event // Only used for bot clients
 	roomCode   string
 	isBot      bool      // Flag to identify bot clients
 	botType    string    // Empty for real users, "30sec", "1min", "2min" for bots
@@ -69,8 +69,9 @@ type ChangeRoomEvent struct {
 
 func NewManager(ctx context.Context) *Manager {
 	m := &Manager{
-		clients:  make(map[string]ClientList),
-		handlers: make(map[string]EventHandler),
+		clients:    make(map[string]ClientList),
+		handlers:   make(map[string]EventHandler),
+		roomStates: make(map[string]*roommodel.RoomStatus),
 	}
 	m.setupEventHandlers()
 	return m
@@ -81,11 +82,13 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 		connection: conn,
 		manager:    manager,
 		egress:     make(chan Event),
+		botEvents:  make(chan Event),
 		roomCode:   roomCode,
 		isBot:      isBot,
 		botType:    botType,
 		userID:     userID,
 	}
+	i
 }
 
 func (m *Manager) ServeWS(c *gin.Context) {
@@ -101,7 +104,10 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	// get the roomID from the query params
 	// roomID := c.Query("roomID")
 	roomCode := "8bd9c332-ea09-434c-b439-5b3a39d3de5f"
-	client := NewClient(conn, m, roomCode)
+	isBot := false
+	botType := ""
+	userID := uuid.New()
+	client := NewClient(conn, m, roomCode, isBot, botType, userID)
 	m.addClient(client)
 	go client.readMessages(ctx)
 	go client.writeMessages(ctx)
