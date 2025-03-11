@@ -19,3 +19,4 @@
 - [ ] there is another checklist shown with the status of others submitted the question or not
 - [ ] if all submits before the deadline (other than bots) we move to next question or if the question time gets over
 - [ ] finally we show whats right and whats wrong answer after the end of quiz
+- [ ] start the bots thingy when all other players clicked start and just before loading the first question

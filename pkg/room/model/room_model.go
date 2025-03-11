@@ -99,7 +99,6 @@ type RoomMemberReq struct {
 	RoomMemberStatus RoomMemberStatus
 	RoomCode         string
 	IsBot            bool
-	BotType         botType,
 }
 
 type UserIDReq struct {

@@ -1,11 +1,8 @@
 package websocket
 
 import (
-	"brainwars/pkg/room"
-	roommodel "brainwars/pkg/room/model"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -15,43 +12,30 @@ import (
 
 func NewBotClient(ctx context.Context, manager *Manager, roomCode string, botType string) (*Client, error) {
 	botUserID := uuid.New()
-	roomID, err := uuid.Parse(roomCode)
-	if err != nil {
-		return nil, fmt.Errorf("invalid room code: %w", err)
-	}
-
-	roomMember, err := room.CreateRoomMember(ctx, roommodel.RoomMemberReq{
-		UserID:           botUserID,
-		RoomID:           roomID,
-		RoomMemberStatus: roommodel.ReadyQuiz,
-		RoomCode:         roomCode,
-		IsBot:            true,
-		BotType:          botType,
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create bot room member: %w", err)
-	}
+	// roomID, err := uuid.Parse(roomCode)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("invalid room code: %w", err)
+	// }
 
 	botClient := NewClient(nil, manager, roomCode, true, botType, botUserID)
 	// Initialize bot event channel
-	botClient.botEvents = make(chan Event, 10) // Buffer size of 10
+	botClient.botEvents = make(chan Event)
 
 	go botClient.handleBotBehavior(ctx)
 
 	// Immediately mark the bot as ready
-	readyEvent := Event{
-		Type: EventReadyGame,
-		Payload: []byte(fmt.Sprintf(`{"data":"Bot %s is ready","time":"%s"}`,
-			botUserID.String(), time.Now().Format(time.RFC3339))),
-	}
+	// readyEvent := Event{
+	// 	Type: EventReadyGame,
+	// 	Payload: []byte(fmt.Sprintf(`{"data":"Bot %s is ready","time":"%s"}`,
+	// 		botUserID.String(), time.Now().Format(time.RFC3339))),
+	// }
 
 	// Use a separate goroutine to avoid blocking
-	go func() {
-		if err := manager.routeEvent(ctx, readyEvent, botClient); err != nil {
-			log.Printf("Error marking bot as ready: %v", err)
-		}
-	}()
+	// go func() {
+	// 	if err := manager.routeEvent(ctx, readyEvent, botClient); err != nil {
+	// 		log.Printf("Error marking bot as ready: %v", err)
+	// 	}
+	// }()
 
 	return botClient, nil
 }
@@ -223,18 +207,18 @@ func (m *Manager) broadcastToBots(ctx context.Context, roomCode string, event Ev
 	}
 }
 
-// Helper method to add to Manager to check if all clients in a room are ready
-func (m *Manager) areAllClientsReady(ctx context.Context, roomCode string) (bool, error) {
-	roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roomCode)
-	if err != nil {
-		return false, fmt.Errorf("failed to list room members: %w", err)
-	}
+// // Helper method to add to Manager to check if all clients in a room are ready
+// func (m *Manager) areAllClientsReady(ctx context.Context, roomCode string) (bool, error) {
+// 	roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roomCode)
+// 	if err != nil {
+// 		return false, fmt.Errorf("failed to list room members: %w", err)
+// 	}
 
-	for _, member := range roomMembers {
-		if (!member.IsBot) && member.RoomMemberStatus != roommodel.ReadyQuiz {
-			return false, nil
-		}
-	}
+// 	for _, member := range roomMembers {
+// 		if (!member.IsBot) && member.RoomMemberStatus != roommodel.ReadyQuiz {
+// 			return false, nil
+// 		}
+// 	}
 
-	return true, nil
-}
+// 	return true, nil
+// }

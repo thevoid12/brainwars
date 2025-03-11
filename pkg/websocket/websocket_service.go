@@ -107,6 +107,22 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	isBot := false
 	botType := ""
 	userID := util.GetUserIDFromctx(ctx)
+	roomMember, err := room.GetRoomMemberByRoomAndUserID(ctx, roommodel.RoomMemberReq{
+		UserID: userID,
+		RoomID: uuid.MustParse(roomCode),
+	})
+	if err != nil {
+		l.Sugar().Error("get room member by room and user id failed", err)
+		return
+	}
+
+	if roomMember.IsBot {
+		_, err := NewBotClient(ctx, m, roomCode, "")
+		if err != nil {
+			l.Sugar().Error("new bot client creation failed", err)
+			return
+		}
+	}
 	client := NewClient(conn, m, roomCode, isBot, botType, userID)
 	m.addClient(client)
 	go client.readMessages(ctx)
