@@ -11,6 +11,7 @@ import (
 	logs "brainwars/pkg/logger"
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
+	"brainwars/pkg/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -88,13 +89,12 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 		botType:    botType,
 		userID:     userID,
 	}
-	i
+
 }
 
 func (m *Manager) ServeWS(c *gin.Context) {
 	ctx := c.Request.Context()
 	l := logs.GetLoggerctx(ctx)
-
 	log.Println("New connection")
 	conn, err := websocketUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -106,7 +106,7 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	roomCode := "8bd9c332-ea09-434c-b439-5b3a39d3de5f"
 	isBot := false
 	botType := ""
-	userID := uuid.New()
+	userID := util.GetUserIDFromctx(ctx)
 	client := NewClient(conn, m, roomCode, isBot, botType, userID)
 	m.addClient(client)
 	go client.readMessages(ctx)
@@ -218,6 +218,7 @@ func SendMessageHandler(ctx context.Context, event Event, c *Client) error {
 	return nil
 }
 
+// payload structure {data:ready_game, time:time.now()}
 func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error {
 	l := logs.GetLoggerctx(ctx)
 
