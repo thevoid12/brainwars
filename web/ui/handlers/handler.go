@@ -91,7 +91,7 @@ func CreateRoomHandler(c *gin.Context) {
 		RoomName: "test room",
 		GameType: model.SP,
 	}
-	joinRoomIDs := []roommodel.UserIDReq{
+	botIDs := []roommodel.UserIDReq{
 		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000002")},
 		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000003")},
 	}
@@ -99,10 +99,19 @@ func CreateRoomHandler(c *gin.Context) {
 		Topic: "test topic",
 		Count: 10,
 	}
-	err := room.SetupGame(ctx, roomreq, joinRoomIDs, questReq)
+	err := room.SetupGame(ctx, roomreq, botIDs, questReq)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Failed to Setup game", err)
 	}
+	if roomreq.GameType == model.SP {
+		// immidiately join the room,start the game
+		RenderTemplate(c, "game.html", gin.H{
+			"title":    "game room",
+			"roomCode": "8bd9c332-ea09-434c-b439-5b3a39d3de5f",
+			"userID":   "00000000-0000-0000-0000-000000000001",
+		})
+	}
+	// if he is a multiplayer mode then redirect to main page through which he can join the game with room code
 	RenderTemplate(c, "home.html", gin.H{
 		"title":   "About Page",
 		"user-id": "00000000-0000-0000-0000-000000000001",

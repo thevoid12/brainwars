@@ -18,7 +18,7 @@ import (
 
 // SetupGame is a function that sets up a game from room creation,member addition,question generation
 // TODO: make everything in transaction
-func SetupGame(ctx context.Context, req model.RoomReq, joinRoomIDs []model.UserIDReq, questReq *quizmodel.QuizReq) error {
+func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq, questReq *quizmodel.QuizReq) error {
 	l := logs.GetLoggerctx(ctx)
 	// Create a room
 	roomDetails, err := CreateRoom(ctx, req)
@@ -28,10 +28,13 @@ func SetupGame(ctx context.Context, req model.RoomReq, joinRoomIDs []model.UserI
 	}
 
 	// Add room members
-	for _, membersID := range joinRoomIDs {
+	for _, membersID := range botIDs {
+		// get user details
 		_, err = JoinRoom(ctx, model.RoomMemberReq{
-			UserID: membersID.UserID,
-			RoomID: roomDetails.ID,
+			UserID:           membersID.UserID,
+			RoomID:           roomDetails.ID,
+			RoomMemberStatus: model.ReadyQuiz,
+			IsBot:            true,
 		})
 		if err != nil {
 			l.Sugar().Error("Could not join room", err)
@@ -419,13 +422,14 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 			Bytes: req.UserID,
 			Valid: true,
 		},
-		IsBot:            false,
+		IsBot:            req.IsBot,
 		RoomMemberStatus: string(req.RoomMemberStatus),
 		IsActive:         true,
 		IsDeleted:        false,
 		CreatedBy:        req.UserID.String(),
-		UpdatedBy:        req.RoomID.String(),
+		UpdatedBy:        req.UserID.String(),
 	})
+
 	if err != nil {
 		l.Sugar().Error("Could not update room members in database", err)
 		return nil, err

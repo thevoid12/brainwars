@@ -85,3 +85,23 @@ type Answer struct {
 	CreatedBy    string
 	UpdatedBy    string
 }
+
+// GameState to track game progress
+type GameState struct {
+	RoomCode             string        `json:"roomCode"`
+	Status               string        `json:"status"` // "waiting", "in_progress", "ended"
+	CurrentRound         int           `json:"currentRound"`
+	TotalRounds          int           `json:"totalRounds"`
+	Questions            []Question    `json:"questions"`
+	Participants         []Participant `json:"participants"`
+	StartTime            time.Time     `json:"startTime"`
+	CurrentQuestionIndex int           `json:"currentQuestionIndex"`
+}
+
+type Participant struct {
+	UserID   uuid.UUID `json:"userId"`
+	Username string    `json:"username"`
+	IsBot    bool      `json:"isBot"`
+	Score    int       `json:"score"`
+	IsReady  bool      `json:"isReady"`
+}

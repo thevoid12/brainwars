@@ -9,6 +9,7 @@ package websocket
 
 import (
 	logs "brainwars/pkg/logger"
+	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
 	"brainwars/pkg/util"
@@ -44,6 +45,7 @@ type Manager struct {
 	sync.RWMutex
 	handlers   map[string]EventHandler
 	roomStates map[string]*roommodel.RoomStatus
+	gameStates map[string]*quizmodel.GameState
 }
 
 type ClientList map[*Client]bool
@@ -73,6 +75,7 @@ func NewManager(ctx context.Context) *Manager {
 		clients:    make(map[string]ClientList),
 		handlers:   make(map[string]EventHandler),
 		roomStates: make(map[string]*roommodel.RoomStatus),
+		gameStates: make(map[string]*quizmodel.GameState),
 	}
 	m.setupEventHandlers()
 	return m
@@ -101,11 +104,13 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		l.Sugar().Error("websocket upgrade error:", err)
 		return
 	}
+
 	// get the roomID from the query params
-	// roomID := c.Query("roomID")
-	roomCode := "8bd9c332-ea09-434c-b439-5b3a39d3de5f"
-	isBot := false
-	botType := ""
+	roomCode := c.Query("roomCode")
+	if roomCode == "" {
+		roomCode = "8bd9c332-ea09-434c-b439-5b3a39d3de5f" // Default room for testing
+	}
+
 	userID := util.GetUserIDFromctx(ctx)
 	roomMember, err := room.GetRoomMemberByRoomAndUserID(ctx, roommodel.RoomMemberReq{
 		UserID: userID,
@@ -116,17 +121,352 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		return
 	}
 
-	if roomMember.IsBot {
-		_, err := NewBotClient(ctx, m, roomCode, "")
-		if err != nil {
-			l.Sugar().Error("new bot client creation failed", err)
-			return
-		}
-	}
-	client := NewClient(conn, m, roomCode, isBot, botType, userID)
+	client := NewClient(conn, m, roomCode, false, "", userID)
 	m.addClient(client)
+
+	// Check if the room needs to be initialized
+	m.initializeRoomGameState(ctx, roomCode)
+
+	// When a human player joins, set bots to ready state
+	// even if 1 user joins the room then we instentaniously set up all the bots to ready state for the game to start.
+	// we get the list of bots from list all members in a room where bots are members as wek
+	m.setupBotsForRoom(ctx, roomCode)
+
 	go client.readMessages(ctx)
 	go client.writeMessages(ctx)
+}
+
+// Start game handler
+func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error {
+	l := logs.GetLoggerctx(ctx)
+
+	// Get the game state for this room
+	c.manager.Lock()
+	gameState, exists := c.manager.gameStates[c.roomCode]
+	if !exists {
+		c.manager.Unlock()
+		return fmt.Errorf("game state not found for room %s", c.roomCode)
+	}
+
+	// Update game state
+	gameState.Status = "in_progress"
+	gameState.StartTime = time.Now()
+	gameState.CurrentQuestionIndex = 0
+	c.manager.Unlock()
+
+	// Fetch questions from the database
+	questions, err := fetchQuestionsFromDB(ctx, c.roomCode, 5) // Fetch 5 questions
+	if err != nil {
+		l.Sugar().Error("failed to fetch questions:", err)
+		return err
+	}
+
+	// Store questions in game state
+	c.manager.Lock()
+	gameState.Questions = questions
+	c.manager.Unlock()
+
+	// Send the first question to all clients
+	return sendNextQuestion(ctx, c.manager, c.roomCode)
+}
+
+// Send the next question to all clients in a room
+func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) error {
+	l := logs.GetLoggerctx(ctx)
+
+	manager.Lock()
+	gameState, exists := manager.gameStates[roomCode]
+	if !exists {
+		manager.Unlock()
+		return fmt.Errorf("game state not found for room %s", roomCode)
+	}
+
+	// Check if we've reached the end of questions
+	if gameState.CurrentQuestionIndex >= len(gameState.Questions) {
+		// Game is over
+		gameState.Status = "ended"
+		manager.Unlock()
+
+		// Send game end event
+		endGamePayload := struct {
+			Message    string        `json:"message"`
+			Scores     []Participant `json:"scores"`
+			FinishTime time.Time     `json:"finishTime"`
+		}{
+			Message:    "Game has ended. Here are the final scores.",
+			Scores:     gameState.Participants,
+			FinishTime: time.Now(),
+		}
+
+		endGameData, _ := json.Marshal(endGamePayload)
+		endEvent := Event{Type: EventEndGame, Payload: endGameData}
+
+		// Broadcast to all clients including bots
+		for client := range manager.clients[roomCode] {
+			client.egress <- endEvent
+		}
+
+		// Also notify bots about game end
+		manager.broadcastToBots(ctx, roomCode, endEvent)
+
+		return nil
+	}
+
+	// Get the current question
+	currentQuestion := gameState.Questions[gameState.CurrentQuestionIndex]
+
+	// Create a client-safe version (without correct answer)
+	clientQuestion := Question{
+		ID:        currentQuestion.ID,
+		Question:  currentQuestion.Question,
+		Options:   currentQuestion.Options,
+		TimeLimit: currentQuestion.TimeLimit,
+	}
+
+	manager.Unlock()
+
+	// Prepare question event
+	questionData, _ := json.Marshal(struct {
+		QuestionIndex  int       `json:"questionIndex"`
+		TotalQuestions int       `json:"totalQuestions"`
+		Question       Question  `json:"question"`
+		StartTime      time.Time `json:"startTime"`
+	}{
+		QuestionIndex:  gameState.CurrentQuestionIndex + 1,
+		TotalQuestions: len(gameState.Questions),
+		Question:       clientQuestion,
+		StartTime:      time.Now(),
+	})
+
+	questionEvent := Event{Type: EventNewQuestion, Payload: questionData}
+
+	// Broadcast to all clients
+	for client := range manager.clients[roomCode] {
+		client.egress <- questionEvent
+	}
+
+	// Notify bots about new question so they can prepare to answer
+	manager.broadcastToBots(ctx, roomCode, questionEvent)
+
+	// Schedule next question after a delay (current question time limit + 5 seconds for results)
+	go func() {
+		timeLimit := time.Duration(currentQuestion.TimeLimit+5) * time.Second
+		timer := time.NewTimer(timeLimit)
+		<-timer.C
+
+		// Show question results first
+		showQuestionResults(ctx, manager, roomCode)
+
+		// Short delay to let players see results
+		time.Sleep(3 * time.Second)
+
+		// Move to next question
+		manager.Lock()
+		if gameState, exists := manager.gameStates[roomCode]; exists {
+			gameState.CurrentQuestionIndex++
+		}
+		manager.Unlock()
+
+		// Send next question
+		sendNextQuestion(ctx, manager, roomCode)
+	}()
+
+	return nil
+}
+
+// Handle answer submissions
+func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
+	l := logs.GetLoggerctx(ctx)
+
+	var submission AnswerSubmission
+	if err := json.Unmarshal(event.Payload, &submission); err != nil {
+		return fmt.Errorf("bad payload: %v", err)
+	}
+
+	// Set timestamp if not provided
+	if submission.Timestamp.IsZero() {
+		submission.Timestamp = time.Now()
+	}
+
+	// Get the game state
+	c.manager.Lock()
+	gameState, exists := c.manager.gameStates[c.roomCode]
+	if !exists {
+		c.manager.Unlock()
+		return fmt.Errorf("game state not found for room %s", c.roomCode)
+	}
+
+	// Only process if game is in progress
+	if gameState.Status != "in_progress" || gameState.CurrentQuestionIndex >= len(gameState.Questions) {
+		c.manager.Unlock()
+		return fmt.Errorf("game is not in active question phase")
+	}
+
+	// Get current question
+	currentQuestion := gameState.Questions[gameState.CurrentQuestionIndex]
+
+	// Check if answer is correct
+	isCorrect := submission.Answer == currentQuestion.CorrectAnswer
+
+	// Update participant score
+	found := false
+	for i, participant := range gameState.Participants {
+		if participant.UserID == c.userID {
+			if isCorrect {
+				// Calculate score based on answer speed
+				answerTime := submission.Timestamp.Sub(gameState.StartTime)
+				speedBonus := float64(currentQuestion.TimeLimit) - answerTime.Seconds()
+				if speedBonus < 0 {
+					speedBonus = 0
+				}
+
+				// Add score (base 100 + speed bonus up to 100)
+				gameState.Participants[i].Score += 100 + int(speedBonus*3.33)
+			}
+			found = true
+			break
+		}
+	}
+
+	// If participant not found, add them
+	if !found {
+		// Get user info from database
+		var username string
+		// TODO: Replace with actual database query to get username
+		if c.isBot {
+			username = fmt.Sprintf("Bot-%s", c.userID.String()[:8])
+		} else {
+			username = fmt.Sprintf("User-%s", c.userID.String()[:8])
+		}
+
+		score := 0
+		if isCorrect {
+			score = 100 // Base score for correct answer
+		}
+
+		gameState.Participants = append(gameState.Participants, Participant{
+			UserID:   c.userID,
+			Username: username,
+			IsBot:    c.isBot,
+			Score:    score,
+			IsReady:  true,
+		})
+	}
+
+	c.manager.Unlock()
+
+	// Acknowledge answer submission
+	ackPayload := struct {
+		QuestionID uuid.UUID `json:"questionId"`
+		Received   bool      `json:"received"`
+		IsCorrect  bool      `json:"isCorrect"`
+	}{
+		QuestionID: currentQuestion.ID,
+		Received:   true,
+		IsCorrect:  isCorrect,
+	}
+
+	ackData, _ := json.Marshal(ackPayload)
+	ackEvent := Event{Type: "answer_received", Payload: ackData}
+
+	// Send acknowledgment only to the client who submitted
+	c.egress <- ackEvent
+
+	return nil
+}
+
+// Modified ReadyGameMessageHandler to check if all participants are ready and start game
+func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error {
+	l := logs.GetLoggerctx(ctx)
+
+	// Update this client's ready status
+	err := room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
+		UserID:           c.userID,
+		RoomID:           uuid.MustParse(c.roomCode),
+		RoomMemberStatus: roommodel.ReadyQuiz,
+	})
+	if err != nil {
+		l.Sugar().Error("update room member by id failed", err)
+		return err
+	}
+
+	// Notify everyone that this client is ready
+	readyNotification := Payload{
+		Data: fmt.Sprintf("User %s is ready", c.userID.String()),
+		Time: time.Now(),
+	}
+
+	readyData, _ := json.Marshal(readyNotification)
+	statusEvent := Event{Type: "game_status", Payload: readyData}
+
+	for client := range c.manager.clients[c.roomCode] {
+		client.egress <- statusEvent
+	}
+
+	// Check if all room members are ready
+	roomMembers, err := room.ListRoomMembersByRoomID(ctx, roommodel.RoomIDReq{
+		RoomID: uuid.MustParse(c.roomCode),
+	})
+	if err != nil {
+		l.Sugar().Error("List Room member by room id failed", err)
+		return err
+	}
+
+	// Check if everyone is ready
+	allReady := true
+	for _, member := range roomMembers {
+		if member.RoomMemberStatus != roommodel.ReadyQuiz {
+			allReady = false
+			break
+		}
+	}
+
+	if allReady {
+		// Everyone is ready, start the game
+		gameReadyNotification := struct {
+			Status  string    `json:"status"`
+			Message string    `json:"message"`
+			StartAt time.Time `json:"startAt"`
+		}{
+			Status:  "start_game",
+			Message: "All players are ready. Game begins.",
+			StartAt: time.Now().Add(3 * time.Second), // Start after 3 seconds
+		}
+
+		startData, _ := json.Marshal(gameReadyNotification)
+		startEvent := Event{Type: EventStartGame, Payload: startData}
+
+		// Broadcast start notification to all clients
+		for client := range c.manager.clients[c.roomCode] {
+			client.egress <- startEvent
+		}
+
+		// Wait 3 seconds then start the game
+		go func() {
+			time.Sleep(3 * time.Second)
+			StartGameMessageHandler(ctx, startEvent, c)
+		}()
+	}
+
+	return nil
+}
+
+// Initialize the game state for a room
+func (m *Manager) initializeRoomGameState(ctx context.Context, roomCode string) {
+	m.Lock()
+	defer m.Unlock()
+
+	if _, exists := m.gameStates[roomCode]; !exists {
+		// Initialize a new game state for this room
+		m.gameStates[roomCode] = &quizmodel.GameState{
+			RoomCode:     roomCode,
+			Status:       "waiting",
+			CurrentRound: 0,
+			TotalRounds:  10, // Default to 10 rounds
+			Questions:    []quizmodel.Question{},
+			Participants: []quizmodel.Participant{},
+		}
+	}
 }
 
 // mapping clients to the roomID
@@ -235,85 +575,6 @@ func SendMessageHandler(ctx context.Context, event Event, c *Client) error {
 }
 
 // payload structure {data:ready_game, time:time.now()}
-func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error {
-	l := logs.GetLoggerctx(ctx)
-
-	var msgEvent Payload
-	if err := json.Unmarshal(event.Payload, &msgEvent); err != nil {
-		return fmt.Errorf("bad payload: %v", err)
-	}
-	err := room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
-		ID:               uuid.UUID{},
-		UserID:           uuid.UUID{},
-		RoomID:           uuid.UUID{},
-		RoomMemberStatus: roommodel.ReadyQuiz,
-		RoomCode:         "",
-	})
-	if err != nil {
-		l.Sugar().Error("update room member by id failed", err)
-		return err
-	}
-
-	var gameStatus Payload
-	gameStatus = Payload{
-		Data: "the user +____+ is ready", // TODO: fill in the user
-		Time: time.Now(),
-	}
-	data, err := json.Marshal(gameStatus)
-	if err != nil {
-		l.Sugar().Error("marshal game status failed", err)
-		return err
-	}
-
-	// letting everyone know that this client is ready
-	outgoing := Event{Type: "game_status", Payload: data}
-
-	for client := range c.manager.clients[c.roomCode] {
-		client.egress <- outgoing
-	}
-
-	// get room member info's if all are ready then start the game
-	roomMembers, err := room.ListRoomMembersByRoomID(ctx, roommodel.RoomIDReq{
-		UserID: uuid.UUID{},
-		RoomID: uuid.UUID{},
-	})
-	if err != nil {
-		l.Sugar().Error("List Room member by room id failed", err)
-		return err
-	}
-	// if all okay start the game and get the first question and
-	// broadcast to all the users including all the bots as well
-	isokay := true
-	for _, roommember := range roomMembers {
-		if (!roommember.IsBot) && roommember.RoomMemberStatus != roommodel.ReadyQuiz {
-			isokay = false
-			break
-		}
-	}
-
-	if isokay { // everything  is cool everyone is ready so we start the game
-		gameReadyNotification := struct {
-			Status  string `json:"status"`
-			Message string `json:"message"`
-		}{
-			Status:  "start_game",
-			Message: "All players are ready. Game can begin.",
-		}
-
-		notifyData, err := json.Marshal(gameReadyNotification)
-		if err != nil {
-			l.Sugar().Errorf("Failed to marshal game ready notification: %v", err)
-			return nil
-		}
-
-		// Broadcast ready-to-start notification
-		readyEvent := Event{Type: "start_game", Payload: notifyData}
-		for client := range c.manager.clients[c.roomCode] {
-			client.egress <- readyEvent
-		}
-	}
-	return nil
-}
 
 // func ChatRoomHandler(event Event, c *Client) error {
 // 	var changeRoomEvent ChangeRoomEvent

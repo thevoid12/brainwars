@@ -7,6 +7,7 @@
 - [ ] error rendering on screen pop up
 - [ ] validate and sanitize all models
 - [ ] when a person leaves the room or got disconnected we need to update room member table
+- [ ] xss protection
 
 - ## starting quiz 
 - [x] all users( including bot) joins the room.

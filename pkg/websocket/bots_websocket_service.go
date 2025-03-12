@@ -1,14 +1,62 @@
 package websocket
 
 import (
+	logs "brainwars/pkg/logger"
+	"brainwars/pkg/room"
+	roommodel "brainwars/pkg/room/model"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// Set up bots to be ready when a human player joins
+func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
+	l := logs.GetLoggerctx(ctx)
+
+	// Get all room members including bots
+	roomMembers, err := room.ListRoomMembersByRoomID(ctx, roommodel.RoomIDReq{
+		RoomID: uuid.MustParse(roomCode),
+	})
+	if err != nil {
+		l.Sugar().Error("List Room member by room id failed", err)
+		return
+	}
+
+	// Set all bots to ready state
+	for _, member := range roomMembers {
+		if member.IsBot {
+			err := room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
+				ID:               member.ID,
+				UserID:           member.UserID,
+				RoomID:           uuid.MustParse(roomCode),
+				RoomMemberStatus: roommodel.ReadyQuiz,
+			})
+			if err != nil {
+				l.Sugar().Error("Failed to update bot ready status:", err)
+				continue
+			}
+
+			// Notify all clients that this bot is ready
+			botReadyNotification := Payload{
+				Data: fmt.Sprintf("Bot %s is ready", member.ID.String()),
+				Time: time.Now(),
+			}
+
+			data, _ := json.Marshal(botReadyNotification)
+			readyEvent := Event{Type: "game_status", Payload: data}
+
+			// Broadcast to all clients in the room
+			for client := range m.clients[roomCode] {
+				client.egress <- readyEvent
+			}
+		}
+	}
+}
 
 func NewBotClient(ctx context.Context, manager *Manager, roomCode string, botType string) (*Client, error) {
 	botUserID := uuid.New()

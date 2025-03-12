@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	quizmodel "brainwars/pkg/quiz/model"
 	"context"
 	"encoding/json"
 	"time"
@@ -29,9 +30,10 @@ const (
 
 	EventStartGame = "start_game"
 	//EventReadyGame is that the user is ready to start the game
-	EventReadyGame  = "ready_game"
-	EventEndGame    = "end_game"
-	EventGameStatus = "game_status"
+	EventReadyGame    = "ready_game"
+	EventEndGame      = "end_game"
+	EventGameStatus   = "game_status"
+	EventSubmitAnswer = "submit_answer"
 )
 
 type Payload struct {
@@ -51,6 +53,11 @@ var (
 func (m *Manager) setupEventHandlers() {
 	m.handlers[EventSendMessage] = SendMessageHandler
 	m.handlers[EventReadyGame] = ReadyGameMessageHandler
-	//m.handlers[EventStartGame] = StartGameMessageHandler
-	// m.handlers[EventChangeRoom] = ChatRoomHandler
+	m.handlers[EventStartGame] = StartGameMessageHandler
+	m.handlers[EventSubmitAnswer] = SubmitAnswerHandler
+}
+
+// Add a GameState map to Manager to track games in different rooms
+func (m *Manager) setupGameState() {
+	m.gameStates = make(map[string]*quizmodel.GameState)
 }
