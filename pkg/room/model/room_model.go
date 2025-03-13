@@ -1,6 +1,7 @@
 package model
 
 import (
+	usermodel "brainwars/pkg/users/model"
 	"time"
 
 	"github.com/google/uuid"
@@ -78,6 +79,7 @@ type EditRoomReq struct {
 type RoomMember struct {
 	ID               uuid.UUID
 	UserID           uuid.UUID
+	UserDetails      usermodel.UserInfo
 	RoomID           uuid.UUID
 	RoomCode         string
 	UserType         UserType

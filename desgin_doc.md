@@ -117,3 +117,28 @@ Time Taken
 Random comment like "I almost won!"
 
 - upload a pdf and create questions out of it
+
+
+## multiplayer design:
+
+one Manager instance responsible for:
+
+Tracking all active game rooms
+Managing all connected clients (both human players and bots)
+Coordinating game state across clients
+Broadcasting events to the appropriate clients
+
+
+Multiple Client instances (both human players and bots) that:
+
+Connect to specific game rooms
+Receive events through their egress channels
+Send actions back to the game
+Each maintain their own state and behavior
+
+This is a common pattern for multiplayer game servers because it:
+
+Centralizes game logic and state management
+Makes broadcasting messages to specific groups easy
+Provides a clean separation between connection handling and game logic
+Scales well for multiple rooms running simultaneously

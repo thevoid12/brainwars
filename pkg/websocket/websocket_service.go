@@ -12,6 +12,7 @@ import (
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
+	usermodel "brainwars/pkg/users/model"
 	"brainwars/pkg/util"
 	"context"
 	"encoding/json"
@@ -56,9 +57,9 @@ type Client struct {
 	egress     chan Event
 	botEvents  chan Event // Only used for bot clients
 	roomCode   string
-	isBot      bool      // Flag to identify bot clients
-	botType    string    // Empty for real users, "30sec", "1min", "2min" for bots
-	userID     uuid.UUID // Store the user ID for easier reference
+	isBot      bool              // Flag to identify bot clients
+	botType    usermodel.BotType // Empty for real users, "30sec", "1min", "2min" for bots
+	userID     uuid.UUID         // Store the user ID for easier reference
 }
 
 type NewMessageEvent struct {
@@ -75,13 +76,13 @@ func NewManager(ctx context.Context) *Manager {
 		clients:    make(map[string]ClientList),
 		handlers:   make(map[string]EventHandler),
 		roomStates: make(map[string]*roommodel.RoomStatus),
-		gameStates: make(map[string]*quizmodel.GameStatus),
+		gameStates: make(map[string]*quizmodel.GameState),
 	}
 	m.setupEventHandlers()
 	return m
 }
 
-func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bool, botType string, userID uuid.UUID) *Client {
+func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bool, botType usermodel.BotType, userID uuid.UUID) *Client {
 	return &Client{
 		connection: conn,
 		manager:    manager,
@@ -148,7 +149,7 @@ func (m *Manager) ServeWS(c *gin.Context) {
 func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID uuid.UUID) {
 	l := logs.GetLoggerctx(ctx)
 
-	userDetails, err := user.GetUserDetailsByID(ctx, userID)
+	userDetails, err := users.GetUserDetailsByID(ctx, userID)
 	if err != nil {
 		l.Sugar().Error("get user details by id failed", err)
 		return err
@@ -185,7 +186,7 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	}
 
 	// Update game state
-	gameState.RoomStatus = "in_progress"
+	gameState.RoomStatus = roommodel.Started
 	gameState.StartTime = time.Now()
 	gameState.CurrentQuestionIndex = 0
 	c.manager.Unlock()

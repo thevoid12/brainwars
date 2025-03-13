@@ -66,5 +66,5 @@ func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error 
 
 // Add a GameState map to Manager to track games in different rooms
 func (m *Manager) setupGameState() {
-	m.gameStates = make(map[string]*quizmodel.GameStatus)
+	m.gameStates = make(map[string]*quizmodel.GameState)
 }

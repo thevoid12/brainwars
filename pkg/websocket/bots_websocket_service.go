@@ -4,11 +4,13 @@ import (
 	logs "brainwars/pkg/logger"
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
+	usermodel "brainwars/pkg/users/model"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,14 +32,40 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
 	// Set all bots to ready state
 	for _, member := range roomMembers {
 		if member.IsBot {
-			// Create a new bot client
-			botClient := NewClient(nil, m, roomCode, true, "", member.ID)
+			// Determine bot type based on member properties or some naming convention
+			// For example, if bot names contain their type like "Bot-30sec", "Bot-1min", etc.
+			var botType usermodel.BotType
+			if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec10") {
+				botType = usermodel.Sec10
+			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec15") {
+				botType = usermodel.Sec15
+			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec20") {
+				botType = usermodel.Sec20
+			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec30") {
+				botType = usermodel.Sec30
+			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec45") {
+				botType = usermodel.Sec45
+			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec1") {
+				botType = usermodel.Sec1
+			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec2") {
+				botType = usermodel.Sec2
+			} else {
+				// Default bot type
+				botType = usermodel.Sec30
+			}
 
-			//add the client to the manager
+			// Create a new bot client
+			botClient := NewClient(nil, m, roomCode, true, botType, member.ID)
+
+			// Initialize the bot with event channel and start its behavior handler
+			m.InitializeBot(ctx, botClient)
+
+			// Add the client to the manager
 			m.addClient(botClient)
+
 			// Notify all clients that this bot is ready
 			botReadyNotification := Payload{
-				Data: fmt.Sprintf("Bot %s is ready", member.ID.String()),
+				Data: fmt.Sprintf("Bot %s is ready", member.UserDetails.UserName),
 				Time: time.Now(),
 			}
 
@@ -48,145 +76,19 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
 			for client := range m.clients[roomCode] {
 				client.egress <- readyEvent
 			}
+
+			l.Sugar().Infof("Bot %s (type: %s) added to room %s", member.ID.String(), botType, roomCode)
 		}
 	}
 }
 
-func NewBotClient(ctx context.Context, manager *Manager, roomCode string, botType string) (*Client, error) {
-	botUserID := uuid.New()
-	// roomID, err := uuid.Parse(roomCode)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("invalid room code: %w", err)
-	// }
+// InitializeBot should be called when a new bot client is created
+func (m *Manager) InitializeBot(ctx context.Context, client *Client) {
+	// Create a buffered channel for bot events
+	client.botEvents = make(chan Event)
 
-	botClient := NewClient(nil, manager, roomCode, true, botType, botUserID)
-	// Initialize bot event channel
-	botClient.botEvents = make(chan Event)
-
-	go botClient.handleBotBehavior(ctx)
-
-	// Immediately mark the bot as ready
-	// readyEvent := Event{
-	// 	Type: EventReadyGame,
-	// 	Payload: []byte(fmt.Sprintf(`{"data":"Bot %s is ready","time":"%s"}`,
-	// 		botUserID.String(), time.Now().Format(time.RFC3339))),
-	// }
-
-	// Use a separate goroutine to avoid blocking
-	// go func() {
-	// 	if err := manager.routeEvent(ctx, readyEvent, botClient); err != nil {
-	// 		log.Printf("Error marking bot as ready: %v", err)
-	// 	}
-	// }()
-
-	return botClient, nil
-}
-
-func (c *Client) handleBotBehavior(ctx context.Context) {
-	if !c.isBot || c.botEvents == nil {
-		return
-	}
-
-	var answerTimer *time.Timer
-
-	for {
-		select {
-		case <-ctx.Done():
-			// Context cancelled, clean up
-			if answerTimer != nil {
-				answerTimer.Stop()
-			}
-			return
-		case event, ok := <-c.botEvents:
-			if !ok {
-				// Channel closed, exit
-				if answerTimer != nil {
-					answerTimer.Stop()
-				}
-				return
-			}
-
-			switch event.Type {
-			case "new_question":
-				if answerTimer != nil {
-					answerTimer.Stop()
-				}
-
-				var delay time.Duration
-
-				switch c.botType {
-				case "30sec":
-					delay = time.Duration(rand.Intn(25)+5) * time.Second
-				case "1min":
-					delay = time.Duration(rand.Intn(30)+30) * time.Second
-				case "2min":
-					delay = time.Duration(rand.Intn(60)+60) * time.Second
-				default:
-					delay = time.Duration(rand.Intn(30)+5) * time.Second
-				}
-
-				// Create a new context for the answer timer
-				answerCtx, cancel := context.WithTimeout(ctx, delay+time.Second)
-
-				answerTimer = time.AfterFunc(delay, func() {
-					c.submitRandomAnswer(answerCtx)
-					cancel() // Clean up the context when done
-				})
-
-			case "game_end":
-				if answerTimer != nil {
-					answerTimer.Stop()
-				}
-				return // Exit the bot behavior goroutine when game ends
-			}
-		}
-	}
-}
-
-func (c *Client) submitRandomAnswer(ctx context.Context) {
-	randomAnswer := rand.Intn(4) // Assuming 4 answer options
-
-	answerPayload := struct {
-		Answer int       `json:"answer"`
-		UserID uuid.UUID `json:"userID"`
-	}{
-		Answer: randomAnswer,
-		UserID: c.userID,
-	}
-
-	payloadBytes, err := json.Marshal(answerPayload)
-	if err != nil {
-		log.Printf("Error marshalling bot answer: %v", err)
-		return
-	}
-
-	answerEvent := Event{
-		Type:    "submit_answer",
-		Payload: payloadBytes,
-	}
-
-	maxRetries := 3
-	for i := 0; i < maxRetries; i++ {
-		select {
-		case <-ctx.Done():
-			// Context cancelled or timed out
-			return
-		default:
-			err := c.manager.routeEvent(ctx, answerEvent, c)
-			if err == nil {
-				log.Printf("Bot %s submitted answer: %d", c.userID, randomAnswer)
-				return // Success
-			}
-
-			log.Printf("Error submitting bot answer (attempt %d/%d): %v",
-				i+1, maxRetries, err)
-
-			if i < maxRetries-1 {
-				// Wait before retry
-				time.Sleep(time.Millisecond * 500)
-			}
-		}
-	}
+	// Start the bot behavior handler
+	go client.handleBotBehavior(ctx)
 }
 
 // Updated to work with the new botEvents channel
@@ -236,31 +138,147 @@ func (m *Manager) broadcastToBots(ctx context.Context, roomCode string, event Ev
 	if clients, exists := m.clients[roomCode]; exists {
 		for client := range clients {
 			if client.isBot && client.botEvents != nil {
+				// Send the event to the bot's event channel
 				select {
 				case client.botEvents <- event:
-					// Successfully sent event to bot
+					// Event sent successfully
 				default:
-					// Bot event channel is full or closed
-					log.Printf("Failed to broadcast event to bot %s: channel full or closed",
-						client.userID)
+					// Channel is full or closed, log error
+					logs.GetLoggerctx(ctx).Error("Failed to send event to bot",
+						"botID", client.id, "roomCode", roomCode)
 				}
 			}
 		}
 	}
 }
 
-// // Helper method to add to Manager to check if all clients in a room are ready
-// func (m *Manager) areAllClientsReady(ctx context.Context, roomCode string) (bool, error) {
-// 	roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roomCode)
-// 	if err != nil {
-// 		return false, fmt.Errorf("failed to list room members: %w", err)
-// 	}
+func (c *Client) handleBotBehavior(ctx context.Context) {
+	var answerTimer *time.Timer
 
-// 	for _, member := range roomMembers {
-// 		if (!member.IsBot) && member.RoomMemberStatus != roommodel.ReadyQuiz {
-// 			return false, nil
-// 		}
-// 	}
+	for {
+		select {
+		case <-ctx.Done():
+			// Context cancelled, clean up
+			if answerTimer != nil {
+				answerTimer.Stop()
+			}
+			return
+		case event, ok := <-c.botEvents:
+			if !ok {
+				// Channel closed, exit
+				if answerTimer != nil {
+					answerTimer.Stop()
+				}
+				return
+			}
 
-// 	return true, nil
-// }
+			switch event.Type {
+			case EventNewQuestion:
+				if answerTimer != nil {
+					answerTimer.Stop()
+				}
+
+				// Parse the question data
+				var questionEvent struct {
+					QuestionIndex  int       `json:"questionIndex"`
+					TotalQuestions int       `json:"totalQuestions"`
+					Question       Question  `json:"question"`
+					StartTime      time.Time `json:"startTime"`
+				}
+
+				if err := json.Unmarshal(event.Payload, &questionEvent); err != nil {
+					logs.GetLoggerctx(ctx).Error("Failed to parse question event", "error", err)
+					continue
+				}
+
+				// Calculate answer delay based on bot type
+				var delay time.Duration
+				switch c.botType {
+				case "30sec":
+					delay = time.Duration(rand.Intn(25)+5) * time.Second
+				case "1min":
+					delay = time.Duration(rand.Intn(30)+30) * time.Second
+				case "2min":
+					delay = time.Duration(rand.Intn(60)+60) * time.Second
+				default:
+					delay = time.Duration(rand.Intn(30)+5) * time.Second
+				}
+
+				// Make sure the delay doesn't exceed the question time limit
+				if int(delay.Seconds()) > questionEvent.Question.TimeLimit {
+					delay = time.Duration(questionEvent.Question.TimeLimit-1) * time.Second
+				}
+
+				// Create a separate context for the answer submission
+				answerCtx, cancel := context.WithCancel(ctx)
+
+				// Schedule the answer submission
+				answerTimer = time.AfterFunc(delay, func() {
+					defer cancel() // Clean up the context when done
+					c.submitRandomAnswer(answerCtx, questionEvent.Question.ID)
+				})
+
+			case EventEndGame:
+				if answerTimer != nil {
+					answerTimer.Stop()
+				}
+				return // Exit the bot behavior goroutine when game ends
+			}
+		}
+	}
+}
+
+func (c *Client) submitRandomAnswer(ctx context.Context, questionID string) {
+	// Get the game state to find the question
+	c.manager.RLock()
+	gameState, exists := c.manager.gameStates[c.roomCode]
+	if !exists {
+		c.manager.RUnlock()
+		return
+	}
+
+	// Find the current question
+	var currentQuestion Question
+	found := false
+	for _, q := range gameState.Questions {
+		if q.ID == questionID {
+			currentQuestion = q
+			found = true
+			break
+		}
+	}
+	c.manager.RUnlock()
+
+	if !found || len(currentQuestion.Options) == 0 {
+		return
+	}
+
+	// Select a random option
+	randomIndex := rand.Intn(len(currentQuestion.Options))
+	selectedOption := currentQuestion.Options[randomIndex]
+
+	// Create and send the answer event
+	answerPayload := struct {
+		QuestionID string `json:"questionID"`
+		AnswerID   string `json:"answerID"`
+		PlayerID   string `json:"playerID"`
+	}{
+		QuestionID: questionID,
+		AnswerID:   selectedOption.ID,
+		PlayerID:   c.id,
+	}
+
+	answerData, _ := json.Marshal(answerPayload)
+	answerEvent := Event{Type: EventSubmitAnswer, Payload: answerData}
+
+	// Send the answer through the client's egress channel
+	select {
+	case c.egress <- answerEvent:
+		// Answer sent successfully
+	case <-ctx.Done():
+		// Context canceled, no need to send answer
+	default:
+		// Channel is full or closed
+		logs.GetLoggerctx(ctx).Error("Failed to send bot answer", "botID", c.id)
+	}
+}
