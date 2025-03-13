@@ -9,9 +9,11 @@ package websocket
 
 import (
 	logs "brainwars/pkg/logger"
+	"brainwars/pkg/quiz"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
+	user "brainwars/pkg/users"
 	usermodel "brainwars/pkg/users/model"
 	"brainwars/pkg/util"
 	"context"
@@ -138,7 +140,10 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	// When a human player joins, set bots to ready state
 	// even if 1 user joins the room then we instentaniously set up all the bots to ready state for the game to start.
 	// we get the list of bots from list all members in a room where bots are members as ready
-	m.setupUserForRoom(ctx, roomCode, userID)
+	err = m.setupUserForRoom(ctx, roomCode, userID)
+	if err != nil {
+		return
+	}
 	m.setupBotsForRoom(ctx, roomCode)
 
 	go client.readMessages(ctx)
@@ -146,10 +151,10 @@ func (m *Manager) ServeWS(c *gin.Context) {
 }
 
 // Set up bots to be ready when a human player joins
-func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID uuid.UUID) {
+func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID uuid.UUID) error {
 	l := logs.GetLoggerctx(ctx)
 
-	userDetails, err := users.GetUserDetailsByID(ctx, userID)
+	userDetails, err := user.GetUserDetailsbyID(ctx, userID)
 	if err != nil {
 		l.Sugar().Error("get user details by id failed", err)
 		return err
@@ -163,7 +168,12 @@ func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID 
 		Time: time.Now(),
 	}
 
-	data, _ := json.Marshal(botReadyNotification)
+	data, err := json.Marshal(botReadyNotification)
+	if err != nil {
+		l.Sugar().Error("bot ready notification json marshal failed", err)
+		return err
+	}
+
 	readyEvent := Event{Type: "game_status", Payload: data}
 
 	// Broadcast to all clients in the room
@@ -171,6 +181,7 @@ func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID 
 		client.egress <- readyEvent
 	}
 
+	return nil
 }
 
 // Start game handler
@@ -192,7 +203,7 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	c.manager.Unlock()
 
 	// Fetch questions from the database
-	questions, err := fetchQuestionsFromDB(ctx, c.roomCode, 5) // Fetch 5 questions
+	questions, err := quiz.ListQuestionsByRoomCode(ctx, c.roomCode)
 	if err != nil {
 		l.Sugar().Error("failed to fetch questions:", err)
 		return err
@@ -200,7 +211,7 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 
 	// Store questions in game state
 	c.manager.Lock()
-	gameState.Questions = questions
+	gameState.Questions = questions // TODO: remove it
 	c.manager.Unlock()
 
 	// Send the first question to all clients
@@ -215,20 +226,22 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 	gameState, exists := manager.gameStates[roomCode]
 	if !exists {
 		manager.Unlock()
+		l.Sugar().Error("game state not found for room %s", roomCode)
 		return fmt.Errorf("game state not found for room %s", roomCode)
 	}
 
 	// Check if we've reached the end of questions
 	if gameState.CurrentQuestionIndex >= len(gameState.Questions) {
 		// Game is over
-		gameState.RoomStatus = "ended"
+		gameState.RoomStatus = roommodel.Ended
 		manager.Unlock()
 
 		// Send game end event
+		// leaderboard:
 		endGamePayload := struct {
-			Message    string        `json:"message"`
-			Scores     []Participant `json:"scores"`
-			FinishTime time.Time     `json:"finishTime"`
+			Message    string                  `json:"message"`
+			Scores     []quizmodel.Participant `json:"scores"`
+			FinishTime time.Time               `json:"finishTime"`
 		}{
 			Message:    "Game has ended. Here are the final scores.",
 			Scores:     gameState.Participants,
@@ -290,9 +303,6 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 		timeLimit := time.Duration(currentQuestion.TimeLimit+5) * time.Second
 		timer := time.NewTimer(timeLimit)
 		<-timer.C
-
-		// Show question results first
-		showQuestionResults(ctx, manager, roomCode)
 
 		// Short delay to let players see results
 		time.Sleep(3 * time.Second)
@@ -416,12 +426,14 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error {
 	l := logs.GetLoggerctx(ctx)
 
-	userDetails, err := user.GetUserDetailsByID(ctx, c.userID)
+	userDetails, err := user.GetUserDetailsbyID(ctx, c.userID)
 	if err != nil {
 		l.Sugar().Error("get user details by id failed", err)
 		return err
 	}
-
+	if userDetails == nil {
+		return fmt.Errorf("user not found")
+	}
 	// Update the room member's ready status
 	err = room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
 		UserID:           c.userID,

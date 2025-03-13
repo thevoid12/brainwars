@@ -1,6 +1,7 @@
 ----------------------------- questions --------------------------------
 -- name: CreateQuestion :exec
-INSERT INTO question (room_id,
+INSERT INTO question (id,
+    room_code,
     topic,
     question_count,
     question_data,
@@ -8,7 +9,7 @@ INSERT INTO question (room_id,
     updated_by, 
     created_on, 
     updated_on)
-VALUES ($1, $2, $3, $4, $5,$6, NOW(), NOW());
+VALUES ($7,$1, $2, $3, $4, $5,$6, NOW(), NOW());
 
 -- name: UpdateQuestionByID :exec
 UPDATE question
@@ -20,16 +21,17 @@ SET
   updated_by = $4
 WHERE id = $1;
 
--- name: ListQuestionsByRoomID :many
+-- name: ListQuestionsByRoomCode :many
 SELECT *
 FROM question
-WHERE room_id = $1
+WHERE room_code = $1
 ORDER BY created_on ASC;
 
 ---------------------------- answers --------------------------------------
 
 -- name: CreateAnswer :exec
-INSERT INTO answer (room_id,
+INSERT INTO answer (id,
+    room_code,
     user_id,
     question_id,
     question_data_id,
@@ -40,7 +42,7 @@ INSERT INTO answer (room_id,
     updated_by,
     created_on,
     updated_on)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW());
+VALUES ($10,$1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW());
 
 -- name: UpdateAnswer :exec
 UPDATE answer
@@ -51,8 +53,8 @@ SET answer_option = $2,
     updated_by = $5
 WHERE id = $1;
 
--- name: ListAnswersByRoomID :many
+-- name: ListAnswersByRoomCode :many
 SELECT *
 FROM answer
-WHERE room_id = $1
+WHERE room_code = $1
 ORDER BY created_on ASC;

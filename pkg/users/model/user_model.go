@@ -14,11 +14,11 @@ const (
 	Sec2  BotType = "2 min"
 )
 
-type UserType int
+type UserType string
 
 const (
-	User = iota
-	Bot
+	User = "User"
+	Bot  = "Bot"
 )
 
 type UserInfo struct {

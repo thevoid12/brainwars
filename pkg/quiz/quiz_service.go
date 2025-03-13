@@ -44,12 +44,13 @@ func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 	}
 
 	params := dbal.CreateQuestionParams{
-		RoomID:        pgtype.UUID{Bytes: req.RoomID, Valid: true},
 		Topic:         pgtype.Text{String: req.Topic, Valid: true},
 		QuestionData:  quesJson,
 		CreatedBy:     req.CreatedBy,
 		UpdatedBy:     req.CreatedBy,
 		QuestionCount: int32(req.QuestionCount),
+		RoomCode:      req.RoomID.String(),
+		ID:            pgtype.UUID{Bytes: uuid.New(), Valid: true},
 	}
 
 	dbConn, err := dbpkg.InitDB()
@@ -104,9 +105,9 @@ func UpdateQuestionByID(ctx context.Context, req model.EditQuestionReq) error {
 	return nil
 }
 
-// ListQuestionsByRoomID lists questions by room ID
+// ListQuestionsByRoomCode lists questions by room Code
 // TODO: fix this api this is wrong
-func ListQuestionsByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Question, error) {
+func ListQuestionsByRoomCode(ctx context.Context, roomCode string) ([]*model.Question, error) {
 	l := logs.GetLoggerctx(ctx)
 	var questionDetails []*model.Question
 	dbConn, err := dbpkg.InitDB()
@@ -117,7 +118,7 @@ func ListQuestionsByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Ques
 	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
-	questions, err := dBal.ListQuestionsByRoomID(ctx, pgtype.UUID{Bytes: roomID, Valid: true})
+	questions, err := dBal.ListQuestionsByRoomCode(ctx, roomCode)
 	if err != nil {
 		l.Sugar().Error("Could not list questions in database", err)
 		return nil, err
@@ -132,7 +133,7 @@ func ListQuestionsByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Ques
 		}
 		questionDetails = append(questionDetails, &model.Question{
 			ID:            question.ID.Bytes,
-			RoomID:        question.RoomID.Bytes,
+			RoomCode:      question.RoomCode,
 			Topic:         question.Topic.String,
 			QuestionData:  qs,
 			CreatedOn:     question.CreatedOn.Time,
@@ -150,7 +151,7 @@ func ListQuestionsByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Ques
 func CreateAnswer(ctx context.Context, req model.AnswerReq) error {
 	l := logs.GetLoggerctx(ctx)
 	params := dbal.CreateAnswerParams{
-		RoomID:         pgtype.UUID{Bytes: req.RoomID, Valid: true},
+		RoomCode:       req.RoomCode,
 		UserID:         pgtype.UUID{Bytes: req.UserID, Valid: true},
 		QuestionID:     pgtype.UUID{Bytes: req.QuestionID, Valid: true},
 		QuestionDataID: pgtype.UUID{Bytes: req.QuestionDataID, Valid: true},
@@ -206,8 +207,8 @@ func UpdateAnswer(ctx context.Context, req model.EditAnswerReq) error {
 	return nil
 }
 
-// ListAnswersByRoomID lists answers by room ID
-func ListAnswersByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Answer, error) {
+// ListAnswersByRoomCode lists answers by room Code
+func ListAnswersByRoomCode(ctx context.Context, roomCode string) ([]*model.Answer, error) {
 	l := logs.GetLoggerctx(ctx)
 	var answerDetails []*model.Answer
 	dbConn, err := dbpkg.InitDB()
@@ -218,7 +219,7 @@ func ListAnswersByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Answer
 	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
-	answers, err := dBal.ListAnswersByRoomID(ctx, pgtype.UUID{Bytes: roomID, Valid: true})
+	answers, err := dBal.ListAnswersByRoomCode(ctx, roomCode)
 	if err != nil {
 		l.Sugar().Error("Could not list answers in database", err)
 		return nil, err
@@ -226,8 +227,9 @@ func ListAnswersByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Answer
 
 	for _, answer := range answers {
 		answerDetails = append(answerDetails, &model.Answer{
-			ID:           answer.ID.Bytes,
-			RoomID:       answer.RoomID.Bytes,
+			ID:       answer.ID.Bytes,
+			RoomCode: answer.RoomCode,
+			//	RoomID:       answer.RoomID.Bytes,
 			UserID:       answer.UserID.Bytes,
 			QuestionID:   answer.QuestionID.Bytes,
 			AnswerOption: answer.AnswerOption,

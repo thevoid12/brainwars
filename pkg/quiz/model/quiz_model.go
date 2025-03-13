@@ -45,8 +45,9 @@ type EditQuestionReq struct {
 
 // Question represents the question model
 type Question struct {
-	ID            uuid.UUID
-	RoomID        uuid.UUID
+	ID uuid.UUID
+	// RoomID        uuid.UUID
+	RoomCode      string
 	Topic         string
 	QuestionCount int // total number of questions for that room
 	QuestionData  []*QuestionData
@@ -58,7 +59,8 @@ type Question struct {
 
 // AnswerReq represents the request to create an answer
 type AnswerReq struct {
-	RoomID         uuid.UUID
+	// RoomID         uuid.UUID
+	RoomCode       string
 	UserID         uuid.UUID
 	QuestionID     uuid.UUID
 	QuestionDataID uuid.UUID
@@ -79,8 +81,9 @@ type EditAnswerReq struct {
 
 // Answer represents the answer model
 type Answer struct {
-	ID           uuid.UUID
-	RoomID       uuid.UUID
+	ID uuid.UUID
+	// RoomID       uuid.UUID
+	RoomCode     string
 	UserID       uuid.UUID
 	QuestionID   uuid.UUID
 	AnswerOption int32
@@ -96,7 +99,7 @@ type GameState struct {
 	RoomStatus           roommodel.RoomStatus `json:"status"` // "waiting", "in_progress", "ended"
 	CurrentRound         int                  `json:"currentRound"`
 	TotalRounds          int                  `json:"totalRounds"`
-	Questions            []Question           `json:"questions"`
+	Questions            []*Question          `json:"questions"`
 	Participants         []Participant        `json:"participants"`
 	StartTime            time.Time            `json:"startTime"`
 	CurrentQuestionIndex int                  `json:"currentQuestionIndex"`

@@ -10,7 +10,7 @@ import (
 
 type Answer struct {
 	ID             pgtype.UUID
-	RoomID         pgtype.UUID
+	RoomCode       string
 	UserID         pgtype.UUID
 	QuestionID     pgtype.UUID
 	QuestionDataID pgtype.UUID
@@ -36,7 +36,7 @@ type Leaderboard struct {
 
 type Question struct {
 	ID            pgtype.UUID
-	RoomID        pgtype.UUID
+	RoomCode      string
 	Topic         pgtype.Text
 	QuestionCount int32
 	QuestionData  []byte

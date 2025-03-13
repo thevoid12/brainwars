@@ -13,7 +13,8 @@ import (
 
 const createAnswer = `-- name: CreateAnswer :exec
 
-INSERT INTO answer (room_id,
+INSERT INTO answer (id,
+    room_code,
     user_id,
     question_id,
     question_data_id,
@@ -24,11 +25,11 @@ INSERT INTO answer (room_id,
     updated_by,
     created_on,
     updated_on)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+VALUES ($10,$1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
 `
 
 type CreateAnswerParams struct {
-	RoomID         pgtype.UUID
+	RoomCode       string
 	UserID         pgtype.UUID
 	QuestionID     pgtype.UUID
 	QuestionDataID pgtype.UUID
@@ -37,12 +38,13 @@ type CreateAnswerParams struct {
 	AnswerTime     pgtype.Timestamp
 	CreatedBy      string
 	UpdatedBy      string
+	ID             pgtype.UUID
 }
 
 // -------------------------- answers --------------------------------------
 func (q *Queries) CreateAnswer(ctx context.Context, arg CreateAnswerParams) error {
 	_, err := q.db.Exec(ctx, createAnswer,
-		arg.RoomID,
+		arg.RoomCode,
 		arg.UserID,
 		arg.QuestionID,
 		arg.QuestionDataID,
@@ -51,12 +53,14 @@ func (q *Queries) CreateAnswer(ctx context.Context, arg CreateAnswerParams) erro
 		arg.AnswerTime,
 		arg.CreatedBy,
 		arg.UpdatedBy,
+		arg.ID,
 	)
 	return err
 }
 
 const createQuestion = `-- name: CreateQuestion :exec
-INSERT INTO question (room_id,
+INSERT INTO question (id,
+    room_code,
     topic,
     question_count,
     question_data,
@@ -64,40 +68,42 @@ INSERT INTO question (room_id,
     updated_by, 
     created_on, 
     updated_on)
-VALUES ($1, $2, $3, $4, $5,$6, NOW(), NOW())
+VALUES ($7,$1, $2, $3, $4, $5,$6, NOW(), NOW())
 `
 
 type CreateQuestionParams struct {
-	RoomID        pgtype.UUID
+	RoomCode      string
 	Topic         pgtype.Text
 	QuestionCount int32
 	QuestionData  []byte
 	CreatedBy     string
 	UpdatedBy     string
+	ID            pgtype.UUID
 }
 
 // --------------------------- questions --------------------------------
 func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) error {
 	_, err := q.db.Exec(ctx, createQuestion,
-		arg.RoomID,
+		arg.RoomCode,
 		arg.Topic,
 		arg.QuestionCount,
 		arg.QuestionData,
 		arg.CreatedBy,
 		arg.UpdatedBy,
+		arg.ID,
 	)
 	return err
 }
 
-const listAnswersByRoomID = `-- name: ListAnswersByRoomID :many
-SELECT id, room_id, user_id, question_id, question_data_id, answer_option, is_correct, answer_time, created_on, updated_on, created_by, updated_by
+const listAnswersByRoomCode = `-- name: ListAnswersByRoomCode :many
+SELECT id, room_code, user_id, question_id, question_data_id, answer_option, is_correct, answer_time, created_on, updated_on, created_by, updated_by
 FROM answer
-WHERE room_id = $1
+WHERE room_code = $1
 ORDER BY created_on ASC
 `
 
-func (q *Queries) ListAnswersByRoomID(ctx context.Context, roomID pgtype.UUID) ([]Answer, error) {
-	rows, err := q.db.Query(ctx, listAnswersByRoomID, roomID)
+func (q *Queries) ListAnswersByRoomCode(ctx context.Context, roomCode string) ([]Answer, error) {
+	rows, err := q.db.Query(ctx, listAnswersByRoomCode, roomCode)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +113,7 @@ func (q *Queries) ListAnswersByRoomID(ctx context.Context, roomID pgtype.UUID) (
 		var i Answer
 		if err := rows.Scan(
 			&i.ID,
-			&i.RoomID,
+			&i.RoomCode,
 			&i.UserID,
 			&i.QuestionID,
 			&i.QuestionDataID,
@@ -129,15 +135,15 @@ func (q *Queries) ListAnswersByRoomID(ctx context.Context, roomID pgtype.UUID) (
 	return items, nil
 }
 
-const listQuestionsByRoomID = `-- name: ListQuestionsByRoomID :many
-SELECT id, room_id, topic, question_count, question_data, created_on, updated_on, created_by, updated_by
+const listQuestionsByRoomCode = `-- name: ListQuestionsByRoomCode :many
+SELECT id, room_code, topic, question_count, question_data, created_on, updated_on, created_by, updated_by
 FROM question
-WHERE room_id = $1
+WHERE room_code = $1
 ORDER BY created_on ASC
 `
 
-func (q *Queries) ListQuestionsByRoomID(ctx context.Context, roomID pgtype.UUID) ([]Question, error) {
-	rows, err := q.db.Query(ctx, listQuestionsByRoomID, roomID)
+func (q *Queries) ListQuestionsByRoomCode(ctx context.Context, roomCode string) ([]Question, error) {
+	rows, err := q.db.Query(ctx, listQuestionsByRoomCode, roomCode)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +153,7 @@ func (q *Queries) ListQuestionsByRoomID(ctx context.Context, roomID pgtype.UUID)
 		var i Question
 		if err := rows.Scan(
 			&i.ID,
-			&i.RoomID,
+			&i.RoomCode,
 			&i.Topic,
 			&i.QuestionCount,
 			&i.QuestionData,
