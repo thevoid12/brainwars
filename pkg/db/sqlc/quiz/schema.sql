@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS question (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_id UUID NOT NULL,
   topic TEXT,
+  question_count INT NOT NULL,
   question_data JSONB NOT NULL,
   created_on TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_on TIMESTAMP NOT NULL DEFAULT NOW(),

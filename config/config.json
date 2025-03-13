@@ -9,5 +9,8 @@
   },
   "ws": {
     "maxReadSize": 512
+  },
+  "game": {
+    "gamestartbuffer": 3
   }
 }

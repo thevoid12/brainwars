@@ -30,17 +30,11 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
 	// Set all bots to ready state
 	for _, member := range roomMembers {
 		if member.IsBot {
-			err := room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
-				ID:               member.ID,
-				UserID:           member.UserID,
-				RoomID:           uuid.MustParse(roomCode),
-				RoomMemberStatus: roommodel.ReadyQuiz,
-			})
-			if err != nil {
-				l.Sugar().Error("Failed to update bot ready status:", err)
-				continue
-			}
+			// Create a new bot client
+			botClient := NewClient(nil, m, roomCode, true, "", member.ID)
 
+			//add the client to the manager
+			m.addClient(botClient)
 			// Notify all clients that this bot is ready
 			botReadyNotification := Payload{
 				Data: fmt.Sprintf("Bot %s is ready", member.ID.String()),

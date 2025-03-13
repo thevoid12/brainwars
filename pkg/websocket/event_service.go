@@ -57,7 +57,14 @@ func (m *Manager) setupEventHandlers() {
 	m.handlers[EventSubmitAnswer] = SubmitAnswerHandler
 }
 
+func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error {
+	if handler, ok := m.handlers[event.Type]; ok {
+		return handler(ctx, event, c)
+	}
+	return ErrEventNotSupported
+}
+
 // Add a GameState map to Manager to track games in different rooms
 func (m *Manager) setupGameState() {
-	m.gameStates = make(map[string]*quizmodel.GameState)
+	m.gameStates = make(map[string]*quizmodel.GameStatus)
 }

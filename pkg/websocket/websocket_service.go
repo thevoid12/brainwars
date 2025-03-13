@@ -75,7 +75,7 @@ func NewManager(ctx context.Context) *Manager {
 		clients:    make(map[string]ClientList),
 		handlers:   make(map[string]EventHandler),
 		roomStates: make(map[string]*roommodel.RoomStatus),
-		gameStates: make(map[string]*quizmodel.GameState),
+		gameStates: make(map[string]*quizmodel.GameStatus),
 	}
 	m.setupEventHandlers()
 	return m
@@ -95,6 +95,7 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 
 }
 
+// when user joins a room this serveWs handler is called
 func (m *Manager) ServeWS(c *gin.Context) {
 	ctx := c.Request.Context()
 	l := logs.GetLoggerctx(ctx)
@@ -121,19 +122,54 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		return
 	}
 
+	totalQuestions := 10 // TODO: need to come from db
+	if roomMember == nil {
+		l.Sugar().Error("room member is nil")
+		return
+	}
+
 	client := NewClient(conn, m, roomCode, false, "", userID)
 	m.addClient(client)
 
 	// Check if the room needs to be initialized
-	m.initializeRoomGameState(ctx, roomCode)
+	m.initializeRoomGameState(ctx, roomCode, totalQuestions)
 
 	// When a human player joins, set bots to ready state
 	// even if 1 user joins the room then we instentaniously set up all the bots to ready state for the game to start.
-	// we get the list of bots from list all members in a room where bots are members as wek
+	// we get the list of bots from list all members in a room where bots are members as ready
+	m.setupUserForRoom(ctx, roomCode, userID)
 	m.setupBotsForRoom(ctx, roomCode)
 
 	go client.readMessages(ctx)
 	go client.writeMessages(ctx)
+}
+
+// Set up bots to be ready when a human player joins
+func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID uuid.UUID) {
+	l := logs.GetLoggerctx(ctx)
+
+	userDetails, err := user.GetUserDetailsByID(ctx, userID)
+	if err != nil {
+		l.Sugar().Error("get user details by id failed", err)
+		return err
+	}
+
+	// Set the user to ready state
+
+	// Notify all clients that this user is ready
+	botReadyNotification := Payload{
+		Data: fmt.Sprintf("User %s is ready", userDetails.UserName),
+		Time: time.Now(),
+	}
+
+	data, _ := json.Marshal(botReadyNotification)
+	readyEvent := Event{Type: "game_status", Payload: data}
+
+	// Broadcast to all clients in the room
+	for client := range m.clients[roomCode] {
+		client.egress <- readyEvent
+	}
+
 }
 
 // Start game handler
@@ -149,7 +185,7 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	}
 
 	// Update game state
-	gameState.Status = "in_progress"
+	gameState.RoomStatus = "in_progress"
 	gameState.StartTime = time.Now()
 	gameState.CurrentQuestionIndex = 0
 	c.manager.Unlock()
@@ -184,7 +220,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 	// Check if we've reached the end of questions
 	if gameState.CurrentQuestionIndex >= len(gameState.Questions) {
 		// Game is over
-		gameState.Status = "ended"
+		gameState.RoomStatus = "ended"
 		manager.Unlock()
 
 		// Send game end event
@@ -297,7 +333,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	}
 
 	// Only process if game is in progress
-	if gameState.Status != "in_progress" || gameState.CurrentQuestionIndex >= len(gameState.Questions) {
+	if gameState.RoomStatus != "in_progress" || gameState.CurrentQuestionIndex >= len(gameState.Questions) {
 		c.manager.Unlock()
 		return fmt.Errorf("game is not in active question phase")
 	}
@@ -379,28 +415,21 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error {
 	l := logs.GetLoggerctx(ctx)
 
-	// Update this client's ready status
-	err := room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
+	userDetails, err := user.GetUserDetailsByID(ctx, c.userID)
+	if err != nil {
+		l.Sugar().Error("get user details by id failed", err)
+		return err
+	}
+
+	// Update the room member's ready status
+	err = room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
 		UserID:           c.userID,
 		RoomID:           uuid.MustParse(c.roomCode),
 		RoomMemberStatus: roommodel.ReadyQuiz,
 	})
 	if err != nil {
-		l.Sugar().Error("update room member by id failed", err)
+		l.Sugar().Error("Failed to update ready status", err)
 		return err
-	}
-
-	// Notify everyone that this client is ready
-	readyNotification := Payload{
-		Data: fmt.Sprintf("User %s is ready", c.userID.String()),
-		Time: time.Now(),
-	}
-
-	readyData, _ := json.Marshal(readyNotification)
-	statusEvent := Event{Type: "game_status", Payload: readyData}
-
-	for client := range c.manager.clients[c.roomCode] {
-		client.egress <- statusEvent
 	}
 
 	// Check if all room members are ready
@@ -430,7 +459,8 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 		}{
 			Status:  "start_game",
 			Message: "All players are ready. Game begins.",
-			StartAt: time.Now().Add(3 * time.Second), // Start after 3 seconds
+			// TODO: Cross check this viper
+			StartAt: time.Now().Add(time.Duration(viper.GetInt("game.gamestartbuffer")) * time.Second), // Start after 3 seconds
 		}
 
 		startData, _ := json.Marshal(gameReadyNotification)
@@ -443,7 +473,7 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 
 		// Wait 3 seconds then start the game
 		go func() {
-			time.Sleep(3 * time.Second)
+			time.Sleep(time.Duration(viper.GetInt("game.gamestartbuffer")) * time.Second)
 			StartGameMessageHandler(ctx, startEvent, c)
 		}()
 	}
@@ -452,7 +482,7 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 }
 
 // Initialize the game state for a room
-func (m *Manager) initializeRoomGameState(ctx context.Context, roomCode string) {
+func (m *Manager) initializeRoomGameState(ctx context.Context, roomCode string, totalRounds int) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -460,9 +490,9 @@ func (m *Manager) initializeRoomGameState(ctx context.Context, roomCode string) 
 		// Initialize a new game state for this room
 		m.gameStates[roomCode] = &quizmodel.GameState{
 			RoomCode:     roomCode,
-			Status:       "waiting",
+			RoomStatus:   roommodel.Waiting, // waiting for players
 			CurrentRound: 0,
-			TotalRounds:  10, // Default to 10 rounds
+			TotalRounds:  totalRounds, // Default to 10 rounds
 			Questions:    []quizmodel.Question{},
 			Participants: []quizmodel.Participant{},
 		}
@@ -547,13 +577,6 @@ func (c *Client) pongHandler(pongMsg string) error {
 	// Current time + Pong Wait time
 	log.Println("pong")
 	return c.connection.SetReadDeadline(time.Now().Add(pongWait))
-}
-
-func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error {
-	if handler, ok := m.handlers[event.Type]; ok {
-		return handler(ctx, event, c)
-	}
-	return ErrEventNotSupported
 }
 
 // functions which we use after creating websocket manager

@@ -26,7 +26,7 @@ type RoomStatus string
 const (
 	Started RoomStatus = "STARTED"
 	Ended   RoomStatus = "ENDED"
-	Active  RoomStatus = "ACTIVE" // room is created but the game has not started so people can join in
+	Waiting RoomStatus = "WAITING" // room is created but the game has not started so people can join in ie waiting for players
 	Deleted RoomStatus = "DELETED"
 )
 

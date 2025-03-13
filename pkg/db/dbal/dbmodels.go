@@ -35,14 +35,15 @@ type Leaderboard struct {
 }
 
 type Question struct {
-	ID           pgtype.UUID
-	RoomID       pgtype.UUID
-	Topic        pgtype.Text
-	QuestionData []byte
-	CreatedOn    pgtype.Timestamp
-	UpdatedOn    pgtype.Timestamp
-	CreatedBy    string
-	UpdatedBy    string
+	ID            pgtype.UUID
+	RoomID        pgtype.UUID
+	Topic         pgtype.Text
+	QuestionCount int32
+	QuestionData  []byte
+	CreatedOn     pgtype.Timestamp
+	UpdatedOn     pgtype.Timestamp
+	CreatedBy     string
+	UpdatedBy     string
 }
 
 type Room struct {

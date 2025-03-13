@@ -1,6 +1,7 @@
 package model
 
 import (
+	roommodel "brainwars/pkg/room/model"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,31 +26,34 @@ type QuestionData struct {
 
 // QuestionReq represents the request to create a question
 type QuestionReq struct {
-	RoomID       uuid.UUID
-	Topic        string
-	QuestionData []*QuestionData
-	CreatedBy    string
-	Count        int
+	RoomID        uuid.UUID
+	Topic         string
+	QuestionCount int
+	QuestionData  []*QuestionData
+	CreatedBy     string
+	Count         int
 }
 
 // EditQuestionReq represents the request to update a question
 type EditQuestionReq struct {
-	ID           uuid.UUID
-	Topic        string
-	QuestionData []*QuestionData
-	UpdatedBy    string
+	ID            uuid.UUID
+	Topic         string
+	QuestionCount int
+	QuestionData  []*QuestionData
+	UpdatedBy     string
 }
 
 // Question represents the question model
 type Question struct {
-	ID           uuid.UUID
-	RoomID       uuid.UUID
-	Topic        string
-	QuestionData []*QuestionData
-	CreatedOn    time.Time
-	UpdatedOn    time.Time
-	CreatedBy    string
-	UpdatedBy    string
+	ID            uuid.UUID
+	RoomID        uuid.UUID
+	Topic         string
+	QuestionCount int // total number of questions for that room
+	QuestionData  []*QuestionData
+	CreatedOn     time.Time
+	UpdatedOn     time.Time
+	CreatedBy     string
+	UpdatedBy     string
 }
 
 // AnswerReq represents the request to create an answer
@@ -88,14 +92,14 @@ type Answer struct {
 
 // GameState to track game progress
 type GameState struct {
-	RoomCode             string        `json:"roomCode"`
-	Status               string        `json:"status"` // "waiting", "in_progress", "ended"
-	CurrentRound         int           `json:"currentRound"`
-	TotalRounds          int           `json:"totalRounds"`
-	Questions            []Question    `json:"questions"`
-	Participants         []Participant `json:"participants"`
-	StartTime            time.Time     `json:"startTime"`
-	CurrentQuestionIndex int           `json:"currentQuestionIndex"`
+	RoomCode             string               `json:"roomCode"`
+	RoomStatus           roommodel.RoomStatus `json:"status"` // "waiting", "in_progress", "ended"
+	CurrentRound         int                  `json:"currentRound"`
+	TotalRounds          int                  `json:"totalRounds"`
+	Questions            []Question           `json:"questions"`
+	Participants         []Participant        `json:"participants"`
+	StartTime            time.Time            `json:"startTime"`
+	CurrentQuestionIndex int                  `json:"currentQuestionIndex"`
 }
 
 type Participant struct {

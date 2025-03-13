@@ -44,11 +44,12 @@ func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 	}
 
 	params := dbal.CreateQuestionParams{
-		RoomID:       pgtype.UUID{Bytes: req.RoomID, Valid: true},
-		Topic:        pgtype.Text{String: req.Topic, Valid: true},
-		QuestionData: quesJson,
-		CreatedBy:    req.CreatedBy,
-		UpdatedBy:    req.CreatedBy,
+		RoomID:        pgtype.UUID{Bytes: req.RoomID, Valid: true},
+		Topic:         pgtype.Text{String: req.Topic, Valid: true},
+		QuestionData:  quesJson,
+		CreatedBy:     req.CreatedBy,
+		UpdatedBy:     req.CreatedBy,
+		QuestionCount: int32(req.QuestionCount),
 	}
 
 	dbConn, err := dbpkg.InitDB()
@@ -79,10 +80,11 @@ func UpdateQuestionByID(ctx context.Context, req model.EditQuestionReq) error {
 	}
 
 	params := dbal.UpdateQuestionByIDParams{
-		ID:           pgtype.UUID{Bytes: req.ID, Valid: true},
-		Topic:        pgtype.Text{String: req.Topic, Valid: true},
-		QuestionData: quesJson,
-		UpdatedBy:    req.UpdatedBy,
+		ID:            pgtype.UUID{Bytes: req.ID, Valid: true},
+		Topic:         pgtype.Text{String: req.Topic, Valid: true},
+		QuestionData:  quesJson,
+		UpdatedBy:     req.UpdatedBy,
+		QuestionCount: int32(req.QuestionCount),
 	}
 
 	dbConn, err := dbpkg.InitDB()
@@ -103,6 +105,7 @@ func UpdateQuestionByID(ctx context.Context, req model.EditQuestionReq) error {
 }
 
 // ListQuestionsByRoomID lists questions by room ID
+// TODO: fix this api this is wrong
 func ListQuestionsByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Question, error) {
 	l := logs.GetLoggerctx(ctx)
 	var questionDetails []*model.Question
@@ -128,14 +131,15 @@ func ListQuestionsByRoomID(ctx context.Context, roomID uuid.UUID) ([]*model.Ques
 			return nil, err
 		}
 		questionDetails = append(questionDetails, &model.Question{
-			ID:           question.ID.Bytes,
-			RoomID:       question.RoomID.Bytes,
-			Topic:        question.Topic.String,
-			QuestionData: qs,
-			CreatedOn:    question.CreatedOn.Time,
-			UpdatedOn:    question.UpdatedOn.Time,
-			CreatedBy:    question.CreatedBy,
-			UpdatedBy:    question.UpdatedBy,
+			ID:            question.ID.Bytes,
+			RoomID:        question.RoomID.Bytes,
+			Topic:         question.Topic.String,
+			QuestionData:  qs,
+			CreatedOn:     question.CreatedOn.Time,
+			UpdatedOn:     question.UpdatedOn.Time,
+			CreatedBy:     question.CreatedBy,
+			UpdatedBy:     question.UpdatedBy,
+			QuestionCount: int(question.QuestionCount),
 		})
 	}
 

@@ -78,7 +78,7 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 	if req.GameType == model.SP {
 		roomStatus = model.Started // no one can join other than active state
 	} else {
-		roomStatus = model.Active
+		roomStatus = model.Waiting
 	}
 	params := dbal.CreateRoomParams{
 		RoomCode: uuid.New().String(),

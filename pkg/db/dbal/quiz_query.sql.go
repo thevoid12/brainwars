@@ -58,20 +58,22 @@ func (q *Queries) CreateAnswer(ctx context.Context, arg CreateAnswerParams) erro
 const createQuestion = `-- name: CreateQuestion :exec
 INSERT INTO question (room_id,
     topic,
+    question_count,
     question_data,
     created_by,
     updated_by, 
     created_on, 
     updated_on)
-VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+VALUES ($1, $2, $3, $4, $5,$6, NOW(), NOW())
 `
 
 type CreateQuestionParams struct {
-	RoomID       pgtype.UUID
-	Topic        pgtype.Text
-	QuestionData []byte
-	CreatedBy    string
-	UpdatedBy    string
+	RoomID        pgtype.UUID
+	Topic         pgtype.Text
+	QuestionCount int32
+	QuestionData  []byte
+	CreatedBy     string
+	UpdatedBy     string
 }
 
 // --------------------------- questions --------------------------------
@@ -79,6 +81,7 @@ func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) 
 	_, err := q.db.Exec(ctx, createQuestion,
 		arg.RoomID,
 		arg.Topic,
+		arg.QuestionCount,
 		arg.QuestionData,
 		arg.CreatedBy,
 		arg.UpdatedBy,
@@ -127,7 +130,7 @@ func (q *Queries) ListAnswersByRoomID(ctx context.Context, roomID pgtype.UUID) (
 }
 
 const listQuestionsByRoomID = `-- name: ListQuestionsByRoomID :many
-SELECT id, room_id, topic, question_data, created_on, updated_on, created_by, updated_by
+SELECT id, room_id, topic, question_count, question_data, created_on, updated_on, created_by, updated_by
 FROM question
 WHERE room_id = $1
 ORDER BY created_on ASC
@@ -146,6 +149,7 @@ func (q *Queries) ListQuestionsByRoomID(ctx context.Context, roomID pgtype.UUID)
 			&i.ID,
 			&i.RoomID,
 			&i.Topic,
+			&i.QuestionCount,
 			&i.QuestionData,
 			&i.CreatedOn,
 			&i.UpdatedOn,
@@ -195,6 +199,7 @@ const updateQuestionByID = `-- name: UpdateQuestionByID :exec
 UPDATE question
 SET 
   topic = $2,
+  question_count=$5,
   question_data = $3, 
   updated_on = NOW(),
   updated_by = $4
@@ -202,10 +207,11 @@ WHERE id = $1
 `
 
 type UpdateQuestionByIDParams struct {
-	ID           pgtype.UUID
-	Topic        pgtype.Text
-	QuestionData []byte
-	UpdatedBy    string
+	ID            pgtype.UUID
+	Topic         pgtype.Text
+	QuestionData  []byte
+	UpdatedBy     string
+	QuestionCount int32
 }
 
 func (q *Queries) UpdateQuestionByID(ctx context.Context, arg UpdateQuestionByIDParams) error {
@@ -214,6 +220,7 @@ func (q *Queries) UpdateQuestionByID(ctx context.Context, arg UpdateQuestionByID
 		arg.Topic,
 		arg.QuestionData,
 		arg.UpdatedBy,
+		arg.QuestionCount,
 	)
 	return err
 }

@@ -2,17 +2,19 @@
 -- name: CreateQuestion :exec
 INSERT INTO question (room_id,
     topic,
+    question_count,
     question_data,
     created_by,
     updated_by, 
     created_on, 
     updated_on)
-VALUES ($1, $2, $3, $4, $5, NOW(), NOW());
+VALUES ($1, $2, $3, $4, $5,$6, NOW(), NOW());
 
 -- name: UpdateQuestionByID :exec
 UPDATE question
 SET 
   topic = $2,
+  question_count=$5,
   question_data = $3, 
   updated_on = NOW(),
   updated_by = $4
