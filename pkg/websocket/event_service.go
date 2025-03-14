@@ -34,6 +34,7 @@ const (
 	EventEndGame      = "end_game"
 	EventGameStatus   = "game_status"
 	EventSubmitAnswer = "submit_answer"
+	EventNewQuestion  = "new_question"
 )
 
 type Payload struct {

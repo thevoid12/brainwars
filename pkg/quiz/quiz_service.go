@@ -51,6 +51,7 @@ func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 		QuestionCount: int32(req.QuestionCount),
 		RoomCode:      req.RoomID.String(),
 		ID:            pgtype.UUID{Bytes: uuid.New(), Valid: true},
+		TimeLimit:     int32(req.TimeLimit),
 	}
 
 	dbConn, err := dbpkg.InitDB()
@@ -86,6 +87,7 @@ func UpdateQuestionByID(ctx context.Context, req model.EditQuestionReq) error {
 		QuestionData:  quesJson,
 		UpdatedBy:     req.UpdatedBy,
 		QuestionCount: int32(req.QuestionCount),
+		TimeLimit:     int32(req.TimeLimit),
 	}
 
 	dbConn, err := dbpkg.InitDB()
@@ -106,10 +108,8 @@ func UpdateQuestionByID(ctx context.Context, req model.EditQuestionReq) error {
 }
 
 // ListQuestionsByRoomCode lists questions by room Code
-// TODO: fix this api this is wrong
-func ListQuestionsByRoomCode(ctx context.Context, roomCode string) ([]*model.Question, error) {
+func ListQuestionsByRoomCode(ctx context.Context, roomCode string) (questionDetails *model.Question, err error) {
 	l := logs.GetLoggerctx(ctx)
-	var questionDetails []*model.Question
 	dbConn, err := dbpkg.InitDB()
 	if err != nil {
 		l.Sugar().Error("Could not initialize database", err)
@@ -118,31 +118,32 @@ func ListQuestionsByRoomCode(ctx context.Context, roomCode string) ([]*model.Que
 	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
-	questions, err := dBal.ListQuestionsByRoomCode(ctx, roomCode)
+	question, err := dBal.GetQuestionsByRoomCode(ctx, roomCode)
 	if err != nil {
 		l.Sugar().Error("Could not list questions in database", err)
 		return nil, err
 	}
 
-	for _, question := range questions {
-		qs := []*model.QuestionData{}
-		err := json.Unmarshal(question.QuestionData, &qs)
-		if err != nil {
-			l.Sugar().Error("Could not unmarshal question data", err)
-			return nil, err
-		}
-		questionDetails = append(questionDetails, &model.Question{
-			ID:            question.ID.Bytes,
-			RoomCode:      question.RoomCode,
-			Topic:         question.Topic.String,
-			QuestionData:  qs,
-			CreatedOn:     question.CreatedOn.Time,
-			UpdatedOn:     question.UpdatedOn.Time,
-			CreatedBy:     question.CreatedBy,
-			UpdatedBy:     question.UpdatedBy,
-			QuestionCount: int(question.QuestionCount),
-		})
+	questionDetails = &model.Question{
+		ID:            question[0].ID.Bytes,
+		RoomCode:      question[0].RoomCode,
+		Topic:         question[0].Topic.String,
+		QuestionData:  nil,
+		CreatedOn:     question[0].CreatedOn.Time,
+		UpdatedOn:     question[0].UpdatedOn.Time,
+		CreatedBy:     question[0].CreatedBy,
+		UpdatedBy:     question[0].UpdatedBy,
+		QuestionCount: int(question[0].QuestionCount),
 	}
+
+	qs := []*model.QuestionData{}
+	err = json.Unmarshal(question[0].QuestionData, &qs)
+	if err != nil {
+		l.Sugar().Error("Could not unmarshal question data", err)
+		return nil, err
+	}
+
+	questionDetails.QuestionData = qs
 
 	return questionDetails, nil
 }

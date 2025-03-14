@@ -32,6 +32,7 @@ type QuestionReq struct {
 	QuestionData  []*QuestionData
 	CreatedBy     string
 	Count         int
+	TimeLimit     int
 }
 
 // EditQuestionReq represents the request to update a question
@@ -41,6 +42,7 @@ type EditQuestionReq struct {
 	QuestionCount int
 	QuestionData  []*QuestionData
 	UpdatedBy     string
+	TimeLimit     int
 }
 
 // Question represents the question model
@@ -51,6 +53,7 @@ type Question struct {
 	Topic         string
 	QuestionCount int // total number of questions for that room
 	QuestionData  []*QuestionData
+	TimeLimit     int
 	CreatedOn     time.Time
 	UpdatedOn     time.Time
 	CreatedBy     string
@@ -99,7 +102,7 @@ type GameState struct {
 	RoomStatus           roommodel.RoomStatus `json:"status"` // "waiting", "in_progress", "ended"
 	CurrentRound         int                  `json:"currentRound"`
 	TotalRounds          int                  `json:"totalRounds"`
-	Questions            []*Question          `json:"questions"`
+	Questions            *Question            `json:"questions"`
 	Participants         []Participant        `json:"participants"`
 	StartTime            time.Time            `json:"startTime"`
 	CurrentQuestionIndex int                  `json:"currentQuestionIndex"`

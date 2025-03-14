@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS question (
   topic TEXT,
   question_count INT NOT NULL,
   question_data JSONB NOT NULL,
+  time_limit INT NOT NULL, -- max time for each question
   created_on TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_on TIMESTAMP NOT NULL DEFAULT NOW(),
   created_by TEXT NOT NULL,

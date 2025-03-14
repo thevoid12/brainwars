@@ -40,6 +40,7 @@ type Question struct {
 	Topic         pgtype.Text
 	QuestionCount int32
 	QuestionData  []byte
+	TimeLimit     int32
 	CreatedOn     pgtype.Timestamp
 	UpdatedOn     pgtype.Timestamp
 	CreatedBy     string

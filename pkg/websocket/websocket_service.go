@@ -231,7 +231,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 	}
 
 	// Check if we've reached the end of questions
-	if gameState.CurrentQuestionIndex >= len(gameState.Questions) {
+	if gameState.CurrentQuestionIndex >= len(gameState.Questions.QuestionData) {
 		// Game is over
 		gameState.RoomStatus = roommodel.Ended
 		manager.Unlock()
@@ -263,31 +263,34 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 	}
 
 	// Get the current question
-	currentQuestion := gameState.Questions[gameState.CurrentQuestionIndex]
+	currentQuestion := gameState.Questions.QuestionData[gameState.CurrentQuestionIndex]
 
 	// Create a client-safe version (without correct answer)
-	clientQuestion := Question{
-		ID:        currentQuestion.ID,
-		Question:  currentQuestion.Question,
-		Options:   currentQuestion.Options,
-		TimeLimit: currentQuestion.TimeLimit,
-	}
+	// clientQuestion := Question{
+	// 	ID:        currentQuestion.ID,
+	// 	Question:  currentQuestion.Question,
+	// 	Options:   currentQuestion.Options,
+	// 	TimeLimit: currentQuestion.TimeLimit,
+	// }
 
 	manager.Unlock()
 
 	// Prepare question event
-	questionData, _ := json.Marshal(struct {
-		QuestionIndex  int       `json:"questionIndex"`
-		TotalQuestions int       `json:"totalQuestions"`
-		Question       Question  `json:"question"`
-		StartTime      time.Time `json:"startTime"`
+	questionData, err := json.Marshal(struct {
+		QuestionIndex  int                     `json:"questionIndex"`
+		TotalQuestions int                     `json:"totalQuestions"`
+		Question       *quizmodel.QuestionData `json:"question"`
+		StartTime      time.Time               `json:"startTime"`
 	}{
 		QuestionIndex:  gameState.CurrentQuestionIndex + 1,
-		TotalQuestions: len(gameState.Questions),
-		Question:       clientQuestion,
+		TotalQuestions: len(gameState.Questions.QuestionData),
+		Question:       currentQuestion,
 		StartTime:      time.Now(),
 	})
-
+	if err != nil {
+		l.Sugar().Error("json marshal failed", err)
+		return err
+	}
 	questionEvent := Event{Type: EventNewQuestion, Payload: questionData}
 
 	// Broadcast to all clients
@@ -298,14 +301,11 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 	// Notify bots about new question so they can prepare to answer
 	manager.broadcastToBots(ctx, roomCode, questionEvent)
 
-	// Schedule next question after a delay (current question time limit + 5 seconds for results)
+	// Schedule next question after a delay (current question time limit )
 	go func() {
-		timeLimit := time.Duration(currentQuestion.TimeLimit+5) * time.Second
+		timeLimit := time.Duration(gameState.Questions.TimeLimit) * time.Second
 		timer := time.NewTimer(timeLimit)
 		<-timer.C
-
-		// Short delay to let players see results
-		time.Sleep(3 * time.Second)
 
 		// Move to next question
 		manager.Lock()

@@ -64,11 +64,12 @@ INSERT INTO question (id,
     topic,
     question_count,
     question_data,
+    time_limit,
     created_by,
     updated_by, 
     created_on, 
     updated_on)
-VALUES ($7,$1, $2, $3, $4, $5,$6, NOW(), NOW())
+VALUES ($7,$1, $2, $3, $4, $5,$6, $8,NOW(), NOW())
 `
 
 type CreateQuestionParams struct {
@@ -76,9 +77,10 @@ type CreateQuestionParams struct {
 	Topic         pgtype.Text
 	QuestionCount int32
 	QuestionData  []byte
+	TimeLimit     int32
 	CreatedBy     string
-	UpdatedBy     string
 	ID            pgtype.UUID
+	UpdatedBy     string
 }
 
 // --------------------------- questions --------------------------------
@@ -88,11 +90,50 @@ func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) 
 		arg.Topic,
 		arg.QuestionCount,
 		arg.QuestionData,
+		arg.TimeLimit,
 		arg.CreatedBy,
-		arg.UpdatedBy,
 		arg.ID,
+		arg.UpdatedBy,
 	)
 	return err
+}
+
+const getQuestionsByRoomCode = `-- name: GetQuestionsByRoomCode :many
+SELECT id, room_code, topic, question_count, question_data, time_limit, created_on, updated_on, created_by, updated_by
+FROM question
+WHERE room_code = $1
+ORDER BY created_on ASC
+`
+
+func (q *Queries) GetQuestionsByRoomCode(ctx context.Context, roomCode string) ([]Question, error) {
+	rows, err := q.db.Query(ctx, getQuestionsByRoomCode, roomCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Question
+	for rows.Next() {
+		var i Question
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomCode,
+			&i.Topic,
+			&i.QuestionCount,
+			&i.QuestionData,
+			&i.TimeLimit,
+			&i.CreatedOn,
+			&i.UpdatedOn,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAnswersByRoomCode = `-- name: ListAnswersByRoomCode :many
@@ -120,43 +161,6 @@ func (q *Queries) ListAnswersByRoomCode(ctx context.Context, roomCode string) ([
 			&i.AnswerOption,
 			&i.IsCorrect,
 			&i.AnswerTime,
-			&i.CreatedOn,
-			&i.UpdatedOn,
-			&i.CreatedBy,
-			&i.UpdatedBy,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listQuestionsByRoomCode = `-- name: ListQuestionsByRoomCode :many
-SELECT id, room_code, topic, question_count, question_data, created_on, updated_on, created_by, updated_by
-FROM question
-WHERE room_code = $1
-ORDER BY created_on ASC
-`
-
-func (q *Queries) ListQuestionsByRoomCode(ctx context.Context, roomCode string) ([]Question, error) {
-	rows, err := q.db.Query(ctx, listQuestionsByRoomCode, roomCode)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Question
-	for rows.Next() {
-		var i Question
-		if err := rows.Scan(
-			&i.ID,
-			&i.RoomCode,
-			&i.Topic,
-			&i.QuestionCount,
-			&i.QuestionData,
 			&i.CreatedOn,
 			&i.UpdatedOn,
 			&i.CreatedBy,
@@ -207,6 +211,7 @@ SET
   topic = $2,
   question_count=$5,
   question_data = $3, 
+  time_limit = $6,
   updated_on = NOW(),
   updated_by = $4
 WHERE id = $1
@@ -218,6 +223,7 @@ type UpdateQuestionByIDParams struct {
 	QuestionData  []byte
 	UpdatedBy     string
 	QuestionCount int32
+	TimeLimit     int32
 }
 
 func (q *Queries) UpdateQuestionByID(ctx context.Context, arg UpdateQuestionByIDParams) error {
@@ -227,6 +233,7 @@ func (q *Queries) UpdateQuestionByID(ctx context.Context, arg UpdateQuestionByID
 		arg.QuestionData,
 		arg.UpdatedBy,
 		arg.QuestionCount,
+		arg.TimeLimit,
 	)
 	return err
 }

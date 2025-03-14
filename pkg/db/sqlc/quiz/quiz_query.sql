@@ -5,11 +5,12 @@ INSERT INTO question (id,
     topic,
     question_count,
     question_data,
+    time_limit,
     created_by,
     updated_by, 
     created_on, 
     updated_on)
-VALUES ($7,$1, $2, $3, $4, $5,$6, NOW(), NOW());
+VALUES ($7,$1, $2, $3, $4, $5,$6, $8,NOW(), NOW());
 
 -- name: UpdateQuestionByID :exec
 UPDATE question
@@ -17,11 +18,12 @@ SET
   topic = $2,
   question_count=$5,
   question_data = $3, 
+  time_limit = $6,
   updated_on = NOW(),
   updated_by = $4
 WHERE id = $1;
 
--- name: ListQuestionsByRoomCode :many
+-- name: GetQuestionsByRoomCode :many
 SELECT *
 FROM question
 WHERE room_code = $1
