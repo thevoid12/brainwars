@@ -275,18 +275,15 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 
 	manager.Unlock()
 
-	// Prepare question event
-	questionData, err := json.Marshal(struct {
-		QuestionIndex  int                     `json:"questionIndex"`
-		TotalQuestions int                     `json:"totalQuestions"`
-		Question       *quizmodel.QuestionData `json:"question"`
-		StartTime      time.Time               `json:"startTime"`
-	}{
+	questEvent := questionEvent{
 		QuestionIndex:  gameState.CurrentQuestionIndex + 1,
 		TotalQuestions: len(gameState.Questions.QuestionData),
 		Question:       currentQuestion,
 		StartTime:      time.Now(),
-	})
+		TimeLimit:      gameState.Questions.TimeLimit,
+	}
+	// Prepare question event
+	questionData, err := json.Marshal(questEvent)
 	if err != nil {
 		l.Sugar().Error("json marshal failed", err)
 		return err
@@ -325,14 +322,15 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	l := logs.GetLoggerctx(ctx)
 
-	var submission AnswerSubmission
+	var submission quizmodel.AnswerReq
 	if err := json.Unmarshal(event.Payload, &submission); err != nil {
+		l.Sugar().Error("bad payload", err)
 		return fmt.Errorf("bad payload: %v", err)
 	}
 
 	// Set timestamp if not provided
-	if submission.Timestamp.IsZero() {
-		submission.Timestamp = time.Now()
+	if submission.AnswerTime.IsZero() {
+		submission.AnswerTime = time.Now()
 	}
 
 	// Get the game state
@@ -340,20 +338,22 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	gameState, exists := c.manager.gameStates[c.roomCode]
 	if !exists {
 		c.manager.Unlock()
+		l.Sugar().Error(fmt.Sprintf("game state not found for room %s", c.roomCode))
 		return fmt.Errorf("game state not found for room %s", c.roomCode)
 	}
 
 	// Only process if game is in progress
-	if gameState.RoomStatus != "in_progress" || gameState.CurrentQuestionIndex >= len(gameState.Questions) {
+	if gameState.RoomStatus != "in_progress" || gameState.CurrentQuestionIndex >= len(gameState.Questions.QuestionData) {
 		c.manager.Unlock()
+		l.Sugar().Error("game is not in active question phase")
 		return fmt.Errorf("game is not in active question phase")
 	}
 
 	// Get current question
-	currentQuestion := gameState.Questions[gameState.CurrentQuestionIndex]
+	currentQuestion := gameState.Questions.QuestionData[gameState.CurrentQuestionIndex]
 
 	// Check if answer is correct
-	isCorrect := submission.Answer == currentQuestion.CorrectAnswer
+	isCorrect := int(submission.AnswerOption) == currentQuestion.Answer
 
 	// Update participant score
 	found := false
@@ -361,8 +361,8 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 		if participant.UserID == c.userID {
 			if isCorrect {
 				// Calculate score based on answer speed
-				answerTime := submission.Timestamp.Sub(gameState.StartTime)
-				speedBonus := float64(currentQuestion.TimeLimit) - answerTime.Seconds()
+				answerTime := submission.AnswerTime.Sub(gameState.StartTime)
+				speedBonus := float64(gameState.Questions.TimeLimit) - answerTime.Seconds()
 				if speedBonus < 0 {
 					speedBonus = 0
 				}
@@ -391,7 +391,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 			score = 100 // Base score for correct answer
 		}
 
-		gameState.Participants = append(gameState.Participants, Participant{
+		gameState.Participants = append(gameState.Participants, quizmodel.Participant{
 			UserID:   c.userID,
 			Username: username,
 			IsBot:    c.isBot,
@@ -506,7 +506,7 @@ func (m *Manager) initializeRoomGameState(ctx context.Context, roomCode string, 
 			RoomStatus:   roommodel.Waiting, // waiting for players
 			CurrentRound: 0,
 			TotalRounds:  totalRounds, // Default to 10 rounds
-			Questions:    []quizmodel.Question{},
+			Questions:    &quizmodel.Question{},
 			Participants: []quizmodel.Participant{},
 		}
 	}

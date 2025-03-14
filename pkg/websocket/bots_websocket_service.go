@@ -2,13 +2,13 @@ package websocket
 
 import (
 	logs "brainwars/pkg/logger"
+	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
 	usermodel "brainwars/pkg/users/model"
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -91,47 +91,9 @@ func (m *Manager) InitializeBot(ctx context.Context, client *Client) {
 	go client.handleBotBehavior(ctx)
 }
 
-// Updated to work with the new botEvents channel
-func (m *Manager) registerRoomEventListener(roomCode string, eventChan chan Event) {
-	m.Lock()
-	defer m.Unlock()
-
-	if _, exists := m.clients[roomCode]; exists {
-		for client := range m.clients[roomCode] {
-			if client.isBot && client.botEvents != nil {
-				// Create a copy of the bot pointer for goroutine
-				botClient := client
-
-				// Start goroutine to forward events
-				go func() {
-					log.Printf("Registered event listener for bot %s in room %s",
-						botClient.userID, roomCode)
-
-					// Forward events from the event channel to the bot
-					for event := range eventChan {
-						select {
-						case botClient.botEvents <- event:
-							// Successfully forwarded event to bot
-						default:
-							// Bot event channel is full or closed
-							log.Printf("Failed to send event to bot %s: channel full or closed",
-								botClient.userID)
-						}
-					}
-				}()
-			}
-		}
-	}
-}
-
-func (m *Manager) unregisterRoomEventListener(roomCode string, eventChan chan Event) {
-	// Close the event channel, which will cause all goroutines reading from it to exit
-	close(eventChan)
-	log.Printf("Unregistered event listener for room %s", roomCode)
-}
-
 // Method to broadcast events to all bot clients in a room
 func (m *Manager) broadcastToBots(ctx context.Context, roomCode string, event Event) {
+	l := logs.GetLoggerctx(ctx)
 	m.RLock()
 	defer m.RUnlock()
 
@@ -144,8 +106,7 @@ func (m *Manager) broadcastToBots(ctx context.Context, roomCode string, event Ev
 					// Event sent successfully
 				default:
 					// Channel is full or closed, log error
-					logs.GetLoggerctx(ctx).Error("Failed to send event to bot",
-						"botID", client.id, "roomCode", roomCode)
+					l.Sugar().Error(fmt.Sprintf("Failed to send event to bot botID: %s roomcode: %s", client.userID, roomCode))
 				}
 			}
 		}
@@ -179,15 +140,10 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 				}
 
 				// Parse the question data
-				var questionEvent struct {
-					QuestionIndex  int       `json:"questionIndex"`
-					TotalQuestions int       `json:"totalQuestions"`
-					Question       Question  `json:"question"`
-					StartTime      time.Time `json:"startTime"`
-				}
+				questionEvent := questionEvent{}
 
 				if err := json.Unmarshal(event.Payload, &questionEvent); err != nil {
-					logs.GetLoggerctx(ctx).Error("Failed to parse question event", "error", err)
+					logs.GetLoggerctx(ctx).Sugar().Error("Failed to parse question event", "error", err)
 					continue
 				}
 
@@ -205,8 +161,8 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 				}
 
 				// Make sure the delay doesn't exceed the question time limit
-				if int(delay.Seconds()) > questionEvent.Question.TimeLimit {
-					delay = time.Duration(questionEvent.Question.TimeLimit-1) * time.Second
+				if int(delay.Seconds()) > questionEvent.TimeLimit {
+					delay = time.Duration(questionEvent.TimeLimit-1) * time.Second
 				}
 
 				// Create a separate context for the answer submission
@@ -228,7 +184,7 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 	}
 }
 
-func (c *Client) submitRandomAnswer(ctx context.Context, questionID string) {
+func (c *Client) submitRandomAnswer(ctx context.Context, questionID uuid.UUID) {
 	// Get the game state to find the question
 	c.manager.RLock()
 	gameState, exists := c.manager.gameStates[c.roomCode]
@@ -238,9 +194,9 @@ func (c *Client) submitRandomAnswer(ctx context.Context, questionID string) {
 	}
 
 	// Find the current question
-	var currentQuestion Question
+	var currentQuestion *quizmodel.QuestionData
 	found := false
-	for _, q := range gameState.Questions {
+	for _, q := range gameState.Questions.QuestionData {
 		if q.ID == questionID {
 			currentQuestion = q
 			found = true
@@ -259,13 +215,13 @@ func (c *Client) submitRandomAnswer(ctx context.Context, questionID string) {
 
 	// Create and send the answer event
 	answerPayload := struct {
-		QuestionID string `json:"questionID"`
-		AnswerID   string `json:"answerID"`
-		PlayerID   string `json:"playerID"`
+		QuestionID uuid.UUID `json:"questionID"`
+		AnswerID   int       `json:"answerID"`
+		PlayerID   uuid.UUID `json:"playerID"`
 	}{
 		QuestionID: questionID,
 		AnswerID:   selectedOption.ID,
-		PlayerID:   c.id,
+		PlayerID:   c.userID,
 	}
 
 	answerData, _ := json.Marshal(answerPayload)
@@ -279,6 +235,6 @@ func (c *Client) submitRandomAnswer(ctx context.Context, questionID string) {
 		// Context canceled, no need to send answer
 	default:
 		// Channel is full or closed
-		logs.GetLoggerctx(ctx).Error("Failed to send bot answer", "botID", c.id)
+		logs.GetLoggerctx(ctx).Sugar().Error("Failed to send answer userID:", c.userID)
 	}
 }

@@ -69,3 +69,11 @@ func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error 
 func (m *Manager) setupGameState() {
 	m.gameStates = make(map[string]*quizmodel.GameState)
 }
+
+type questionEvent struct {
+	QuestionIndex  int                     `json:"questionIndex"`
+	TotalQuestions int                     `json:"totalQuestions"`
+	Question       *quizmodel.QuestionData `json:"question"`
+	StartTime      time.Time               `json:"startTime"`
+	TimeLimit      int                     `json:"timeLimit"`
+}
