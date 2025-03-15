@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS room (
 
 CREATE TABLE IF NOT EXISTS room_member (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id UUID NOT NULL,
+  room_code TEXT NOT NULL,
   user_id UUID NOT NULL ,
   is_bot BOOLEAN NOT NULL DEFAULT false,
   joined_on TIMESTAMP NOT NULL,
@@ -35,12 +35,12 @@ CREATE TABLE IF NOT EXISTS room_member (
 
 CREATE TABLE IF NOT EXISTS leaderboard (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id UUID NOT NULL ,
+  room_code TEXT NOT NULL ,
   user_id UUID NOT NULL,
   score FLOAT NOT NULL,
   created_on TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_on TIMESTAMP NOT NULL DEFAULT NOW(),
   created_by TEXT NOT NULL,
   updated_by TEXT NOT NULL,
-  UNIQUE (room_id, user_id)
+  UNIQUE (room_code, user_id)
 );

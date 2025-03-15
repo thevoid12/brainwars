@@ -98,42 +98,29 @@ func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) 
 	return err
 }
 
-const getQuestionsByRoomCode = `-- name: GetQuestionsByRoomCode :many
+const getQuestionsByRoomCode = `-- name: GetQuestionsByRoomCode :one
 SELECT id, room_code, topic, question_count, question_data, time_limit, created_on, updated_on, created_by, updated_by
 FROM question
 WHERE room_code = $1
 ORDER BY created_on ASC
 `
 
-func (q *Queries) GetQuestionsByRoomCode(ctx context.Context, roomCode string) ([]Question, error) {
-	rows, err := q.db.Query(ctx, getQuestionsByRoomCode, roomCode)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Question
-	for rows.Next() {
-		var i Question
-		if err := rows.Scan(
-			&i.ID,
-			&i.RoomCode,
-			&i.Topic,
-			&i.QuestionCount,
-			&i.QuestionData,
-			&i.TimeLimit,
-			&i.CreatedOn,
-			&i.UpdatedOn,
-			&i.CreatedBy,
-			&i.UpdatedBy,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) GetQuestionsByRoomCode(ctx context.Context, roomCode string) (Question, error) {
+	row := q.db.QueryRow(ctx, getQuestionsByRoomCode, roomCode)
+	var i Question
+	err := row.Scan(
+		&i.ID,
+		&i.RoomCode,
+		&i.Topic,
+		&i.QuestionCount,
+		&i.QuestionData,
+		&i.TimeLimit,
+		&i.CreatedOn,
+		&i.UpdatedOn,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+	)
+	return i, err
 }
 
 const listAnswersByRoomCode = `-- name: ListAnswersByRoomCode :many

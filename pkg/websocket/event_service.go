@@ -65,11 +65,6 @@ func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error 
 	return ErrEventNotSupported
 }
 
-// Add a GameState map to Manager to track games in different rooms
-func (m *Manager) setupGameState() {
-	m.gameStates = make(map[string]*quizmodel.GameState)
-}
-
 type questionEvent struct {
 	QuestionIndex  int                     `json:"questionIndex"`
 	TotalQuestions int                     `json:"totalQuestions"`

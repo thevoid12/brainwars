@@ -21,10 +21,10 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
 	l := logs.GetLoggerctx(ctx)
 
 	// Get all room members including bots
-	roomMembers, err := room.ListRoomMembersByRoomID(ctx, roommodel.RoomIDReq{
-		RoomID: uuid.MustParse(roomCode),
+	roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
+		RoomCode: roomCode,
 	})
-	if err != nil {
+	if err != nil || len(roomMembers) == 0 {
 		l.Sugar().Error("List Room member by room id failed", err)
 		return
 	}

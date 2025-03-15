@@ -23,7 +23,7 @@ SET
   updated_by = $4
 WHERE id = $1;
 
--- name: GetQuestionsByRoomCode :many
+-- name: GetQuestionsByRoomCode :one
 SELECT *
 FROM question
 WHERE room_code = $1

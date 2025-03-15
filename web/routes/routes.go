@@ -39,10 +39,10 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 	rSecure.GET("/home", handlers.HomeHandler)
 	// room
 	rSecure.GET("/room", handlers.CreateRoomPageHandler)
-	rSecure.POST("/croom", handlers.CreateRoomHandler)
+	rSecure.GET("/croom", handlers.CreateRoomHandler)
 	rSecure.GET("/lroom", handlers.ListAllRoomsHanlder)
 	rSecure.GET("/jroom", handlers.JoinRoomHandler)
-	// rSecure.GET("/game", handlers.GameHandler)
+	rSecure.GET("/game", handlers.GameHandler)
 	rSecure.GET("/ws", manager.ServeWS)
 
 	//questions

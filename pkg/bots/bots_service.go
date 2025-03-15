@@ -10,7 +10,7 @@ import (
 func JoinGameAsBots(ctx context.Context, req roommodel.RoomMemberReq, roomCode string) error {
 	l := logs.GetLoggerctx(ctx)
 	// check if he has already joined the room if he has then redirect him to the room
-	roomMember, err := room.GetRoomMemberByRoomAndUserID(ctx, roommodel.RoomMemberReq{
+	roomMember, err := room.GetRoomMemberByRoomCodeAndUserID(ctx, roommodel.RoomMemberReq{
 		UserID: req.UserID,
 		RoomID: req.RoomID,
 	})
@@ -21,8 +21,8 @@ func JoinGameAsBots(ctx context.Context, req roommodel.RoomMemberReq, roomCode s
 
 	if roomMember == nil {
 		_, err := room.JoinRoomWithRoomCode(ctx, roommodel.RoomMemberReq{
-			UserID:   roomMember.UserID,
-			RoomID:   roomMember.RoomID,
+			UserID:   req.UserID,
+			RoomID:   req.RoomID,
 			RoomCode: roomCode,
 		})
 		if err != nil {

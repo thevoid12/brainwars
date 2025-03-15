@@ -11,13 +11,34 @@
 
 - ## starting quiz 
 - [x] all users( including bot) joins the room.
-- [ ] each question duration should be given while room creation
+- [x] each question duration should be given while room creation
 - [ ] they shouldnt add a bot which takes more time than room each question time
-- [ ] all users should click start game (bot not needed) room_members table should have a new col status
+- [x] all users should click start game (bot not needed) room_members table should have a new col status
 - [ ] if a user leaves before starting a game we need to remove him( ie if his connection is not active or he leaves explicitly)
-- [ ] first question comes to all
+- [x] first question comes to all
 - [ ] once solved he can click next and live leaderboard gets updated
 - [ ] there is another checklist shown with the status of others submitted the question or not
-- [ ] if all submits before the deadline (other than bots) we move to next question or if the question time gets over
+- [x] if all submits before the deadline (other than bots) we move to next question or if the question time gets over
 - [ ] finally we show whats right and whats wrong answer after the end of quiz
-- [ ] start the bots thingy when all other players clicked start and just before loading the first question
+- [x] start the bots thingy when all other players clicked start and just before loading the first question
+
+## mar 15 todo
+- [ ] go through 1 full flow with static data, 
+  - [ ] room creation
+  - [ ] starting game
+  - [ ] single player flow
+  - [ ] multp player flow
+  - [ ] going to all the questions until end answer
+- [ ] build the leader board feature
+- [ ] start with ui
+- [ ] auth
+- [ ] session
+- [ ] exiting in the middle of the game and rejoining
+- [ ] error rendering on screen pop up
+- [ ] validate and sanitize all models
+- [ ] when a person leaves the room or got disconnected we need to update room member table
+- [ ] xss protection
+- [ ] uploading pdf's to generate question
+- [ ] handle ui errors display appropriately
+- [ ] room members room_id column should be renamed to room_code
+- [ ] fix room members 

@@ -99,6 +99,7 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 }
 
 // when user joins a room this serveWs handler is called
+// TODO: render error templates
 func (m *Manager) ServeWS(c *gin.Context) {
 	ctx := c.Request.Context()
 	l := logs.GetLoggerctx(ctx)
@@ -114,20 +115,29 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	if roomCode == "" {
 		roomCode = "8bd9c332-ea09-434c-b439-5b3a39d3de5f" // Default room for testing
 	}
-
+	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
+	if err != nil {
+		l.Sugar().Error("get room by room code failed:", err)
+		return
+	}
 	userID := util.GetUserIDFromctx(ctx)
-	roomMember, err := room.GetRoomMemberByRoomAndUserID(ctx, roommodel.RoomMemberReq{
+	roomMember, err := room.GetRoomMemberByRoomCodeAndUserID(ctx, roommodel.RoomMemberReq{
 		UserID: userID,
-		RoomID: uuid.MustParse(roomCode),
+		RoomID: roomDetails.ID,
 	})
 	if err != nil {
 		l.Sugar().Error("get room member by room and user id failed", err)
 		return
 	}
+	questions, err := quiz.ListQuestionsByRoomCode(ctx, roomCode)
+	if err != nil {
+		l.Sugar().Error("list questions by room code failed", err)
+		return
+	}
 
-	totalQuestions := 10 // TODO: need to come from db
+	totalQuestions := questions.QuestionCount
 	if roomMember == nil {
-		l.Sugar().Error("room member is nil")
+		l.Sugar().Error("there are no room mebers")
 		return
 	}
 
@@ -136,7 +146,8 @@ func (m *Manager) ServeWS(c *gin.Context) {
 
 	// Check if the room needs to be initialized
 	m.initializeRoomGameState(ctx, roomCode, totalQuestions)
-
+	go client.readMessages(ctx)
+	go client.writeMessages(ctx)
 	// When a human player joins, set bots to ready state
 	// even if 1 user joins the room then we instentaniously set up all the bots to ready state for the game to start.
 	// we get the list of bots from list all members in a room where bots are members as ready
@@ -146,8 +157,6 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	}
 	m.setupBotsForRoom(ctx, roomCode)
 
-	go client.readMessages(ctx)
-	go client.writeMessages(ctx)
 }
 
 // Set up bots to be ready when a human player joins
@@ -161,7 +170,6 @@ func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID 
 	}
 
 	// Set the user to ready state
-
 	// Notify all clients that this user is ready
 	botReadyNotification := Payload{
 		Data: fmt.Sprintf("User %s is ready", userDetails.UserName),
@@ -446,8 +454,8 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	}
 
 	// Check if all room members are ready
-	roomMembers, err := room.ListRoomMembersByRoomID(ctx, roommodel.RoomIDReq{
-		RoomID: uuid.MustParse(c.roomCode),
+	roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
+		RoomCode: c.roomCode,
 	})
 	if err != nil {
 		l.Sugar().Error("List Room member by room id failed", err)
@@ -505,7 +513,7 @@ func (m *Manager) initializeRoomGameState(ctx context.Context, roomCode string, 
 			RoomCode:     roomCode,
 			RoomStatus:   roommodel.Waiting, // waiting for players
 			CurrentRound: 0,
-			TotalRounds:  totalRounds, // Default to 10 rounds
+			TotalRounds:  totalRounds,
 			Questions:    &quizmodel.Question{},
 			Participants: []quizmodel.Participant{},
 		}

@@ -51,7 +51,7 @@ WHERE id = $1;
 -- name: CreateRoomMember :one
 INSERT INTO room_member (
   id, 
-  room_id,
+  room_code,
   user_id, 
   is_bot, 
   joined_on, 
@@ -66,17 +66,17 @@ INSERT INTO room_member (
 VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7, NOW(), NOW(), $8, $9)
 RETURNING *;
 
--- name: ListRoomMembersByRoomID :many
-SELECT * FROM room_member
-WHERE room_id = $1 AND is_deleted = false;
+-- name: ListRoomMembersByRoomCode :many
+SELECT * FROM room_member INNER JOIN users ON room_member.user_id = users.id
+WHERE room_code = $1 AND is_deleted = false;
 
--- name: GetRoomMemberByRoomAndUserID :many
-SELECT * FROM room_member
-WHERE room_id = $1 AND user_id = $2 AND is_deleted = false;
+-- name: GetRoomMemberByRoomCodeAndUserID :many
+SELECT * FROM room_member INNER JOIN users ON room_member.user_id = users.id
+WHERE room_code = $1 AND user_id = $2 AND is_deleted = false;
 
 -- name: GetRoomMemberByID :many
-SELECT * FROM room_member
-WHERE id = $1 AND is_deleted = false;
+SELECT * FROM room_member INNER JOIN users ON room_member.user_id = users.id
+WHERE room_member.id = $1 AND is_deleted = false;
 
 -- name: UpdateRoomMemberByID :exec
 UPDATE room_member
@@ -87,20 +87,20 @@ SET
   updated_by = $4
 WHERE id = $1;
 
--- name: UpdateRoomMemberByRoomAndUserID :exec
+-- name: UpdateRoomMemberByRoomCodeAndUserID :exec
 UPDATE room_member
 SET 
   room_member_status = $2,
   is_active = $3,
   updated_on = NOW(),
   updated_by = $4
-WHERE room_id = $1 AND user_id = $5 AND is_deleted=false;
+WHERE room_code = $1 AND user_id = $5 AND is_deleted=false;
 
 --------------------------------------- leaderboard ------------------------------------------------------------------------
 -- name: CreatLeaderBoard :one
 INSERT INTO leaderboard (
   id, 
-  room_id,
+  room_code,
   user_id, 
   score, 
   created_on, 
@@ -111,9 +111,9 @@ INSERT INTO leaderboard (
 VALUES ($1, $2, $3, $4, NOW(), NOW(), $5, $6)
 RETURNING *;
 
--- name: ListLeaderBoardByRoomID :many
+-- name: ListLeaderBoardByRoomCode :many
 SELECT * FROM leaderboard
-WHERE room_id = $1 AND is_deleted = false 
+WHERE room_code = $1 AND is_deleted = false 
 ORDER BY score DESC;
 
 -- name: GetLeaderBoardByID :many
@@ -128,10 +128,10 @@ SET
   updated_by = $3
 WHERE id = $1 AND is_deleted = false;
 
--- name: UpdateLeaderBoardScoreByUserIDAndRoomID :exec
+-- name: UpdateLeaderBoardScoreByUserIDAndRoomCode :exec
 UPDATE leaderboard
 SET 
   score = $3,
   updated_on = NOW(),
   updated_by = $4
-WHERE room_id = $1 AND user_id = $2 AND is_deleted = false;
+WHERE room_code = $1 AND user_id = $2 AND is_deleted = false;

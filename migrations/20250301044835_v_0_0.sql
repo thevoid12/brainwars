@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS room (
   room_meta JSONB NOT NULL,
   room_lock BOOLEAN NOT NULL DEFAULT false,
   game_TYPE TEXT NOT NULL,
-  room_status TEXT NOT NULL,
+  room_status TEXT NOT NULL, -- game started,game ended,game about to start
   is_active BOOLEAN NOT NULL,
   is_deleted BOOLEAN NOT NULL,
   created_on TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -62,9 +62,11 @@ CREATE TABLE IF NOT EXISTS leaderboard (
 
 CREATE TABLE IF NOT EXISTS question (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id UUID NOT NULL,
+  room_code TEXT NOT NULL,
   topic TEXT,
+  question_count INT NOT NULL,
   question_data JSONB NOT NULL,
+  time_limit INT NOT NULL, -- max time for each question
   created_on TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_on TIMESTAMP NOT NULL DEFAULT NOW(),
   created_by TEXT NOT NULL,
@@ -74,7 +76,7 @@ CREATE TABLE IF NOT EXISTS question (
 -- everybody in the room's answers will be stored here
 CREATE TABLE IF NOT EXISTS answer (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id UUID NOT NULL,
+  room_code TEXT NOT NULL,
   user_id UUID NOT NULL,
   question_id UUID NOT NULL,
   question_data_id UUID NOT NULL,
@@ -86,6 +88,7 @@ CREATE TABLE IF NOT EXISTS answer (
   created_by TEXT NOT NULL,
   updated_by TEXT NOT NULL
 );
+
 
 insert into users (id, username, refresh_token, user_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by) values ('00000000-0000-0000-0000-000000000001', 'admin', 'admin', 'HUMAN', '{}', true, true, false, now(), now(), 'admin', 'admin');
 insert into users (id, username, refresh_token, user_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by) values ('00000000-0000-0000-0000-000000000002', 'bot-1', 'admin', 'BOT', '{}', true, true, false, now(), now(), 'admin', 'admin');

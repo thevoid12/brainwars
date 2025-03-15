@@ -33,11 +33,12 @@ const (
 
 // RoomReq is a struct that defines the request body for creating a room
 type RoomReq struct {
-	UserID   uuid.UUID
-	Username string
-	UserMeta string
-	RoomName string
-	GameType GT
+	UserID    uuid.UUID
+	Username  string
+	UserMeta  string
+	RoomName  string
+	GameType  GT
+	TimeLimit int // max time allocated for each question
 }
 
 type RoomMemberStatus string
@@ -53,16 +54,16 @@ const (
 type Room struct {
 	ID         uuid.UUID
 	RoomName   string
-	UserType   string
+	RoomCode   string
 	UserMeta   string
 	RoomMeta   string
 	RoomChat   string
-	Premium    bool
 	GameType   GT
 	Roomstatus RoomStatus
 	IsActive   bool
 	IsDeleted  bool
 	CreatedBy  string
+	UpdatedBy  string
 	CreatedOn  time.Time
 	UpdatedOn  time.Time
 }
@@ -80,9 +81,7 @@ type RoomMember struct {
 	ID               uuid.UUID
 	UserID           uuid.UUID
 	UserDetails      usermodel.UserInfo
-	RoomID           uuid.UUID
 	RoomCode         string
-	UserType         UserType
 	IsBot            bool
 	JoinedOn         time.Time
 	RoomMemberStatus RoomMemberStatus
@@ -97,10 +96,10 @@ type RoomMember struct {
 type RoomMemberReq struct {
 	ID               uuid.UUID
 	UserID           uuid.UUID
-	RoomID           uuid.UUID
 	RoomMemberStatus RoomMemberStatus
 	RoomCode         string
 	IsBot            bool
+	RoomID           uuid.UUID
 }
 
 type UserIDReq struct {
@@ -114,12 +113,12 @@ type Leaderboard struct {
 	Score  float64
 }
 type EditLeaderBoardReq struct {
-	UserID uuid.UUID
-	RoomID uuid.UUID
-	Score  float64
+	UserID   uuid.UUID
+	RoomCode string
+	Score    float64
 }
 
-type RoomIDReq struct {
-	UserID uuid.UUID
-	RoomID uuid.UUID
+type RoomCodeReq struct {
+	UserID   uuid.UUID
+	RoomCode string
 }

@@ -25,7 +25,7 @@ type Answer struct {
 
 type Leaderboard struct {
 	ID        pgtype.UUID
-	RoomID    pgtype.UUID
+	RoomCode  string
 	UserID    pgtype.UUID
 	Score     float64
 	CreatedOn pgtype.Timestamp
@@ -67,7 +67,7 @@ type Room struct {
 
 type RoomMember struct {
 	ID               pgtype.UUID
-	RoomID           pgtype.UUID
+	RoomCode         string
 	UserID           pgtype.UUID
 	IsBot            bool
 	JoinedOn         pgtype.Timestamp
@@ -85,6 +85,7 @@ type User struct {
 	Username     string
 	RefreshToken string
 	UserType     string
+	BotType      pgtype.Text
 	UserMeta     []byte
 	Premium      bool
 	IsActive     bool

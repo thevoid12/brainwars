@@ -49,7 +49,7 @@ func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 		CreatedBy:     req.CreatedBy,
 		UpdatedBy:     req.CreatedBy,
 		QuestionCount: int32(req.QuestionCount),
-		RoomCode:      req.RoomID.String(),
+		RoomCode:      req.RoomCode.String(),
 		ID:            pgtype.UUID{Bytes: uuid.New(), Valid: true},
 		TimeLimit:     int32(req.TimeLimit),
 	}
@@ -125,19 +125,19 @@ func ListQuestionsByRoomCode(ctx context.Context, roomCode string) (questionDeta
 	}
 
 	questionDetails = &model.Question{
-		ID:            question[0].ID.Bytes,
-		RoomCode:      question[0].RoomCode,
-		Topic:         question[0].Topic.String,
+		ID:            question.ID.Bytes,
+		RoomCode:      question.RoomCode,
+		Topic:         question.Topic.String,
 		QuestionData:  nil,
-		CreatedOn:     question[0].CreatedOn.Time,
-		UpdatedOn:     question[0].UpdatedOn.Time,
-		CreatedBy:     question[0].CreatedBy,
-		UpdatedBy:     question[0].UpdatedBy,
-		QuestionCount: int(question[0].QuestionCount),
+		CreatedOn:     question.CreatedOn.Time,
+		UpdatedOn:     question.UpdatedOn.Time,
+		CreatedBy:     question.CreatedBy,
+		UpdatedBy:     question.UpdatedBy,
+		QuestionCount: int(question.QuestionCount),
 	}
 
 	qs := []*model.QuestionData{}
-	err = json.Unmarshal(question[0].QuestionData, &qs)
+	err = json.Unmarshal(question.QuestionData, &qs)
 	if err != nil {
 		l.Sugar().Error("Could not unmarshal question data", err)
 		return nil, err

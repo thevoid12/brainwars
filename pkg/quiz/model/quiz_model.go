@@ -26,7 +26,7 @@ type QuestionData struct {
 
 // QuestionReq represents the request to create a question
 type QuestionReq struct {
-	RoomID        uuid.UUID
+	RoomCode      uuid.UUID
 	Topic         string
 	QuestionCount int
 	QuestionData  []*QuestionData

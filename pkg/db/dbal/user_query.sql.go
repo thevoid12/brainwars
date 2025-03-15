@@ -12,7 +12,7 @@ import (
 )
 
 const getUserDetailsByID = `-- name: GetUserDetailsByID :many
-SELECT id, username, refresh_token, user_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM users
+SELECT id, username, refresh_token, user_type, bot_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM users
 WHERE id = $1 AND is_deleted = false
 `
 
@@ -30,6 +30,7 @@ func (q *Queries) GetUserDetailsByID(ctx context.Context, id pgtype.UUID) ([]Use
 			&i.Username,
 			&i.RefreshToken,
 			&i.UserType,
+			&i.BotType,
 			&i.UserMeta,
 			&i.Premium,
 			&i.IsActive,

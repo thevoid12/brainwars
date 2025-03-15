@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS question (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_code string NOT NULL,
+  room_code TEXT NOT NULL,
   topic TEXT,
   question_count INT NOT NULL,
   question_data JSONB NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS question (
 -- everybody in the room's answers will be stored here
 CREATE TABLE IF NOT EXISTS answer (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_code string NOT NULL,
+  room_code TEXT NOT NULL,
   user_id UUID NOT NULL,
   question_id UUID NOT NULL,
   question_data_id UUID NOT NULL,

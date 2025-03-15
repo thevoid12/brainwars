@@ -26,9 +26,10 @@ type UserInfo struct {
 	UserName     string
 	RefreshToken string
 	UserType     UserType
-	IsPremium    bool
-	IsActive     bool
-	IsDeleted    bool
+	BotType
+	IsPremium bool
+	IsActive  bool
+	IsDeleted bool
 }
 
 type NewUserReq struct {

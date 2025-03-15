@@ -134,7 +134,7 @@ func JoinRoomHandler(c *gin.Context) {
 	}
 
 	// check if he has already joined the room if he has then redirect him to the room
-	roomMember, err := room.GetRoomMemberByRoomAndUserID(ctx, roommodel.RoomMemberReq{
+	roomMember, err := room.GetRoomMemberByRoomCodeAndUserID(ctx, roommodel.RoomMemberReq{
 		UserID: uuid.MustParse(userID),
 		RoomID: roomDetail.ID,
 	})
