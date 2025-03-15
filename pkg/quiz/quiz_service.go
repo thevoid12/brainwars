@@ -134,6 +134,7 @@ func ListQuestionsByRoomCode(ctx context.Context, roomCode string) (questionDeta
 		CreatedBy:     question.CreatedBy,
 		UpdatedBy:     question.UpdatedBy,
 		QuestionCount: int(question.QuestionCount),
+		TimeLimit:     int(question.TimeLimit),
 	}
 
 	qs := []*model.QuestionData{}

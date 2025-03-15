@@ -52,7 +52,8 @@ func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq,
 		l.Sugar().Error("Could not generate quiz", err)
 		return err
 	}
-
+	// Create question request
+	req.TimeLimit = 1 // TODO: temp hardcoded for testing remove it
 	questionReq := quizmodel.QuestionReq{
 		RoomCode:      uuid.MustParse(roomDetails.RoomCode), // TODO: If room code is string and not uuid then we need to fix the db
 		Topic:         questReq.Topic,

@@ -335,7 +335,9 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 
 	// Broadcast to all clients
 	for client := range manager.clients[roomCode] {
-		client.egress <- questionEvent
+		if !client.isBot {
+			client.egress <- questionEvent
+		}
 	}
 
 	// Notify bots about new question so they can prepare to answer

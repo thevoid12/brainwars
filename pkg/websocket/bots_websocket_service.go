@@ -109,7 +109,7 @@ func (m *Manager) broadcastToBots(ctx context.Context, roomCode string, event Ev
 				// Send the event to the bot's event channel
 				select {
 				case client.botEvents <- event:
-					// Event sent successfully
+					// Event sent successfully from egress event to bot event
 				default:
 					// Channel is full or closed, log error
 					l.Sugar().Error(fmt.Sprintf("Failed to send event to bot botID: %s roomcode: %s", client.userID, roomCode))
@@ -156,19 +156,10 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 
 				// Calculate answer delay based on bot type
 				var delay time.Duration
-				switch c.botType {
-				case "30sec":
-					delay = time.Duration(rand.Intn(25)+5) * time.Second
-				case "1min":
-					delay = time.Duration(rand.Intn(30)+30) * time.Second
-				case "2min":
-					delay = time.Duration(rand.Intn(60)+60) * time.Second
-				default:
-					delay = time.Duration(rand.Intn(30)+5) * time.Second
-				}
+				delay = time.Duration(time.Duration(usermodel.BotTypeMap[c.botType]) * time.Second)
 
 				// Make sure the delay doesn't exceed the question time limit
-				if int(delay.Seconds()) > questionEvent.TimeLimit {
+				if int(delay.Seconds()) > questionEvent.TimeLimit*time.Now().Second()*60 {
 					delay = time.Duration(questionEvent.TimeLimit-1) * time.Second
 				}
 
@@ -237,12 +228,19 @@ func (c *Client) submitRandomAnswer(ctx context.Context, questionID uuid.UUID) {
 
 	// Send the answer through the client's egress channel
 	select {
-	case c.egress <- answerEvent:
-		// Answer sent successfully
 	case <-ctx.Done():
 		// Context canceled, no need to send answer
 	default:
+		// Answer sent successfully
+		for client := range c.manager.clients[c.roomCode] {
+			if client.isBot {
+				// TODO: WE NEED to write the result in db
+				continue
+			}
+			client.egress <- answerEvent
+		}
+
 		// Channel is full or closed
-		logs.GetLoggerctx(ctx).Sugar().Error("Failed to send answer userID:", c.userID)
+		// logs.GetLoggerctx(ctx).Sugar().Error("Failed to send answer userID:", c.userID)
 	}
 }
