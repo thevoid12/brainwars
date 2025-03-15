@@ -37,19 +37,19 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
 			// Determine bot type based on member properties or some naming convention
 			// For example, if bot names contain their type like "Bot-30sec", "Bot-1min", etc.
 			var botType usermodel.BotType
-			if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec10") {
+			if strings.Contains(member.UserDetails.UserName, "Sec10") {
 				botType = usermodel.Sec10
-			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec15") {
+			} else if strings.Contains(member.UserDetails.UserName, "Sec15") {
 				botType = usermodel.Sec15
-			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec20") {
+			} else if strings.Contains(member.UserDetails.UserName, "Sec20") {
 				botType = usermodel.Sec20
-			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec30") {
+			} else if strings.Contains(member.UserDetails.UserName, "Sec30") {
 				botType = usermodel.Sec30
-			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec45") {
+			} else if strings.Contains(member.UserDetails.UserName, "Sec45") {
 				botType = usermodel.Sec45
-			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec1") {
+			} else if strings.Contains(member.UserDetails.UserName, "Sec1") {
 				botType = usermodel.Sec1
-			} else if strings.Contains(strings.ToLower(member.UserDetails.UserName), "Sec2") {
+			} else if strings.Contains(member.UserDetails.UserName, "Sec2") {
 				botType = usermodel.Sec2
 			} else {
 				// Default bot type
@@ -120,63 +120,54 @@ func (m *Manager) broadcastToBots(ctx context.Context, roomCode string, event Ev
 }
 
 func (c *Client) handleBotBehavior(ctx context.Context) {
-	var answerTimer *time.Timer
 	l := logs.GetLoggerctx(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
-			// Context cancelled, clean up
-			if answerTimer != nil {
-				answerTimer.Stop()
-			}
+			// Context cancelled, clean up and exit
 			return
+
 		case event, ok := <-c.botEvents:
 			if !ok {
 				// Channel closed, exit
-				if answerTimer != nil {
-					answerTimer.Stop()
-				}
 				return
 			}
 
 			switch event.Type {
 			case EventNewQuestion:
-				if answerTimer != nil {
-					answerTimer.Stop()
-				}
-
 				// Parse the question data
 				questionEvent := questionEvent{}
-
 				if err := json.Unmarshal(event.Payload, &questionEvent); err != nil {
-					logs.GetLoggerctx(ctx).Sugar().Error("Failed to parse question event", "error", err)
+					l.Sugar().Error("Failed to parse question event", "error", err)
 					continue
 				}
 
 				// Calculate answer delay based on bot type
-				var delay time.Duration
-				delay = time.Duration(time.Duration(usermodel.BotTypeMap[c.botType]) * time.Second)
-
-				// Make sure the delay doesn't exceed the question time limit
-				if int(delay.Seconds()) > questionEvent.TimeLimit*time.Now().Second()*60 {
-					delay = time.Duration(questionEvent.TimeLimit-1) * time.Second
+				delay := time.Duration(usermodel.BotTypeMap[c.botType])
+				l.Sugar().Debugf("Resolved botType %s to delay %v", c.botType, delay)
+				// Ensure delay does not exceed the time limit for the question
+				maxDelay := time.Duration(questionEvent.TimeLimit) * time.Minute
+				if delay > maxDelay {
+					delay = maxDelay
 				}
 
-				// Create a separate context for the answer submission
-				answerCtx, cancel := context.WithCancel(ctx)
+				// Spawn a new goroutine for delayed answer submission
+				go func(qID uuid.UUID, d time.Duration, botID uuid.UUID) {
+					l.Sugar().Debugf("Bot %v will answer question %v in %v", botID, qID, d)
 
-				// Schedule the answer submission
-				answerTimer = time.AfterFunc(delay, func() {
-					defer cancel() // Clean up the context when done
-					c.submitRandomAnswer(answerCtx, questionEvent.Question.ID)
-				})
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(d):
+						c.submitRandomAnswer(ctx, qID)
+					}
+				}(questionEvent.Question.ID, delay, c.userID)
+
 			case EventReadyGame:
-				l.Sugar().Debug(fmt.Sprintf("Bot %s is ready to play", c.userID))
+				l.Sugar().Debugf("Bot %s is ready to play", c.userID)
+
 			case EventEndGame:
-				if answerTimer != nil {
-					answerTimer.Stop()
-				}
 				return // Exit the bot behavior goroutine when game ends
 			}
 		}

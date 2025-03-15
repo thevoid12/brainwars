@@ -1,6 +1,10 @@
 package model
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type BotType string
 
@@ -38,12 +42,12 @@ type NewUserReq struct {
 	IsPremium bool
 }
 
-var BotTypeMap = map[BotType]int{
-	Sec10: 10,
-	Sec15: 15,
-	Sec20: 20,
-	Sec30: 30,
-	Sec45: 45,
-	Sec1:  60,
-	Sec2:  120,
+var BotTypeMap = map[BotType]time.Duration{
+	Sec10: 10 * time.Second,
+	Sec15: 15 * time.Second,
+	Sec20: 20 * time.Second,
+	Sec30: 30 * time.Second,
+	Sec45: 45 * time.Second,
+	Sec1:  time.Minute,
+	Sec2:  2 * time.Minute,
 }
