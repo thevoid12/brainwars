@@ -280,7 +280,6 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 		manager.Unlock()
 
 		// Send game end event
-		// leaderboard:
 		endGamePayload := struct {
 			Message    string                  `json:"message"`
 			Scores     []quizmodel.Participant `json:"scores"`
@@ -307,24 +306,21 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 
 	// Get the current question
 	currentQuestion := gameState.Questions.QuestionData[gameState.CurrentQuestionIndex]
+	timeLimit := time.Duration(gameState.Questions.TimeLimit) * time.Minute
 
-	// Create a client-safe version (without correct answer)
-	// clientQuestion := Question{
-	// 	ID:        currentQuestion.ID,
-	// 	Question:  currentQuestion.Question,
-	// 	Options:   currentQuestion.Options,
-	// 	TimeLimit: currentQuestion.TimeLimit,
-	// }
+	// Store current question index for the goroutine
+	currentIndex := gameState.CurrentQuestionIndex
 
 	manager.Unlock()
 
 	questEvent := questionEvent{
-		QuestionIndex:  gameState.CurrentQuestionIndex + 1,
+		QuestionIndex:  currentIndex + 1,
 		TotalQuestions: len(gameState.Questions.QuestionData),
 		Question:       currentQuestion,
 		StartTime:      time.Now(),
 		TimeLimit:      gameState.Questions.TimeLimit,
 	}
+
 	// Prepare question event
 	questionData, err := json.Marshal(questEvent)
 	if err != nil {
@@ -340,24 +336,31 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 		}
 	}
 
-	// Notify bots about new question so they can prepare to answer
+	// Notify bots about new question
 	manager.broadcastToBots(ctx, roomCode, questionEvent)
 
-	// Schedule next question after a delay (current question time limit )
+	// Schedule next question after a delay
 	go func() {
-		timeLimit := time.Duration(gameState.Questions.TimeLimit) * time.Second
+		l.Sugar().Infof("Question %d timer started for %v seconds", currentIndex+1, timeLimit.Seconds())
 		timer := time.NewTimer(timeLimit)
 		<-timer.C
+		l.Sugar().Infof("Question %d timer completed", currentIndex+1)
 
 		// Move to next question
 		manager.Lock()
 		if gameState, exists := manager.gameStates[roomCode]; exists {
-			gameState.CurrentQuestionIndex++
+			// Only increment if we're still on the same question
+			// This prevents race conditions if something else modified the index
+			if gameState.CurrentQuestionIndex == currentIndex {
+				gameState.CurrentQuestionIndex++
+				manager.Unlock()
+				sendNextQuestion(ctx, manager, roomCode)
+			} else {
+				manager.Unlock()
+			}
+		} else {
+			manager.Unlock()
 		}
-		manager.Unlock()
-
-		// Send next question
-		sendNextQuestion(ctx, manager, roomCode)
 	}()
 
 	return nil
