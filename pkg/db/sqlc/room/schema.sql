@@ -1,5 +1,3 @@
-
-
 CREATE TABLE IF NOT EXISTS room (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_code TEXT NOT NULL,

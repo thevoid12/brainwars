@@ -40,5 +40,5 @@
 - [ ] xss protection
 - [ ] uploading pdf's to generate question
 - [ ] handle ui errors display appropriately
-- [ ] room members room_id column should be renamed to room_code
-- [ ] fix room members 
+- [x] room members room_id column should be renamed to room_code
+- [x] fix room members 
