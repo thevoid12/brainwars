@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -152,18 +153,28 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	m.setupBotsForRoom(ctx, roomCode)
 
+	m.setupBotsForRoom(ctx, roomCode)
 }
 
 // Set up bots to be ready when a human player joins
 func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID uuid.UUID) error {
 	l := logs.GetLoggerctx(ctx)
+	// Use context with timeout for database operation
+	// dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	// defer cancel()
 
-	userDetails, err := user.GetUserDetailsbyID(ctx, userID)
-	if err != nil {
-		l.Sugar().Error("get user details by id failed", err)
-		return err
+	var userDetails *usermodel.UserInfo
+	var err error
+
+	// Retry logic for getting user details
+	for retries := 0; retries < 3; retries++ {
+		userDetails, err = user.GetUserDetailsbyID(ctx, userID)
+		if err == nil {
+			break
+		}
+		l.Sugar().Warnf("Get user details attempt %d failed: %v. Retrying...", retries+1, err)
+		time.Sleep(1 * time.Second)
 	}
 
 	// Set the user to ready state
@@ -179,7 +190,7 @@ func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID 
 		return err
 	}
 
-	readyEvent := Event{Type: "game_status", Payload: data}
+	readyEvent := Event{Type: "ready_game", Payload: data}
 
 	// Broadcast to all clients in the room
 	for client := range m.clients[roomCode] {
@@ -546,11 +557,26 @@ func (c *Client) readMessages(ctx context.Context) {
 	}
 	// Configure how to handle Pong responses
 	c.connection.SetPongHandler(c.pongHandler)
-	c.connection.SetReadLimit(viper.GetInt64("ws.maxReadSize")) // max read size limit bytes
+	readLimit := viper.GetInt64("ws.maxReadSize")
+	if readLimit <= 0 {
+		readLimit = int64(maxReadLimit) // Use default if not configured
+	}
+	c.connection.SetReadLimit(readLimit) // max read size limit bytes
+
 	for {
 		_, payload, err := c.connection.ReadMessage()
 		if err != nil {
-			l.Sugar().Error("error reading message:", err)
+			// Check specific error types
+			if websocket.IsUnexpectedCloseError(err,
+				websocket.CloseGoingAway,
+				websocket.CloseNormalClosure,
+				websocket.CloseNoStatusReceived) {
+				l.Sugar().Errorf("unexpected close error: %v", err)
+			} else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				l.Sugar().Errorf("read timeout: %v", err)
+			} else {
+				l.Sugar().Errorf("error reading message: %v", err)
+			}
 			break
 		}
 		var request Event
@@ -582,7 +608,10 @@ func (c *Client) writeMessages(ctx context.Context) {
 				return
 			}
 			data, _ := json.Marshal(message)
-			c.connection.WriteMessage(websocket.TextMessage, data)
+			err := c.connection.WriteMessage(websocket.TextMessage, data)
+			if err != nil {
+				l.Sugar().Error(err)
+			}
 		case <-ticker.C:
 			log.Println("ping")
 			c.connection.WriteMessage(websocket.PingMessage, nil)

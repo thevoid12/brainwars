@@ -70,7 +70,7 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
 			}
 
 			data, _ := json.Marshal(botReadyNotification)
-			readyEvent := Event{Type: "game_status", Payload: data}
+			readyEvent := Event{Type: "ready_game", Payload: data}
 
 			// Broadcast to all clients in the room
 			for client := range m.clients[roomCode] {
