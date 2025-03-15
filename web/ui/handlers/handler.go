@@ -94,6 +94,7 @@ func CreateRoomHandler(c *gin.Context) {
 	botIDs := []roommodel.UserIDReq{
 		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000002")},
 		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000003")},
+		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000004")},
 	}
 	questReq := &quizmodel.QuizReq{
 		Topic: "test topic",
@@ -135,17 +136,16 @@ func JoinRoomHandler(c *gin.Context) {
 
 	// check if he has already joined the room if he has then redirect him to the room
 	roomMember, err := room.GetRoomMemberByRoomCodeAndUserID(ctx, roommodel.RoomMemberReq{
-		UserID: uuid.MustParse(userID),
-		RoomID: roomDetail.ID,
+		UserID:   uuid.MustParse(userID),
+		RoomCode: roomCode,
 	})
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Failed to join room", err)
 	}
 	if roomMember == nil {
 		_, err := room.JoinRoomWithRoomCode(ctx, roommodel.RoomMemberReq{
-			UserID:   uuid.UUID{},
-			RoomID:   uuid.UUID{},
-			RoomCode: "",
+			UserID:   uuid.MustParse(userID),
+			RoomCode: roomCode,
 		})
 		if err != nil {
 			RenderErrorTemplate(c, "home.html", "Failed to join room", err)

@@ -316,7 +316,7 @@ func (q *Queries) GetRoomByRoomCode(ctx context.Context, roomCode string) ([]Roo
 
 const getRoomMemberByID = `-- name: GetRoomMemberByID :many
 SELECT room_member.id, room_code, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
-WHERE room_member.id = $1 AND is_deleted = false
+WHERE room_member.id = $1 AND room_member.is_deleted = false
 `
 
 type GetRoomMemberByIDRow struct {
@@ -395,7 +395,7 @@ func (q *Queries) GetRoomMemberByID(ctx context.Context, id pgtype.UUID) ([]GetR
 
 const getRoomMemberByRoomCodeAndUserID = `-- name: GetRoomMemberByRoomCodeAndUserID :many
 SELECT room_member.id, room_code, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
-WHERE room_code = $1 AND user_id = $2 AND is_deleted = false
+WHERE room_code = $1 AND user_id = $2 AND room_member.is_deleted = false
 `
 
 type GetRoomMemberByRoomCodeAndUserIDParams struct {
@@ -555,7 +555,7 @@ func (q *Queries) ListRoomByUserID(ctx context.Context, roomOwner pgtype.UUID) (
 
 const listRoomMembersByRoomCode = `-- name: ListRoomMembersByRoomCode :many
 SELECT room_member.id, room_code, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
-WHERE room_code = $1 AND is_deleted = false
+WHERE room_code = $1 AND room_member.is_deleted = false
 `
 
 type ListRoomMembersByRoomCodeRow struct {

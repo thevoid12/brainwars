@@ -68,15 +68,15 @@ RETURNING *;
 
 -- name: ListRoomMembersByRoomCode :many
 SELECT * FROM room_member INNER JOIN users ON room_member.user_id = users.id
-WHERE room_code = $1 AND is_deleted = false;
+WHERE room_code = $1 AND room_member.is_deleted = false;
 
 -- name: GetRoomMemberByRoomCodeAndUserID :many
 SELECT * FROM room_member INNER JOIN users ON room_member.user_id = users.id
-WHERE room_code = $1 AND user_id = $2 AND is_deleted = false;
+WHERE room_code = $1 AND user_id = $2 AND room_member.is_deleted = false;
 
 -- name: GetRoomMemberByID :many
 SELECT * FROM room_member INNER JOIN users ON room_member.user_id = users.id
-WHERE room_member.id = $1 AND is_deleted = false;
+WHERE room_member.id = $1 AND room_member.is_deleted = false;
 
 -- name: UpdateRoomMemberByID :exec
 UPDATE room_member

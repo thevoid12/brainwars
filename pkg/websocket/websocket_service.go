@@ -115,20 +115,21 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	if roomCode == "" {
 		roomCode = "8bd9c332-ea09-434c-b439-5b3a39d3de5f" // Default room for testing
 	}
-	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
-	if err != nil {
-		l.Sugar().Error("get room by room code failed:", err)
-		return
-	}
+
 	userID := util.GetUserIDFromctx(ctx)
 	roomMember, err := room.GetRoomMemberByRoomCodeAndUserID(ctx, roommodel.RoomMemberReq{
-		UserID: userID,
-		RoomID: roomDetails.ID,
+		UserID:   userID,
+		RoomCode: roomCode,
 	})
 	if err != nil {
 		l.Sugar().Error("get room member by room and user id failed", err)
 		return
 	}
+	if roomMember == nil {
+		l.Sugar().Error("there are no room mebers")
+		return
+	}
+
 	questions, err := quiz.ListQuestionsByRoomCode(ctx, roomCode)
 	if err != nil {
 		l.Sugar().Error("list questions by room code failed", err)
@@ -136,10 +137,6 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	}
 
 	totalQuestions := questions.QuestionCount
-	if roomMember == nil {
-		l.Sugar().Error("there are no room mebers")
-		return
-	}
 
 	client := NewClient(conn, m, roomCode, false, "", userID)
 	m.addClient(client)
