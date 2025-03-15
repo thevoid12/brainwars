@@ -86,6 +86,11 @@ func NewManager(ctx context.Context) *Manager {
 }
 
 func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bool, botType usermodel.BotType, userID uuid.UUID) *Client {
+
+	// // Only set up pong handler for real clients with WebSocket connections
+	// if conn != nil {
+	// 	conn.SetPongHandler(client.pongHandler)
+	// }
 	return &Client{
 		connection: conn,
 		manager:    manager,
@@ -118,6 +123,17 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	}
 
 	userID := util.GetUserIDFromctx(ctx)
+
+	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
+	if err != nil {
+		l.Sugar().Error("get room by room code failed", err)
+		return
+	}
+	if roomDetails == nil {
+		l.Sugar().Error("room not found")
+		return
+	}
+
 	roomMember, err := room.GetRoomMemberByRoomCodeAndUserID(ctx, roommodel.RoomMemberReq{
 		UserID:   userID,
 		RoomCode: roomCode,
@@ -155,6 +171,17 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	}
 
 	m.setupBotsForRoom(ctx, roomCode)
+	// if the game is a single player game since the user is ready and bots are ready as well
+	//  we automatically display the first question. in terms of multiplayer game a button needs to be triggered
+	// to start the game
+	if roomDetails.GameType == roommodel.SP {
+		err = StartGameMessageHandler(ctx, Event{}, client)
+		if err != nil {
+			return
+		}
+	}
+
+	return
 }
 
 // Set up bots to be ready when a human player joins

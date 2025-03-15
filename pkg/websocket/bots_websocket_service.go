@@ -17,6 +17,8 @@ import (
 )
 
 // Set up bots to be ready when a human player joins
+// bots doesnt work with egres channel. egress channel is for web socket connection
+// bots can use the other channel to coordinate communication
 func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
 	l := logs.GetLoggerctx(ctx)
 
@@ -74,6 +76,10 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
 
 			// Broadcast to all clients in the room
 			for client := range m.clients[roomCode] {
+				if client.isBot {
+					client.botEvents <- readyEvent
+					continue
+				}
 				client.egress <- readyEvent
 			}
 
@@ -115,6 +121,7 @@ func (m *Manager) broadcastToBots(ctx context.Context, roomCode string, event Ev
 
 func (c *Client) handleBotBehavior(ctx context.Context) {
 	var answerTimer *time.Timer
+	l := logs.GetLoggerctx(ctx)
 
 	for {
 		select {
@@ -173,7 +180,8 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 					defer cancel() // Clean up the context when done
 					c.submitRandomAnswer(answerCtx, questionEvent.Question.ID)
 				})
-
+			case EventReadyGame:
+				l.Sugar().Debug(fmt.Sprintf("Bot %s is ready to play", c.userID))
 			case EventEndGame:
 				if answerTimer != nil {
 					answerTimer.Stop()
