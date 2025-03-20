@@ -23,12 +23,12 @@
 - [x] start the bots thingy when all other players clicked start and just before loading the first question
 
 ## mar 15 todo
-- [ ] go through 1 full flow with static data, 
-  - [ ] room creation
-  - [ ] starting game
-  - [ ] single player flow
+- [x] go through 1 full flow with static data, 
+  - [x] room creation
+  - [x] starting game
+  - [x] single player flow
   - [ ] multp player flow
-  - [ ] going to all the questions until end answer
+  - [x] going to all the questions until end answer
 - [ ] build the leader board feature
 - [ ] start with ui
 - [ ] auth

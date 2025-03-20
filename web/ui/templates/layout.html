@@ -9,7 +9,7 @@
 </head>
 
 <body class="bg-gray-100">
-  <div id="outer-page-content">
+  <div id="outer-page-content" data-hx-headers='{"X-XSRF-TOKEN":"{{ .CsrfToken }}"}'>
     {{ template "content" . }}
   </div>
 </body>

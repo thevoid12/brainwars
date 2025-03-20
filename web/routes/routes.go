@@ -3,8 +3,8 @@ package routes
 import (
 	"brainwars/pkg/websocket"
 	"brainwars/web/middleware"
-	assests "brainwars/web/ui/assets"
 	"brainwars/web/ui/handlers"
+	assests "brainwars/web/ui/utility"
 	"context"
 	"net/http"
 

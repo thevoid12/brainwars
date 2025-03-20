@@ -219,6 +219,16 @@ func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID 
 
 	readyEvent := Event{Type: "ready_game", Payload: data}
 
+	// TODO: update user room member's state to ready
+	// for retries := 0; retries < 3; retries++ {
+	// 	userDetails, err = room.UpdateRoomMemberByID(ctx)
+	// 	if err == nil {
+	// 		break
+	// 	}
+	// 	l.Sugar().Warnf("Get user details attempt %d failed: %v. Retrying...", retries+1, err)
+	// 	time.Sleep(1 * time.Second)
+	// }
+
 	// Broadcast to all clients in the room
 	for client := range m.clients[roomCode] {
 		client.egress <- readyEvent
@@ -482,6 +492,8 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	if userDetails == nil {
 		return fmt.Errorf("user not found")
 	}
+
+	// TODO: this api is wrong
 	// Update the room member's ready status
 	err = room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
 		UserID:           c.userID,
