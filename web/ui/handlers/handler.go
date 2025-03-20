@@ -6,6 +6,7 @@ import (
 	"brainwars/pkg/room/model"
 	roommodel "brainwars/pkg/room/model"
 	"fmt"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -83,14 +84,33 @@ func CreateRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
 
 	c.Request.ParseForm()
-	fmt.Println(c.Request.Form)
-	roomreq := roommodel.RoomReq{
-		UserID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
-		Username: "admin",
-		UserMeta: "[{}]",
-		RoomName: "test room",
-		GameType: model.SP,
+	userID := "00000000-0000-0000-0000-000000000001"
+	gameType := c.PostForm("game-type")
+	bots := c.PostFormArray("bots")
+	topic := c.PostForm("topic")
+	timelimit := c.PostForm("timelimit")
+	tl, err := strconv.Atoi(timelimit)
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "time limit is in wrong format", err)
+		return
 	}
+	fmt.Println(c.Request.Form)
+	fmt.Println(gameType)
+	fmt.Println(bots)
+	fmt.Println(topic)
+	gt := model.SP
+	if gameType == "2" {
+		gt = model.MP
+	}
+	roomreq := roommodel.RoomReq{
+		UserID:    uuid.MustParse(userID),
+		Username:  "admin",
+		UserMeta:  "[{}]",
+		RoomName:  "test room",
+		GameType:  gt,
+		TimeLimit: tl,
+	}
+
 	botIDs := []roommodel.UserIDReq{
 		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000002")},
 		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000003")},
@@ -100,9 +120,10 @@ func CreateRoomHandler(c *gin.Context) {
 		Topic: "test topic",
 		Count: 10,
 	}
-	err := room.SetupGame(ctx, roomreq, botIDs, questReq)
+	err = room.SetupGame(ctx, roomreq, botIDs, questReq)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Failed to Setup game", err)
+		return
 	}
 	if roomreq.GameType == model.SP {
 		// immidiately join the room,start the game

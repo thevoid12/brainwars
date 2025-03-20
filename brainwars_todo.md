@@ -42,3 +42,4 @@
 - [ ] handle ui errors display appropriately
 - [x] room members room_id column should be renamed to room_code
 - [x] fix room members 
+- [ ] get the bot times drop down from backend and fill the dropdown
