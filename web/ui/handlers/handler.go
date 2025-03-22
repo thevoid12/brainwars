@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // func IndexHandler(c *gin.Context) {
@@ -75,12 +74,6 @@ func HomeHandler(c *gin.Context) {
 }
 
 // Room
-func CreateRoomPageHandler(c *gin.Context) {
-
-	RenderTemplate(c, "home.html", gin.H{
-		"title": "About Page",
-	})
-}
 
 func CreateRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
@@ -143,10 +136,12 @@ func CreateRoomHandler(c *gin.Context) {
 			"roomCode": roomCode,
 			"userID":   userID,
 		})
+
+		return
 	}
 	// if he is a multiplayer mode then redirect to main page through which he can join the game with room code
 	RenderTemplate(c, "home.html", gin.H{
-		"title":   "About Page",
+		"title":   "Home Page",
 		"user-id": userID,
 	})
 }
@@ -156,8 +151,9 @@ func CreateRoomHandler(c *gin.Context) {
 func JoinRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
 	// check if there is a room that exists
-	roomCode := "8bd9c332-ea09-434c-b439-5b3a39d3de5f"
-	userID := "00000000-0000-0000-0000-000000000001"
+	roomCode := c.PostForm("roomCode")
+	userInfo := util.GetUserInfoFromctx(ctx)
+	userID := userInfo.ID
 	roomDetail, err := room.GetRoomByRoomCode(ctx, roomCode)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "unable to join room", err)
@@ -168,7 +164,7 @@ func JoinRoomHandler(c *gin.Context) {
 
 	// check if he has already joined the room if he has then redirect him to the room
 	roomMember, err := room.GetRoomMemberByRoomCodeAndUserID(ctx, roommodel.RoomMemberReq{
-		UserID:   uuid.MustParse(userID),
+		UserID:   userID,
 		RoomCode: roomCode,
 	})
 	if err != nil {
@@ -176,7 +172,7 @@ func JoinRoomHandler(c *gin.Context) {
 	}
 	if roomMember == nil {
 		_, err := room.JoinRoomWithRoomCode(ctx, roommodel.RoomMemberReq{
-			UserID:   uuid.MustParse(userID),
+			UserID:   userID,
 			RoomCode: roomCode,
 		})
 		if err != nil {
@@ -186,13 +182,12 @@ func JoinRoomHandler(c *gin.Context) {
 
 	RenderTemplate(c, "game.html", gin.H{
 		"title":    "game room",
-		"roomCode": "8bd9c332-ea09-434c-b439-5b3a39d3de5f",
-		"userID":   "00000000-0000-0000-0000-000000000001",
+		"roomCode": roomCode,
 	})
 }
 
 func GameHandler(c *gin.Context) {
-	RenderTemplate(c, "game.html", gin.H{})
+	RenderTemplate(c, "quiz.html", gin.H{})
 }
 
 func ListAllRoomsHanlder(c *gin.Context) {

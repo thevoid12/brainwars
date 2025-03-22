@@ -1,6 +1,11 @@
 {{ define "content" }}
 <h1>gameeeeeee</h1>
 <div id="ws-container" data-roomcode="{{ .roomCode }}"></div>
+<!-- Question Container -->
+<div id="question-block">
+  Waiting for first question...
+</div>
+
 <script>
   window.onload = function () {
     if (window["WebSocket"]) {
@@ -17,10 +22,78 @@
       };
       conn.onmessage = function (e) {
         console.log(e.data);
+        const data = JSON.parse(e.data);
+        if (data.type === "new_question") {
+          renderQuestion(data.payload);
+        } else if (data.type === "end_game") {
+          renderEndGame(data.payload);
+        }
       };
       conn.onclose = function (e) {
         console.log("Connection closed!");
       };
+
+      function renderQuestion(payload) {
+        const questionBlock = document.getElementById("question-block");
+        const { questionIndex, totalQuestions, question, timeLimit } = payload;
+        const { Question: questionText, Options } = question;
+
+        let html = `
+          <div class="question-box">
+            <div><strong>Question ${questionIndex} of ${totalQuestions}</strong></div>
+            <h3>${questionText}</h3>
+            <ul>
+        `;
+        Options.forEach(opt => {
+          html += `<li>
+            <button class="option-btn" data-optionid="${opt.ID}">${opt.Option}</button>
+          </li>`;
+        });
+        html += `</ul>
+          <div><small>Time limit: ${timeLimit} minute(s)</small></div>
+        </div>`;
+
+        questionBlock.innerHTML = html;
+
+        // Attach click handlers
+        document.querySelectorAll(".option-btn").forEach(btn => {
+          btn.addEventListener("click", function () {
+            const selectedOptionID = this.dataset.optionid;
+            const answerPayload = {
+              type: "submit_answer",
+              payload: {
+                questionID: question.ID,
+                selectedOptionID: parseInt(selectedOptionID)
+              }
+            };
+            conn.send(JSON.stringify(answerPayload));
+          });
+        });
+      }
+
+      function renderEndGame(payload) {
+        const questionBlock = document.getElementById("question-block");
+        const { message, scores, finishTime } = payload;
+
+        let html = `
+    <div class="endgame-box">
+      <h2>${message}</h2>
+      <p><strong>Game Finished At:</strong> ${new Date(finishTime).toLocaleString()}</p>
+  `;
+
+        if (scores.length === 0) {
+          html += `<p>No scores available.</p>`;
+        } else {
+          html += `<ul>`;
+          scores.forEach(score => {
+            html += `<li>${score.username}: ${score.score}</li>`;
+          });
+          html += `</ul>`;
+        }
+
+        html += `</div>`;
+        questionBlock.innerHTML = html;
+      }
     } else {
       alert("WebSockets are not supported in this browser.");
     }

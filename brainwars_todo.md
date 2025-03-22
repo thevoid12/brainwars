@@ -45,3 +45,10 @@
 - [ ] get the bot times drop down from backend and fill the dropdown
 -  [ ] use safehtml for all the backend data which we are sending to ui
 - [ ] add otp ferature in websocket to prevent csrf 
+
+
+{"type":"send_message","payload":{"data":"welcome boys!","time":"2025-03-22T13:38:23.65Z","sent":"2025-03-22T19:08:23.675124+05:30"}}
+croom:31 {"type":"ready_game","payload":{"data":"User admin is ready","time":"2025-03-22T19:08:23.681868+05:30"}}
+croom:31 {"type":"ready_game","payload":{"data":"Bot Sec10 is ready","time":"2025-03-22T19:08:26.826269+05:30"}}
+croom:31 {"type":"ready_game","payload":{"data":"Bot Sec15 is ready","time":"2025-03-22T19:08:26.82644+05:30"}}
+croom:31 {"type":"new_question","payload":{"questionIndex":1,"totalQuestions":2,"question":{"ID":"c2b15dfd-206c-4118-ac28-5049b4502fce","Question":"this is test question 1","Options":[{"ID":1,"Option":"ans 1"},{"ID":2,"Option":"ans 2"},{"ID":3,"Option":"ans 3"},{"ID":4,"Option":"ans 4"}],"Answer":1},"startTime":"2025-03-22T19:08:36.720943+05:30","timeLimit":2}}
