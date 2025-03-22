@@ -1,11 +1,14 @@
 {{ define "content" }}
 <h1>gameeeeeee</h1>
+<div id="ws-container" data-roomcode="{{ .roomCode }}"></div>
 <script>
   window.onload = function () {
     if (window["WebSocket"]) {
+      let roomcode = document.getElementById("ws-container").dataset.roomcode;
       console.log("WebSocket is supported");
       let protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-      let conn = new WebSocket(protocol + window.location.host + "/bw/ws");
+      let conn = new WebSocket(protocol + window.location.host + "/bw/ws?roomCode=" + encodeURIComponent(roomcode));
+
       conn.onopen = function (e) {
         console.log("Connection established!");
         var payload = { data: "welcome boys!", time: new Date().toISOString() }
