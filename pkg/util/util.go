@@ -3,14 +3,18 @@ package util
 
 import (
 	constants "brainwars/constant"
+	usermodel "brainwars/pkg/users/model"
 	"context"
-
-	"github.com/google/uuid"
 )
 
 // get User from ctx
-func GetUserIDFromctx(ctx context.Context) uuid.UUID {
-	userID := ctx.Value(constants.CONTEXT_KEY_USER_ID)
-	return uuid.MustParse(userID.(string)) // type assersion
+func GetUserInfoFromctx(ctx context.Context) *usermodel.UserInfo {
+	userInfo := ctx.Value(constants.CONTEXT_KEY_USER)
+	return userInfo.(*usermodel.UserInfo) // type assersion
+}
 
+func SetUserInfoInctx(ctx context.Context, userInfo *usermodel.UserInfo) context.Context {
+
+	ctx = context.WithValue(ctx, constants.CONTEXT_KEY_USER, userInfo)
+	return ctx
 }

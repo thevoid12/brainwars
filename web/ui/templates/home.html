@@ -1,26 +1,35 @@
 {{ define "content" }}
 {{.welcome}}
 <form action="/bw/croom" method="post">
-  <select name="game-type">
+  <label for="roomName">Room Name:</label>
+  <input type="text" id="roomName" name="roomName" placeholder="Enter A room Name">
+  <label for="game-type">Game Type:</label>
+  <select name="game-type" id="game-type">
     <option value="1">Single player</option>
     <option value="2">Multi player</option>
   </select>
-  <label for="bots">Select Bots:</label>
-  <select id="bots" name="bots[]" multiple>
-    <option value="10 sec">10 sec</option>
-    <option value="15 sec">15 sec</option>
-    <option value="20 sec">20 sec</option>
-    <option value="30 sec">30 sec</option>
-    <option value="1 min">1 min</option>
-    <option value="2 min">2 min</option>
 
-  </select>
+  <label>Select Bots:</label><br>
+  <input type="checkbox" name="bots" value="10 sec"> 10 sec<br>
+  <input type="checkbox" name="bots" value="15 sec"> 15 sec<br>
+  <input type="checkbox" name="bots" value="20 sec"> 20 sec<br>
+  <input type="checkbox" name="bots" value="30 sec"> 30 sec<br>
+  <input type="checkbox" name="bots" value="45 sec"> 45 sec<br>
+  <input type="checkbox" name="bots" value="1 min"> 1 min<br>
+  <input type="checkbox" name="bots" value="2 min"> 2 min<br>
+
+  <label for="topic">Topic:</label>
   <input type="text" id="topic" name="topic" placeholder="Enter topic">
-  <label for="timelimit">Timelimit for each question (in min)</label>
+
+  <label for="questionCount">Total number of questions:</label>
+  <input type="number" id="questionCount" name="questionCount" min="1" max="10">
+
+  <label for="timelimit">Time limit per question (in minutes):</label>
   <input type="number" id="timelimit" name="timelimit" min="1" max="5">
+
   <button type="submit">Submit</button>
-  <submit></submit>
 </form>
+
 <button data-hx-post="/bw/jroom">Join room</button>
 
 {{ end }}

@@ -30,8 +30,8 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 	rSecure.Use(gin.Recovery())
 	rSecure.Use(middleware.ContextMiddleware(ctx))
 	//rSecure.Use(middleware.AuthMiddleware(ctx))
-	rSecure.Use(middleware.CustomProfileMiddleware(ctx))
-	rSecure.Use(middleware.SessionMiddleware(ctx))
+	rSecure.Use(middleware.CustomProfileMiddleware())
+	rSecure.Use(middleware.SessionMiddleware())
 
 	// index
 

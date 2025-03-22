@@ -51,3 +51,13 @@ var BotTypeMap = map[BotType]time.Duration{
 	Sec1:  time.Minute,
 	Sec2:  2 * time.Minute,
 }
+
+var BotIDMap = map[string]uuid.UUID{
+	"10 sec": uuid.MustParse("00000000-0000-0000-0000-000000000002"),
+	"15 sec": uuid.MustParse("00000000-0000-0000-0000-000000000003"),
+	"20 sec": uuid.MustParse("00000000-0000-0000-0000-000000000004"),
+	"30 sec": uuid.MustParse("00000000-0000-0000-0000-000000000005"),
+	"45 sec": uuid.MustParse("00000000-0000-0000-0000-000000000006"),
+	"1 min":  uuid.MustParse("00000000-0000-0000-0000-000000000007"),
+	"2 min":  uuid.MustParse("00000000-0000-0000-0000-000000000008"),
+}

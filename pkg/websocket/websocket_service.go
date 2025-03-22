@@ -122,7 +122,8 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		roomCode = "8bd9c332-ea09-434c-b439-5b3a39d3de5f" // Default room for testing
 	}
 
-	userID := util.GetUserIDFromctx(ctx)
+	userInfo := util.GetUserInfoFromctx(ctx)
+	userID := userInfo.ID
 
 	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
 	if err != nil {

@@ -49,7 +49,7 @@ func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 		CreatedBy:     req.CreatedBy,
 		UpdatedBy:     req.CreatedBy,
 		QuestionCount: int32(req.QuestionCount),
-		RoomCode:      req.RoomCode.String(),
+		RoomCode:      req.RoomCode,
 		ID:            pgtype.UUID{Bytes: uuid.New(), Valid: true},
 		TimeLimit:     int32(req.TimeLimit),
 	}

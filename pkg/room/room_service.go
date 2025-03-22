@@ -19,13 +19,13 @@ import (
 
 // SetupGame is a function that sets up a game from room creation,member addition,question generation
 // TODO: make everything in transaction
-func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq, questReq *quizmodel.QuizReq) error {
+func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq, questReq *quizmodel.QuizReq) (string, error) {
 	l := logs.GetLoggerctx(ctx)
 	// Create a room
 	roomDetails, err := CreateRoom(ctx, req)
 	if err != nil {
 		l.Sugar().Error("Could not create room", err)
-		return err
+		return "", err
 	}
 
 	// Add room members
@@ -39,7 +39,7 @@ func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq,
 		})
 		if err != nil {
 			l.Sugar().Error("Could not join room", err)
-			return err
+			return "", err
 		}
 	}
 
@@ -50,12 +50,12 @@ func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq,
 	})
 	if err != nil {
 		l.Sugar().Error("Could not generate quiz", err)
-		return err
+		return "", err
 	}
 	// Create question request
-	req.TimeLimit = 1 // TODO: temp hardcoded for testing remove it
+
 	questionReq := quizmodel.QuestionReq{
-		RoomCode:      uuid.MustParse(roomDetails.RoomCode), // TODO: If room code is string and not uuid then we need to fix the db
+		RoomCode:      roomDetails.RoomCode,
 		Topic:         questReq.Topic,
 		QuestionData:  questionData,
 		CreatedBy:     string(roomDetails.CreatedBy),
@@ -68,10 +68,10 @@ func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq,
 	err = quiz.CreateQuestion(ctx, questionReq)
 	if err != nil {
 		l.Sugar().Error("Could not create question", err)
-		return err
+		return "", err
 	}
 
-	return nil
+	return roomDetails.RoomCode, nil
 }
 
 // CreateRoom is a function that creates a room

@@ -5,6 +5,8 @@ import (
 	"brainwars/pkg/room"
 	"brainwars/pkg/room/model"
 	roommodel "brainwars/pkg/room/model"
+	usermodel "brainwars/pkg/users/model"
+	"brainwars/pkg/util"
 	"fmt"
 	"strconv"
 
@@ -84,16 +86,25 @@ func CreateRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
 
 	c.Request.ParseForm()
-	userID := "00000000-0000-0000-0000-000000000001"
+	userInfo := util.GetUserInfoFromctx(ctx)
+	userID := userInfo.ID
 	gameType := c.PostForm("game-type")
 	bots := c.PostFormArray("bots")
 	topic := c.PostForm("topic")
 	timelimit := c.PostForm("timelimit")
+	roomName := c.PostForm("roomName")
 	tl, err := strconv.Atoi(timelimit)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "time limit is in wrong format", err)
 		return
 	}
+	questionCount := c.PostForm("questionCount")
+	qc, err := strconv.Atoi(questionCount)
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "question count is in wrong format", err)
+		return
+	}
+
 	fmt.Println(c.Request.Form)
 	fmt.Println(gameType)
 	fmt.Println(bots)
@@ -103,24 +114,24 @@ func CreateRoomHandler(c *gin.Context) {
 		gt = model.MP
 	}
 	roomreq := roommodel.RoomReq{
-		UserID:    uuid.MustParse(userID),
+		UserID:    userID,
 		Username:  "admin",
 		UserMeta:  "[{}]",
-		RoomName:  "test room",
+		RoomName:  roomName,
 		GameType:  gt,
 		TimeLimit: tl,
 	}
 
-	botIDs := []roommodel.UserIDReq{
-		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000002")},
-		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000003")},
-		{UserID: uuid.MustParse("00000000-0000-0000-0000-000000000004")},
+	botIDs := []roommodel.UserIDReq{}
+	for _, botsInput := range bots {
+		botIDs = append(botIDs, roommodel.UserIDReq{UserID: usermodel.BotIDMap[botsInput]})
 	}
+
 	questReq := &quizmodel.QuizReq{
-		Topic: "test topic",
-		Count: 10,
+		Topic: topic,
+		Count: qc,
 	}
-	err = room.SetupGame(ctx, roomreq, botIDs, questReq)
+	roomCode, err := room.SetupGame(ctx, roomreq, botIDs, questReq)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Failed to Setup game", err)
 		return
@@ -129,14 +140,14 @@ func CreateRoomHandler(c *gin.Context) {
 		// immidiately join the room,start the game
 		RenderTemplate(c, "game.html", gin.H{
 			"title":    "game room",
-			"roomCode": "8bd9c332-ea09-434c-b439-5b3a39d3de5f",
-			"userID":   "00000000-0000-0000-0000-000000000001",
+			"roomCode": roomCode,
+			"userID":   userID,
 		})
 	}
 	// if he is a multiplayer mode then redirect to main page through which he can join the game with room code
 	RenderTemplate(c, "home.html", gin.H{
 		"title":   "About Page",
-		"user-id": "00000000-0000-0000-0000-000000000001",
+		"user-id": userID,
 	})
 }
 
