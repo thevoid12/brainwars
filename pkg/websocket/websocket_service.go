@@ -119,7 +119,8 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	// get the roomID from the query params
 	roomCode := c.Query("roomCode")
 	if roomCode == "" {
-		roomCode = "8bd9c332-ea09-434c-b439-5b3a39d3de5f" // Default room for testing
+		l.Sugar().Error("room code not found", err)
+		return
 	}
 
 	userInfo := util.GetUserInfoFromctx(ctx)

@@ -37,11 +37,14 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 
 	rSecure.GET("/brainwars", handlers.LandingPageHandler)
 	rSecure.GET("/home", handlers.HomeHandler)
+
 	// room
 	rSecure.POST("/croom", handlers.CreateRoomHandler)
 	rSecure.GET("/lroom", handlers.ListAllRoomsHanlder)
 	rSecure.GET("/jroom", handlers.JoinRoomHandler)
 	rSecure.GET("/quiz", handlers.GameHandler)
+
+	// websocket
 	rSecure.GET("/ws", manager.ServeWS)
 
 	//questions
