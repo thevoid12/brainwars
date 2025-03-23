@@ -231,14 +231,15 @@ func ListAnswersByRoomCode(ctx context.Context, roomCode string) ([]*model.Answe
 		answerDetails = append(answerDetails, &model.Answer{
 			ID:       answer.ID.Bytes,
 			RoomCode: answer.RoomCode,
-			//	RoomID:       answer.RoomID.Bytes,
-			UserID:       answer.UserID.Bytes,
-			QuestionID:   answer.QuestionID.Bytes,
-			AnswerOption: answer.AnswerOption,
-			IsCorrect:    answer.IsCorrect,
-			AnswerTime:   answer.AnswerTime.Time,
-			CreatedBy:    answer.CreatedBy,
-			UpdatedBy:    answer.UpdatedBy,
+			// RoomID:       answer.RoomID.Bytes,
+			UserID:         answer.UserID.Bytes,
+			QuestionID:     answer.QuestionID.Bytes,
+			QuestionDataID: answer.QuestionDataID.Bytes,
+			AnswerOption:   answer.AnswerOption,
+			IsCorrect:      answer.IsCorrect,
+			AnswerTime:     answer.AnswerTime.Time,
+			CreatedBy:      answer.CreatedBy,
+			UpdatedBy:      answer.UpdatedBy,
 		})
 	}
 

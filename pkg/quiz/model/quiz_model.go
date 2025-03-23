@@ -86,14 +86,15 @@ type EditAnswerReq struct {
 type Answer struct {
 	ID uuid.UUID
 	// RoomID       uuid.UUID
-	RoomCode     string
-	UserID       uuid.UUID
-	QuestionID   uuid.UUID
-	AnswerOption int32
-	IsCorrect    bool
-	AnswerTime   time.Time
-	CreatedBy    string
-	UpdatedBy    string
+	RoomCode       string
+	UserID         uuid.UUID
+	QuestionID     uuid.UUID
+	QuestionDataID uuid.UUID
+	AnswerOption   int32
+	IsCorrect      bool
+	AnswerTime     time.Time
+	CreatedBy      string
+	UpdatedBy      string
 }
 
 // GameState to track game progress

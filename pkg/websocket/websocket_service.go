@@ -412,6 +412,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 		return fmt.Errorf("game is not in active question phase")
 	}
 
+	//  TODO: getting the user data, updating the answer data, everything should happen in db
 	// Get current question
 	currentQuestion := gameState.Questions.QuestionData[gameState.CurrentQuestionIndex]
 
@@ -483,6 +484,51 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	c.egress <- ackEvent
 
 	return nil
+}
+
+// NextQuestionHandler is manually called by the user by clicking the next question button
+func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
+
+	// get the room code
+	l := logs.GetLoggerctx(ctx)
+
+	type nextquest struct {
+		RoomCode string `json:"roomCode"`
+	}
+	nq := nextquest{}
+	if err := json.Unmarshal(event.Payload, &nq); err != nil {
+		l.Sugar().Error("bad payload", err)
+		return fmt.Errorf("bad payload: %v", err)
+	}
+	// check if the room exists
+	roomDetails, err := room.GetRoomByRoomCode(ctx, nq.RoomCode)
+	if err != nil {
+		return fmt.Errorf("get room by room code failed: %v", err)
+	}
+	if roomDetails == nil && err == nil {
+		l.Sugar().Error("room not found. invalid room code", err)
+		return fmt.Errorf("room not found. invalid room code")
+	}
+
+	// check the db if all users in the game have submitted the answers
+	// roomMembers,err:=	room.ListRoomMembersByRoomCode(ctx,roommodel.RoomCodeReq{
+	// 		UserID:   c.userID,
+	// 		RoomCode: nq.RoomCode,
+	// 	})
+
+	answers, err := quiz.ListAnswersByRoomCode(ctx, nq.RoomCode)
+	if err != nil {
+		return fmt.Errorf("list Answers by room code failed", err)
+	}
+	IsAllMembersSubmitted := false
+	for _, answer := range answers {
+
+	}
+	// if yes
+	return sendNextQuestion()
+	// else
+	// return // error cannot move forward until all users submit the answer or the allotted time for the question gets over
+
 }
 
 // Modified ReadyGameMessageHandler to check if all participants are ready and start game

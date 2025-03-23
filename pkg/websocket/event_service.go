@@ -23,10 +23,6 @@ type EventHandler func(ctx context.Context, event Event, c *Client) error
 const (
 	// EventSendMessage is the event name for new chat messages sent
 	EventSendMessage = "send_message"
-	// EventNewMessage is a response to send_message
-	EventNewMessage = "new_message"
-	// EventChangeRoom is event when switching rooms
-	EventChangeRoom = "change_room"
 
 	EventStartGame = "start_game"
 	//EventReadyGame is that the user is ready to start the game
@@ -35,6 +31,7 @@ const (
 	EventGameStatus   = "game_status"
 	EventSubmitAnswer = "submit_answer"
 	EventNewQuestion  = "new_question"
+	EventNextQuestion = "next_question" // user clicks next question
 )
 
 type Payload struct {
@@ -57,6 +54,7 @@ func (m *Manager) setupEventHandlers() {
 	m.handlers[EventReadyGame] = ReadyGameMessageHandler
 	m.handlers[EventStartGame] = StartGameMessageHandler
 	m.handlers[EventSubmitAnswer] = SubmitAnswerHandler
+	m.handlers[EventNextQuestion] = NextQuestionHandler
 }
 
 func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error {
