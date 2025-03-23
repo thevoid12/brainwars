@@ -45,7 +45,7 @@
 - [ ] get the bot times drop down from backend and fill the dropdown
 -  [ ] use safehtml for all the backend data which we are sending to ui
 - [ ] add otp ferature in websocket to prevent csrf 
-
+- [ ] rename answer id to answer option
 
 {"type":"send_message","payload":{"data":"welcome boys!","time":"2025-03-22T13:38:23.65Z","sent":"2025-03-22T19:08:23.675124+05:30"}}
 croom:31 {"type":"ready_game","payload":{"data":"User admin is ready","time":"2025-03-22T19:08:23.681868+05:30"}}

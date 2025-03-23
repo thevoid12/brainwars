@@ -64,10 +64,10 @@ type Question struct {
 type AnswerReq struct {
 	// RoomID         uuid.UUID
 	RoomCode       string
-	UserID         uuid.UUID
+	UserID         uuid.UUID `json:"playerID"`
 	QuestionID     uuid.UUID
-	QuestionDataID uuid.UUID
-	AnswerOption   int32
+	QuestionDataID uuid.UUID `json:"questionDataID"`
+	AnswerOption   int32     `json:"answerOption"`
 	IsCorrect      bool
 	AnswerTime     time.Time
 	CreatedBy      string

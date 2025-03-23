@@ -62,8 +62,8 @@
             const answerPayload = {
               type: "submit_answer",
               payload: {
-                questionID: question.ID,
-                selectedOptionID: parseInt(selectedOptionID)
+                questionDataID: question.ID,
+                answerOption: parseInt(selectedOptionID),
               }
             };
             conn.send(JSON.stringify(answerPayload));

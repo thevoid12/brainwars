@@ -388,6 +388,9 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 		return fmt.Errorf("bad payload: %v", err)
 	}
 
+	// users dont send their userID but bots send. so for users we fetch from context
+	submission.UserID = c.userID
+
 	// Set timestamp if not provided
 	if submission.AnswerTime.IsZero() {
 		submission.AnswerTime = time.Now()
@@ -403,7 +406,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	}
 
 	// Only process if game is in progress
-	if gameState.RoomStatus != "in_progress" || gameState.CurrentQuestionIndex >= len(gameState.Questions.QuestionData) {
+	if gameState.RoomStatus != roommodel.Started || gameState.CurrentQuestionIndex >= len(gameState.Questions.QuestionData) {
 		c.manager.Unlock()
 		l.Sugar().Error("game is not in active question phase")
 		return fmt.Errorf("game is not in active question phase")

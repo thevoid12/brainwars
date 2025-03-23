@@ -205,13 +205,13 @@ func (c *Client) submitRandomAnswer(ctx context.Context, questionID uuid.UUID) {
 
 	// Create and send the answer event
 	answerPayload := struct {
-		QuestionID uuid.UUID `json:"questionID"`
-		AnswerID   int       `json:"answerID"`
-		PlayerID   uuid.UUID `json:"playerID"`
+		QuestionDataID uuid.UUID `json:"questionDataID"`
+		AnswerOption   int       `json:"answerOption"`
+		PlayerID       uuid.UUID `json:"playerID"`
 	}{
-		QuestionID: questionID,
-		AnswerID:   selectedOption.ID,
-		PlayerID:   c.userID,
+		QuestionDataID: questionID,
+		AnswerOption:   selectedOption.ID,
+		PlayerID:       c.userID,
 	}
 
 	answerData, _ := json.Marshal(answerPayload)
