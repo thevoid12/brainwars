@@ -117,7 +117,7 @@ func CreateRoomHandler(c *gin.Context) {
 
 	botIDs := []roommodel.UserIDReq{}
 	for _, botsInput := range bots {
-		botIDs = append(botIDs, roommodel.UserIDReq{UserID: usermodel.BotIDMap[botsInput]})
+		botIDs = append(botIDs, roommodel.UserIDReq{UserID: usermodel.BotMap[botsInput]})
 	}
 
 	questReq := &quizmodel.QuizReq{

@@ -492,7 +492,7 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 	// get the room code
 	l := logs.GetLoggerctx(ctx)
 
-	type nextquest struct {
+	type nextquest struct { // TODO: I think we no need this as it comes from client which we set earlier
 		RoomCode string `json:"roomCode"`
 	}
 	nq := nextquest{}
@@ -511,23 +511,37 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 	}
 
 	// check the db if all users in the game have submitted the answers
-	// roomMembers,err:=	room.ListRoomMembersByRoomCode(ctx,roommodel.RoomCodeReq{
-	// 		UserID:   c.userID,
-	// 		RoomCode: nq.RoomCode,
-	// 	})
+	roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
+		UserID:   c.userID,
+		RoomCode: nq.RoomCode,
+	})
 
 	answers, err := quiz.ListAnswersByRoomCode(ctx, nq.RoomCode)
 	if err != nil {
 		return fmt.Errorf("list Answers by room code failed", err)
 	}
-	IsAllMembersSubmitted := false
+	isAllMembersSubmitted := true
+	answeredMap := make(map[uuid.UUID]bool)
 	for _, answer := range answers {
-
+		answeredMap[answer.UserID] = true
+	}
+	for _, roomMember := range roomMembers {
+		if !roomMember.IsBot {
+			if _, ok := answeredMap[roomMember.UserID]; !ok {
+				isAllMembersSubmitted = false
+				break
+			}
+		}
 	}
 	// if yes
-	return sendNextQuestion()
-	// else
-	// return // error cannot move forward until all users submit the answer or the allotted time for the question gets over
+	if isAllMembersSubmitted {
+		// move to next question
+		return sendNextQuestion(ctx, c.manager, c.roomCode)
+	} else {
+		l.Sugar().Error("Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.", err)
+		return fmt.Errorf("Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.")
+
+	}
 
 }
 
