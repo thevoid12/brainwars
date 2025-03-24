@@ -413,6 +413,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	}
 
 	//  TODO: getting the user data, updating the answer data, everything should happen in db
+
 	// Get current question
 	currentQuestion := gameState.Questions.QuestionData[gameState.CurrentQuestionIndex]
 
@@ -505,7 +506,7 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 	if err != nil {
 		return fmt.Errorf("get room by room code failed: %v", err)
 	}
-	if roomDetails == nil && err == nil {
+	if roomDetails == nil {
 		l.Sugar().Error("room not found. invalid room code", err)
 		return fmt.Errorf("room not found. invalid room code")
 	}

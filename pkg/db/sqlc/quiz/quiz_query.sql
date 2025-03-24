@@ -55,6 +55,12 @@ SET answer_option = $2,
     updated_by = $5
 WHERE id = $1;
 
+-- name: GetAnswerByRoomCodeAndUserID :many
+SELECT *
+FROM answer
+WHERE room_code = $1
+AND user_id = $2;
+
 -- name: ListAnswersByRoomCode :many
 SELECT *
 FROM answer

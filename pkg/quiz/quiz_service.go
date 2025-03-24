@@ -5,6 +5,7 @@ import (
 	"brainwars/pkg/db/dbal"
 	logs "brainwars/pkg/logger"
 	"brainwars/pkg/quiz/model"
+	roommodel "brainwars/pkg/room/model"
 	"context"
 	"encoding/json"
 
@@ -207,6 +208,43 @@ func UpdateAnswer(ctx context.Context, req model.EditAnswerReq) error {
 	}
 
 	return nil
+}
+
+func GetAnswerByRoomCodeAndUserID(ctx context.Context, req roommodel.RoomCodeReq) ([]*model.Answer, error) {
+	l := logs.GetLoggerctx(ctx)
+	var answerDetails []*model.Answer
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+	answers, err := dBal.GetAnswerByRoomCodeAndUserID(ctx, dbal.GetAnswerByRoomCodeAndUserIDParams{
+		RoomCode: req.RoomCode,
+		UserID:   pgtype.UUID{Bytes: req.UserID, Valid: true},
+	})
+	if err != nil {
+		l.Sugar().Error("Could not get answer by room code and user id in database", err)
+		return nil, err
+	}
+
+	answerDetails = append(answerDetails, &model.Answer{
+		ID:       answers[0].ID.Bytes,
+		RoomCode: answers[0].RoomCode,
+		// RoomID:       answer.RoomID.Bytes,
+		UserID:         answers[0].UserID.Bytes,
+		QuestionID:     answers[0].QuestionID.Bytes,
+		QuestionDataID: answers[0].QuestionDataID.Bytes,
+		AnswerOption:   answers[0].AnswerOption,
+		IsCorrect:      answers[0].IsCorrect,
+		AnswerTime:     answers[0].AnswerTime.Time,
+		CreatedBy:      answers[0].CreatedBy,
+		UpdatedBy:      answers[0].UpdatedBy,
+	})
+
+	return answerDetails, nil
 }
 
 // ListAnswersByRoomCode lists answers by room Code

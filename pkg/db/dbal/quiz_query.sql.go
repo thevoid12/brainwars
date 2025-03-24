@@ -98,6 +98,51 @@ func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) 
 	return err
 }
 
+const getAnswerByRoomCodeAndUserID = `-- name: GetAnswerByRoomCodeAndUserID :many
+SELECT id, room_code, user_id, question_id, question_data_id, answer_option, is_correct, answer_time, created_on, updated_on, created_by, updated_by
+FROM answer
+WHERE room_code = $1
+AND user_id = $2
+`
+
+type GetAnswerByRoomCodeAndUserIDParams struct {
+	RoomCode string
+	UserID   pgtype.UUID
+}
+
+func (q *Queries) GetAnswerByRoomCodeAndUserID(ctx context.Context, arg GetAnswerByRoomCodeAndUserIDParams) ([]Answer, error) {
+	rows, err := q.db.Query(ctx, getAnswerByRoomCodeAndUserID, arg.RoomCode, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Answer
+	for rows.Next() {
+		var i Answer
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomCode,
+			&i.UserID,
+			&i.QuestionID,
+			&i.QuestionDataID,
+			&i.AnswerOption,
+			&i.IsCorrect,
+			&i.AnswerTime,
+			&i.CreatedOn,
+			&i.UpdatedOn,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getQuestionsByRoomCode = `-- name: GetQuestionsByRoomCode :one
 SELECT id, room_code, topic, question_count, question_data, time_limit, created_on, updated_on, created_by, updated_by
 FROM question
