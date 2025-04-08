@@ -19,7 +19,7 @@ import (
 // Set up bots to be ready when a human player joins
 // bots doesnt work with egres channel. egress channel is for web socket connection
 // bots can use the other channel to coordinate communication
-func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
+func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDetails *roommodel.Room) {
 	l := logs.GetLoggerctx(ctx)
 
 	// Get all room members including bots
@@ -57,7 +57,7 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string) {
 			}
 
 			// Create a new bot client
-			botClient := NewClient(nil, m, roomCode, true, botType, member.ID)
+			botClient := NewClient(nil, m, roomCode, true, botType, member.ID, roomDetails)
 
 			// Initialize the bot with event channel and start its behavior handler
 			m.InitializeBot(ctx, botClient)

@@ -110,9 +110,10 @@ type GameState struct {
 }
 
 type Participant struct {
-	UserID   uuid.UUID `json:"userId"`
-	Username string    `json:"username"`
-	IsBot    bool      `json:"isBot"`
-	Score    int       `json:"score"`
-	IsReady  bool      `json:"isReady"`
+	UserID              uuid.UUID `json:"userId"`
+	Username            string    `json:"username"`
+	IsBot               bool      `json:"isBot"`
+	Score               int       `json:"score"`
+	IsReady             bool      `json:"isReady"`
+	LastAnsweredQestion uuid.UUID `json:"answerID"`
 }

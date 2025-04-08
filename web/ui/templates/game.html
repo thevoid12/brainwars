@@ -36,40 +36,62 @@
       function renderQuestion(payload) {
         const questionBlock = document.getElementById("question-block");
         const { questionIndex, totalQuestions, question, timeLimit } = payload;
-        const { Question: questionText, Options } = question;
+        const { ID: questionID, Question: questionText, Options } = question;
+
+        // Store question ID in data attribute for later
+        questionBlock.dataset.questionid = questionID;
 
         let html = `
-          <div class="question-box">
-            <div><strong>Question ${questionIndex} of ${totalQuestions}</strong></div>
-            <h3>${questionText}</h3>
-            <ul>
-        `;
+    <div class="question-box">
+      <div><strong>Question ${questionIndex} of ${totalQuestions}</strong></div>
+      <h3>${questionText}</h3>
+      <ul>
+  `;
+
         Options.forEach(opt => {
           html += `<li>
-            <button class="option-btn" data-optionid="${opt.ID}">${opt.Option}</button>
-          </li>`;
+      <button class="option-btn" data-optionid="${opt.ID}">${opt.Option}</button>
+    </li>`;
         });
+
         html += `</ul>
-          <div><small>Time limit: ${timeLimit} minute(s)</small></div>
-        </div>`;
+      <div><small>Time limit: ${timeLimit} minute(s)</small></div>
+      <button id="next-question-btn">Next Question</button>
+    </div>`;
 
         questionBlock.innerHTML = html;
 
-        // Attach click handlers
+        // Attach click handlers for options
         document.querySelectorAll(".option-btn").forEach(btn => {
           btn.addEventListener("click", function () {
             const selectedOptionID = this.dataset.optionid;
             const answerPayload = {
               type: "submit_answer",
               payload: {
-                questionDataID: question.ID,
+                questionDataID: questionID,
                 answerOption: parseInt(selectedOptionID),
               }
             };
             conn.send(JSON.stringify(answerPayload));
           });
         });
+
+        // Handle Next Question button
+        const nextBtn = document.getElementById("next-question-btn");
+        if (nextBtn) {
+          nextBtn.addEventListener("click", function () {
+            const questionID = parseInt(questionBlock.dataset.questionid);
+            const nextQuestionPayload = {
+              type: "next_question",
+              payload: {
+                questionID: questionID
+              }
+            };
+            conn.send(JSON.stringify(nextQuestionPayload));
+          });
+        }
       }
+
 
       function renderEndGame(payload) {
         const questionBlock = document.getElementById("question-block");

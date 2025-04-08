@@ -12,6 +12,7 @@ import (
 	"brainwars/pkg/quiz"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
+	"brainwars/pkg/room/model"
 	roommodel "brainwars/pkg/room/model"
 	user "brainwars/pkg/users"
 	usermodel "brainwars/pkg/users/model"
@@ -63,6 +64,7 @@ type Client struct {
 	isBot      bool              // Flag to identify bot clients
 	botType    usermodel.BotType // Empty for real users, "30sec", "1min", "2min" for bots
 	userID     uuid.UUID         // Store the user ID for easier reference
+	room       *roommodel.Room
 }
 
 type NewMessageEvent struct {
@@ -85,7 +87,7 @@ func NewManager(ctx context.Context) *Manager {
 	return m
 }
 
-func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bool, botType usermodel.BotType, userID uuid.UUID) *Client {
+func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bool, botType usermodel.BotType, userID uuid.UUID, room *model.Room) *Client {
 
 	// // Only set up pong handler for real clients with WebSocket connections
 	// if conn != nil {
@@ -100,6 +102,7 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 		isBot:      isBot,
 		botType:    botType,
 		userID:     userID,
+		room:       room,
 	}
 
 }
@@ -157,7 +160,7 @@ func (m *Manager) ServeWS(c *gin.Context) {
 
 	totalQuestions := questions.QuestionCount
 
-	client := NewClient(conn, m, roomCode, false, "", userID)
+	client := NewClient(conn, m, roomCode, false, "", userID, roomDetails)
 	m.addClient(client)
 
 	// Check if the room needs to be initialized
@@ -172,7 +175,7 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		return
 	}
 
-	m.setupBotsForRoom(ctx, roomCode)
+	m.setupBotsForRoom(ctx, roomCode, roomDetails)
 	// if the game is a single player game since the user is ready and bots are ready as well
 	//  we automatically display the first question. in terms of multiplayer game a button needs to be triggered
 	// to start the game
@@ -366,7 +369,10 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 			if gameState.CurrentQuestionIndex == currentIndex {
 				gameState.CurrentQuestionIndex++
 				manager.Unlock()
-				sendNextQuestion(ctx, manager, roomCode)
+				err = sendNextQuestion(ctx, manager, roomCode)
+				if err != nil {
+					l.Sugar().Error("send next question failed", err)
+				}
 			} else {
 				manager.Unlock()
 			}
@@ -435,6 +441,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 				// Add score (base 100 + speed bonus up to 100)
 				gameState.Participants[i].Score += 100 + int(speedBonus*3.33)
 			}
+			gameState.Participants[i].LastAnsweredQestion = currentQuestion.ID
 			found = true
 			break
 		}
@@ -457,11 +464,12 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 		}
 
 		gameState.Participants = append(gameState.Participants, quizmodel.Participant{
-			UserID:   c.userID,
-			Username: username,
-			IsBot:    c.isBot,
-			Score:    score,
-			IsReady:  true,
+			UserID:              c.userID,
+			Username:            username,
+			IsBot:               c.isBot,
+			Score:               score,
+			IsReady:             true,
+			LastAnsweredQestion: currentQuestion.ID,
 		})
 	}
 
@@ -483,7 +491,6 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 
 	// Send acknowledgment only to the client who submitted
 	c.egress <- ackEvent
-
 	return nil
 }
 
@@ -493,57 +500,73 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 	// get the room code
 	l := logs.GetLoggerctx(ctx)
 
-	type nextquest struct { // TODO: I think we no need this as it comes from client which we set earlier
-		RoomCode string `json:"roomCode"`
-	}
-	nq := nextquest{}
-	if err := json.Unmarshal(event.Payload, &nq); err != nil {
-		l.Sugar().Error("bad payload", err)
-		return fmt.Errorf("bad payload: %v", err)
-	}
-	// check if the room exists
-	roomDetails, err := room.GetRoomByRoomCode(ctx, nq.RoomCode)
-	if err != nil {
-		return fmt.Errorf("get room by room code failed: %v", err)
-	}
-	if roomDetails == nil {
-		l.Sugar().Error("room not found. invalid room code", err)
-		return fmt.Errorf("room not found. invalid room code")
-	}
-
 	// check the db if all users in the game have submitted the answers
-	roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
-		UserID:   c.userID,
-		RoomCode: nq.RoomCode,
-	})
+	// roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
+	// 	UserID:   c.userID,
+	// 	RoomCode: c.roomCode,
+	// })
+	// if err != nil {
+	// 	return err
+	// }
 
-	answers, err := quiz.ListAnswersByRoomCode(ctx, nq.RoomCode)
-	if err != nil {
-		return fmt.Errorf("list Answers by room code failed", err)
+	// if the data comes from db
+	// answers, err := quiz.ListAnswersByRoomCode(ctx, c.roomCode)
+	// if err != nil {
+	// 	return fmt.Errorf("list Answers by room code failed", err)
+	// }
+	// isAllMembersSubmitted := true
+	// answeredMap := make(map[uuid.UUID]bool)
+	// for _, answer := range answers {
+	// 	answeredMap[answer.UserID] = true
+	// }
+	// for _, roomMember := range roomMembers {
+	// 	if !roomMember.IsBot {
+	// 		if _, ok := answeredMap[roomMember.UserID]; !ok {
+	// 			isAllMembersSubmitted = false
+	// 			break
+	// 		}
+	// 	}
+	// }
+
+	// go in-memory
+	c.manager.Lock()
+	gameState, exists := c.manager.gameStates[c.roomCode]
+	c.manager.Unlock()
+	if !exists {
+		l.Sugar().Error(fmt.Sprintf("game state not found for room %s", c.roomCode))
+		return fmt.Errorf("game state not found for room %s", c.roomCode)
 	}
 	isAllMembersSubmitted := true
-	answeredMap := make(map[uuid.UUID]bool)
-	for _, answer := range answers {
-		answeredMap[answer.UserID] = true
-	}
-	for _, roomMember := range roomMembers {
-		if !roomMember.IsBot {
-			if _, ok := answeredMap[roomMember.UserID]; !ok {
-				isAllMembersSubmitted = false
-				break
-			}
+	currentQuestion := gameState.Questions.QuestionData[gameState.CurrentQuestionIndex]
+
+	for _, participant := range gameState.Participants { // TODO: This logic is not the best logic here we are checking if all of them have answeredby checking if all have the same latest quest id
+		if !participant.IsBot && currentQuestion.ID != participant.LastAnsweredQestion {
+			isAllMembersSubmitted = false
+			break
+
 		}
 	}
+
 	// if yes
 	if isAllMembersSubmitted {
 		// move to next question
-		return sendNextQuestion(ctx, c.manager, c.roomCode)
-	} else {
-		l.Sugar().Error("Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.", err)
-		return fmt.Errorf("Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.")
+		c.manager.Lock()
+		if gameState, exists := c.manager.gameStates[c.roomCode]; exists {
+			// Only increment if we're still on the same question
+			// This prevents race conditions if something else modified the index
 
+			gameState.CurrentQuestionIndex++
+			c.manager.Unlock()
+			return sendNextQuestion(ctx, c.manager, c.roomCode)
+		} else {
+			c.manager.Unlock()
+		}
+	} else {
+		l.Sugar().Error("Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.")
+		return fmt.Errorf("Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.")
 	}
 
+	return nil
 }
 
 // Modified ReadyGameMessageHandler to check if all participants are ready and start game
