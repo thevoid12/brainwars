@@ -27,6 +27,8 @@
           renderQuestion(data.payload);
         } else if (data.type === "end_game") {
           renderEndGame(data.payload);
+        } else if (data.type === "game_error") {
+          // display the error as pop up
         }
       };
       conn.onclose = function (e) {

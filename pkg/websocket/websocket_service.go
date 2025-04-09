@@ -546,9 +546,8 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 
 		}
 	}
-
 	// if yes
-	if isAllMembersSubmitted {
+	if isAllMembersSubmitted && len(gameState.Participants) > 0 {
 		// move to next question
 		c.manager.Lock()
 		if gameState, exists := c.manager.gameStates[c.roomCode]; exists {
@@ -562,8 +561,17 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 			c.manager.Unlock()
 		}
 	} else {
+		// TODO: if it reaches this error connection gets closed. instead we just need to print the error in UI
 		l.Sugar().Error("Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.")
-		return fmt.Errorf("Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.")
+		em := quizmodel.QuizError{
+			Message: "Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.",
+		}
+		errorData, _ := json.Marshal(em)
+		ackEvent := Event{Type: "game_error", Payload: errorData}
+
+		// Send acknowledgment only to the client who submitted
+		c.egress <- ackEvent
+
 	}
 
 	return nil
@@ -719,7 +727,7 @@ func (c *Client) readMessages(ctx context.Context) {
 		}
 		if err := c.manager.routeEvent(ctx, request, c); err != nil {
 			l.Sugar().Error("error routing event:", err)
-			break
+			// send the error received if any and display it in ui
 		}
 	}
 }
@@ -729,6 +737,7 @@ func (c *Client) writeMessages(ctx context.Context) {
 
 	l.Info("Client connected for write messages")
 	ticker := time.NewTicker(time.Second * 9)
+
 	defer func() {
 		ticker.Stop()
 		c.manager.removeClient(c)
