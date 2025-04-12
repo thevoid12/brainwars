@@ -163,6 +163,7 @@ func CreateAnswer(ctx context.Context, req model.AnswerReq) error {
 		AnswerTime:     pgtype.Timestamp{Time: req.AnswerTime, Valid: true},
 		CreatedBy:      req.CreatedBy,
 		UpdatedBy:      req.CreatedBy,
+		ID:             pgtype.UUID{Bytes: uuid.New(), Valid: true},
 	}
 
 	dbConn, err := dbpkg.InitDB()

@@ -140,6 +140,7 @@ const createRoomMember = `-- name: CreateRoomMember :one
 INSERT INTO room_member (
   id, 
   room_code,
+  room_id,
   user_id, 
   is_bot, 
   joined_on, 
@@ -151,8 +152,8 @@ INSERT INTO room_member (
   created_by, 
   updated_by    
 )   
-VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7, NOW(), NOW(), $8, $9)
-RETURNING id, room_code, user_id, is_bot, joined_on, room_member_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by
+VALUES ($1, $2,$10, $3, $4, NOW(), $5, $6, $7, NOW(), NOW(), $8, $9)
+RETURNING id, room_code, room_id, user_id, is_bot, joined_on, room_member_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by
 `
 
 type CreateRoomMemberParams struct {
@@ -165,6 +166,7 @@ type CreateRoomMemberParams struct {
 	IsDeleted        bool
 	CreatedBy        string
 	UpdatedBy        string
+	RoomID           string
 }
 
 // ------------------------------------ Room Member ------------------------------------------------------------------------
@@ -179,11 +181,13 @@ func (q *Queries) CreateRoomMember(ctx context.Context, arg CreateRoomMemberPara
 		arg.IsDeleted,
 		arg.CreatedBy,
 		arg.UpdatedBy,
+		arg.RoomID,
 	)
 	var i RoomMember
 	err := row.Scan(
 		&i.ID,
 		&i.RoomCode,
+		&i.RoomID,
 		&i.UserID,
 		&i.IsBot,
 		&i.JoinedOn,
@@ -315,13 +319,14 @@ func (q *Queries) GetRoomByRoomCode(ctx context.Context, roomCode string) ([]Roo
 }
 
 const getRoomMemberByID = `-- name: GetRoomMemberByID :many
-SELECT room_member.id, room_code, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
+SELECT room_member.id, room_code, room_id, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
 WHERE room_member.id = $1 AND room_member.is_deleted = false
 `
 
 type GetRoomMemberByIDRow struct {
 	ID               pgtype.UUID
 	RoomCode         string
+	RoomID           string
 	UserID           pgtype.UUID
 	IsBot            bool
 	JoinedOn         pgtype.Timestamp
@@ -359,6 +364,7 @@ func (q *Queries) GetRoomMemberByID(ctx context.Context, id pgtype.UUID) ([]GetR
 		if err := rows.Scan(
 			&i.ID,
 			&i.RoomCode,
+			&i.RoomID,
 			&i.UserID,
 			&i.IsBot,
 			&i.JoinedOn,
@@ -394,7 +400,7 @@ func (q *Queries) GetRoomMemberByID(ctx context.Context, id pgtype.UUID) ([]GetR
 }
 
 const getRoomMemberByRoomCodeAndUserID = `-- name: GetRoomMemberByRoomCodeAndUserID :many
-SELECT room_member.id, room_code, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
+SELECT room_member.id, room_code, room_id, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
 WHERE room_code = $1 AND user_id = $2 AND room_member.is_deleted = false
 `
 
@@ -406,6 +412,7 @@ type GetRoomMemberByRoomCodeAndUserIDParams struct {
 type GetRoomMemberByRoomCodeAndUserIDRow struct {
 	ID               pgtype.UUID
 	RoomCode         string
+	RoomID           string
 	UserID           pgtype.UUID
 	IsBot            bool
 	JoinedOn         pgtype.Timestamp
@@ -443,6 +450,7 @@ func (q *Queries) GetRoomMemberByRoomCodeAndUserID(ctx context.Context, arg GetR
 		if err := rows.Scan(
 			&i.ID,
 			&i.RoomCode,
+			&i.RoomID,
 			&i.UserID,
 			&i.IsBot,
 			&i.JoinedOn,
@@ -554,13 +562,14 @@ func (q *Queries) ListRoomByUserID(ctx context.Context, roomOwner pgtype.UUID) (
 }
 
 const listRoomMembersByRoomCode = `-- name: ListRoomMembersByRoomCode :many
-SELECT room_member.id, room_code, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
+SELECT room_member.id, room_code, room_id, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
 WHERE room_code = $1 AND room_member.is_deleted = false
 `
 
 type ListRoomMembersByRoomCodeRow struct {
 	ID               pgtype.UUID
 	RoomCode         string
+	RoomID           string
 	UserID           pgtype.UUID
 	IsBot            bool
 	JoinedOn         pgtype.Timestamp
@@ -598,6 +607,7 @@ func (q *Queries) ListRoomMembersByRoomCode(ctx context.Context, roomCode string
 		if err := rows.Scan(
 			&i.ID,
 			&i.RoomCode,
+			&i.RoomID,
 			&i.UserID,
 			&i.IsBot,
 			&i.JoinedOn,

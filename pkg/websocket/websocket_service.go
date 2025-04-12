@@ -172,6 +172,7 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	// we get the list of bots from list all members in a room where bots are members as ready
 	err = m.setupUserForRoom(ctx, roomCode, userID)
 	if err != nil {
+		l.Sugar().Error("setup user for room failerd ", err)
 		return
 	}
 
@@ -315,7 +316,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 
 		// Also notify bots about game end
 		manager.broadcastToBots(ctx, roomCode, endEvent)
-
+		//	quiz.HandleLastQuestion(ctx,roomCode,)
 		return nil
 	}
 
@@ -488,6 +489,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 
 	ackData, _ := json.Marshal(ackPayload)
 	ackEvent := Event{Type: "answer_received", Payload: ackData}
+	// update the db
 
 	// Send acknowledgment only to the client who submitted
 	c.egress <- ackEvent
@@ -592,7 +594,7 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 
 	// TODO: this api is wrong
 	// Update the room member's ready status
-	err = room.UpdateRoomMemberByID(ctx, roommodel.RoomMemberReq{
+	err = room.UpdateRoomMemberStatusByID(ctx, roommodel.RoomMemberReq{
 		UserID:           c.userID,
 		RoomID:           uuid.MustParse(c.roomCode),
 		RoomMemberStatus: roommodel.ReadyQuiz,

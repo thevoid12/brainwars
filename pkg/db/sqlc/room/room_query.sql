@@ -52,6 +52,7 @@ WHERE id = $1;
 INSERT INTO room_member (
   id, 
   room_code,
+  room_id,
   user_id, 
   is_bot, 
   joined_on, 
@@ -63,7 +64,7 @@ INSERT INTO room_member (
   created_by, 
   updated_by    
 )   
-VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7, NOW(), NOW(), $8, $9)
+VALUES ($1, $2,$10, $3, $4, NOW(), $5, $6, $7, NOW(), NOW(), $8, $9)
 RETURNING *;
 
 -- name: ListRoomMembersByRoomCode :many

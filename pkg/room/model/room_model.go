@@ -44,10 +44,11 @@ type RoomReq struct {
 type RoomMemberStatus string
 
 const (
-	JoinQuiz   RoomMemberStatus = "JOIN_QUIZ"
-	ReadyQuiz  RoomMemberStatus = "READY_QUIZ"
-	LeaveQuiz  RoomMemberStatus = "LEAVE_QUIZ"
-	KickedQuiz RoomMemberStatus = "KICKED_QUIZ" // KICKED OUT OF THE ROOM
+	JoinQuiz     RoomMemberStatus = "JOIN_QUIZ"
+	ReadyQuiz    RoomMemberStatus = "READY_QUIZ"
+	LeaveQuiz    RoomMemberStatus = "LEAVE_QUIZ"
+	KickedQuiz   RoomMemberStatus = "KICKED_QUIZ" // KICKED OUT OF THE ROOM
+	BotReadyQuiz RoomMemberStatus = "BOT_READY_QUIZ"
 )
 
 // Room is a struct that defines the room model
@@ -82,6 +83,7 @@ type RoomMember struct {
 	UserID           uuid.UUID
 	UserDetails      usermodel.UserInfo
 	RoomCode         string
+	RoomID           uuid.UUID // primary key of room table
 	IsBot            bool
 	JoinedOn         time.Time
 	RoomMemberStatus RoomMemberStatus

@@ -22,7 +22,7 @@
 - [ ] finally we show whats right and whats wrong answer after the end of quiz
 - [x] start the bots thingy when all other players clicked start and just before loading the first question
 
-## mar 15 todo
+## todo
 - [x] go through 1 full flow with static data, 
   - [x] room creation
   - [x] starting game
@@ -46,6 +46,11 @@
 -  [ ] use safehtml for all the backend data which we are sending to ui
 - [ ] add otp ferature in websocket to prevent csrf 
 - [ ] rename answer id to answer option
+- [ ] pong not working after some time!
+- [ ] store data in db and fetch
+- [ ] multiplayer
+- [ ] winner user should get confittie
+
 
 {"type":"send_message","payload":{"data":"welcome boys!","time":"2025-03-22T13:38:23.65Z","sent":"2025-03-22T19:08:23.675124+05:30"}}
 croom:31 {"type":"ready_game","payload":{"data":"User admin is ready","time":"2025-03-22T19:08:23.681868+05:30"}}

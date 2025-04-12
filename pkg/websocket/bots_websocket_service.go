@@ -2,6 +2,7 @@ package websocket
 
 import (
 	logs "brainwars/pkg/logger"
+	"brainwars/pkg/quiz"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
@@ -33,7 +34,7 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDet
 
 	// Set all bots to ready state
 	for _, member := range roomMembers {
-		if member.IsBot {
+		if member.IsBot && member.RoomMemberStatus == roommodel.ReadyQuiz {
 			// Determine bot type based on member properties or some naming convention
 			// For example, if bot names contain their type like "Bot-30sec", "Bot-1min", etc.
 			var botType usermodel.BotType
@@ -57,7 +58,7 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDet
 			}
 
 			// Create a new bot client
-			botClient := NewClient(nil, m, roomCode, true, botType, member.ID, roomDetails)
+			botClient := NewClient(nil, m, roomCode, true, botType, member.UserID, roomDetails)
 
 			// Initialize the bot with event channel and start its behavior handler
 			m.InitializeBot(ctx, botClient)
@@ -65,6 +66,14 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDet
 			// Add the client to the manager
 			m.addClient(botClient)
 
+			// update the bot status to BOT READY  quiz so that we dont set up client again in multiplayer setup
+			err = room.UpdateRoomMemberStatusByRoomCodeAndUserID(ctx, &roommodel.RoomCodeReq{
+				UserID:   member.UserID,
+				RoomCode: roomCode,
+			}, roommodel.BotReadyQuiz)
+			if err != nil {
+				return
+			}
 			// Notify all clients that this bot is ready
 			botReadyNotification := Payload{
 				Data: fmt.Sprintf("Bot %s is ready", member.UserDetails.UserName),
@@ -83,7 +92,7 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDet
 				client.egress <- readyEvent
 			}
 
-			l.Sugar().Infof("Bot %s (type: %s) added to room %s", member.ID.String(), botType, roomCode)
+			l.Sugar().Infof("Bot %s (type: %s) added to room %s", member.UserID.String(), botType, roomCode)
 		}
 	}
 }
@@ -175,6 +184,8 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 }
 
 func (c *Client) submitRandomAnswer(ctx context.Context, questionID uuid.UUID) {
+	l := logs.GetLoggerctx(ctx)
+
 	// Get the game state to find the question
 	c.manager.RLock()
 	gameState, exists := c.manager.gameStates[c.roomCode]
@@ -209,7 +220,7 @@ func (c *Client) submitRandomAnswer(ctx context.Context, questionID uuid.UUID) {
 		AnswerOption   int       `json:"answerOption"`
 		PlayerID       uuid.UUID `json:"playerID"`
 	}{
-		QuestionDataID: questionID,
+		QuestionDataID: currentQuestion.ID,
 		AnswerOption:   selectedOption.ID,
 		PlayerID:       c.userID,
 	}
@@ -226,6 +237,20 @@ func (c *Client) submitRandomAnswer(ctx context.Context, questionID uuid.UUID) {
 		for client := range c.manager.clients[c.roomCode] {
 			if client.isBot {
 				// TODO: WE NEED to write the result in db
+				err := quiz.CreateAnswer(ctx, quizmodel.AnswerReq{
+					RoomCode:       c.roomCode,
+					UserID:         c.userID,
+					QuestionID:     questionID,
+					QuestionDataID: currentQuestion.ID,
+					AnswerOption:   int32(selectedOption.ID),
+					IsCorrect:      currentQuestion.Answer == selectedOption.ID,
+					AnswerTime:     time.Now(),
+					CreatedBy:      c.userID.String(),
+				})
+				if err != nil {
+					l.Sugar().Error("submiting answer failed ", err)
+				}
+				fmt.Println()
 				continue
 			}
 			client.egress <- answerEvent

@@ -8,6 +8,7 @@ import (
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room/model"
 	usermodel "brainwars/pkg/users/model"
+	"brainwars/pkg/util"
 	"context"
 	"database/sql"
 	"errors"
@@ -84,6 +85,8 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 	} else {
 		roomStatus = model.Waiting
 	}
+
+	roomID := uuid.New() // primary key of room
 	params := dbal.CreateRoomParams{
 		RoomCode: roomCode.String(),
 		RoomOwner: pgtype.UUID{
@@ -98,7 +101,7 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 		CreatedBy: req.UserID.String(),
 		UpdatedBy: req.UserID.String(),
 		ID: pgtype.UUID{
-			Bytes: uuid.New(),
+			Bytes: roomID,
 			Valid: true,
 		},
 		RoomName: pgtype.Text{
@@ -151,11 +154,11 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 		},
 		IsBot:            false,
 		RoomMemberStatus: string(model.JoinQuiz),
-
-		IsActive:  true,
-		IsDeleted: false,
-		CreatedBy: req.UserID.String(),
-		UpdatedBy: req.UserID.String(),
+		IsActive:         true,
+		IsDeleted:        false,
+		CreatedBy:        req.UserID.String(),
+		UpdatedBy:        req.UserID.String(),
+		RoomID:           roomID.String(),
 	}
 	_, err = dBal.CreateRoomMember(ctx, roomMemberParams)
 	if err != nil {
@@ -419,6 +422,7 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 		IsDeleted:        false,
 		CreatedBy:        req.UserID.String(),
 		UpdatedBy:        req.UserID.String(),
+		RoomID:           room[0].ID.String(),
 	})
 
 	if err != nil {
@@ -485,6 +489,7 @@ func ListRoomMembersByRoomCode(ctx context.Context, req model.RoomCodeReq) (room
 			JoinedOn:  member.JoinedOn.Time,
 			CreatedOn: member.CreatedOn.Time,
 			UpdatedOn: member.UpdatedOn.Time,
+			RoomID:    uuid.MustParse(member.RoomID),
 		})
 	}
 	return roomMembers, nil
@@ -538,6 +543,7 @@ func GetRoomMemberByRoomCodeAndUserID(ctx context.Context, req model.RoomMemberR
 		JoinedOn:  dbRecord[0].JoinedOn.Time,
 		CreatedOn: dbRecord[0].CreatedOn.Time,
 		UpdatedOn: dbRecord[0].UpdatedOn.Time,
+		RoomID:    uuid.MustParse(dbRecord[0].RoomID),
 	}
 	return roomMember, nil
 }
@@ -573,7 +579,39 @@ func JoinRoomWithRoomCode(ctx context.Context, req model.RoomMemberReq) (roomDet
 	return roomDetails, nil
 }
 
-func UpdateRoomMemberByID(ctx context.Context, req model.RoomMemberReq) (err error) {
+func UpdateRoomMemberStatusByRoomCodeAndUserID(ctx context.Context, roomCodeReq *model.RoomCodeReq, roomStatus model.RoomMemberStatus) (err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return err
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+
+	roomDetails, err := dBal.GetRoomByRoomCode(ctx, roomCodeReq.RoomCode)
+	if err != nil || len(roomDetails) == 0 {
+		l.Sugar().Error("Could not get room member by ID in database", err)
+		return err
+	}
+
+	err = dBal.UpdateRoomMemberByRoomCodeAndUserID(ctx, dbal.UpdateRoomMemberByRoomCodeAndUserIDParams{
+		RoomMemberStatus: string(roomStatus),
+		IsActive:         true,
+		UpdatedBy:        util.GetUserInfoFromctx(ctx).ID.String(),
+		RoomCode:         roomCodeReq.RoomCode,
+		UserID:           pgtype.UUID{Bytes: roomCodeReq.UserID, Valid: true},
+	})
+	if err != nil {
+		l.Sugar().Error("Update room member by room code and user ID failed", err)
+		return err
+	}
+
+	return nil
+}
+
+func UpdateRoomMemberStatusByID(ctx context.Context, req model.RoomMemberReq) (err error) {
 	l := logs.GetLoggerctx(ctx)
 	dbConn, err := dbpkg.InitDB()
 	if err != nil {
