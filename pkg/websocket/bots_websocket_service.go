@@ -2,7 +2,6 @@ package websocket
 
 import (
 	logs "brainwars/pkg/logger"
-	"brainwars/pkg/quiz"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
 	roommodel "brainwars/pkg/room/model"
@@ -15,12 +14,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 // Set up bots to be ready when a human player joins
 // bots doesnt work with egres channel. egress channel is for web socket connection
 // bots can use the other channel to coordinate communication
-func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDetails *roommodel.Room) {
+func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, roomCode string, roomDetails *roommodel.Room) {
 	l := logs.GetLoggerctx(ctx)
 
 	// Get all room members including bots
@@ -58,8 +58,8 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDet
 			}
 
 			// Create a new bot client
-			botClient := NewClient(nil, m, roomCode, true, botType, member.UserID, roomDetails)
-
+			botClient := NewClient(wsconn, m, roomCode, true, botType, member.UserID, roomDetails)
+			go botClient.writeBotMessages(ctx) // bot should write their messages as well to ui
 			// Initialize the bot with event channel and start its behavior handler
 			m.InitializeBot(ctx, botClient)
 
@@ -184,7 +184,7 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 }
 
 func (c *Client) submitRandomAnswer(ctx context.Context, questionID uuid.UUID) {
-	l := logs.GetLoggerctx(ctx)
+	//	l := logs.GetLoggerctx(ctx)
 
 	// Get the game state to find the question
 	c.manager.RLock()
@@ -234,29 +234,28 @@ func (c *Client) submitRandomAnswer(ctx context.Context, questionID uuid.UUID) {
 		// Context canceled, no need to send answer
 	default:
 		// Answer sent successfully
-		for client := range c.manager.clients[c.roomCode] {
-			if client.isBot {
-				// TODO: WE NEED to write the result in db
-				err := quiz.CreateAnswer(ctx, quizmodel.AnswerReq{
-					RoomCode:       c.roomCode,
-					UserID:         c.userID,
-					QuestionID:     questionID,
-					QuestionDataID: currentQuestion.ID,
-					AnswerOption:   int32(selectedOption.ID),
-					IsCorrect:      currentQuestion.Answer == selectedOption.ID,
-					AnswerTime:     time.Now(),
-					CreatedBy:      c.userID.String(),
-				})
-				if err != nil {
-					l.Sugar().Error("submiting answer failed ", err)
-				}
-				fmt.Println()
-				continue
-			}
-			client.egress <- answerEvent
+		err := SubmitAnswerHandler(ctx, answerEvent, c)
+		if err != nil {
+			return
 		}
+		// TODO: WE NEED to write the result in db
+		// err := quiz.CreateAnswer(ctx, quizmodel.AnswerReq{ // this will go inside submit answer handler
+		// 	RoomCode:       c.roomCode,
+		// 	UserID:         c.userID,
+		// 	QuestionID:     questionID,
+		// 	QuestionDataID: currentQuestion.ID,
+		// 	AnswerOption:   int32(selectedOption.ID),
+		// 	IsCorrect:      currentQuestion.Answer == selectedOption.ID,
+		// 	AnswerTime:     time.Now(),
+		// 	CreatedBy:      c.userID.String(),
+		// })
+		// if err != nil {
+		// 	l.Sugar().Error("submiting answer failed ", err)
+		// }
 
-		// Channel is full or closed
-		// logs.GetLoggerctx(ctx).Sugar().Error("Failed to send answer userID:", c.userID)
+		//	client.egress <- answerEvent
 	}
+
+	// Channel is full or closed
+	// logs.GetLoggerctx(ctx).Sugar().Error("Failed to send answer userID:", c.userID)
 }

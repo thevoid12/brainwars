@@ -33,6 +33,7 @@ const (
 	EventNewQuestion  = "new_question"
 	EventNextQuestion = "next_question" // user clicks next question
 	EventGameError    = "game_error"
+	EventLeaderBoard  = "leaderboard"
 )
 
 type Payload struct {

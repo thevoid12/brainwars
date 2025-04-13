@@ -27,7 +27,10 @@
           renderQuestion(data.payload);
         } else if (data.type === "end_game") {
           renderEndGame(data.payload);
-        } else if (data.type === "game_error") {
+        } else if (data.type === "leaderboard") {
+          // display leaderboard in ui
+        }
+        else if (data.type === "game_error") {
           // display the error as pop up
         }
       };

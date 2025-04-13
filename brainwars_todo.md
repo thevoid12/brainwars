@@ -50,6 +50,8 @@
 - [ ] store data in db and fetch
 - [ ] multiplayer
 - [ ] winner user should get confittie
+- [ ] go through all fmt.println statements and remove unwanted stuff
+- [ ] leaderboard
 
 
 {"type":"send_message","payload":{"data":"welcome boys!","time":"2025-03-22T13:38:23.65Z","sent":"2025-03-22T19:08:23.675124+05:30"}}

@@ -166,7 +166,7 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	// Check if the room needs to be initialized
 	m.initializeRoomGameState(ctx, roomCode, totalQuestions)
 	go client.readMessages(ctx)
-	go client.writeMessages(ctx)
+	go client.writeUsersMessages(ctx)
 	// When a human player joins, set bots to ready state
 	// even if 1 user joins the room then we instentaniously set up all the bots to ready state for the game to start.
 	// we get the list of bots from list all members in a room where bots are members as ready
@@ -176,7 +176,7 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		return
 	}
 
-	m.setupBotsForRoom(ctx, roomCode, roomDetails)
+	m.setupBotsForRoom(ctx, conn, roomCode, roomDetails)
 	// if the game is a single player game since the user is ready and bots are ready as well
 	//  we automatically display the first question. in terms of multiplayer game a button needs to be triggered
 	// to start the game
@@ -315,7 +315,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 		}
 
 		// Also notify bots about game end
-		manager.broadcastToBots(ctx, roomCode, endEvent)
+		// manager.broadcastToBots(ctx, roomCode, endEvent) TODO: somehow notify bots to exit the routine clear the client memory
 		//	quiz.HandleLastQuestion(ctx,roomCode,)
 		return nil
 	}
@@ -454,9 +454,10 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 		var username string
 		// TODO: Replace with actual database query to get username
 		if c.isBot {
-			username = fmt.Sprintf("Bot-%s", c.userID.String()[:8])
+			username = fmt.Sprintf("Bot-%s", c.botType)
 		} else {
-			username = fmt.Sprintf("User-%s", c.userID.String()[:8])
+			userInfo := util.GetUserInfoFromctx(ctx)
+			username = userInfo.UserName
 		}
 
 		score := 0
@@ -569,7 +570,7 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 			Message: "Cannot proceed to the next question until all users have submitted their answers or the time limit has expired.",
 		}
 		errorData, _ := json.Marshal(em)
-		ackEvent := Event{Type: "game_error", Payload: errorData}
+		ackEvent := Event{Type: EventGameError, Payload: errorData}
 
 		// Send acknowledgment only to the client who submitted
 		c.egress <- ackEvent
@@ -734,10 +735,39 @@ func (c *Client) readMessages(ctx context.Context) {
 	}
 }
 
-func (c *Client) writeMessages(ctx context.Context) {
+func (c *Client) writeUsersMessages(ctx context.Context) {
 	l := logs.GetLoggerctx(ctx)
 
-	l.Info("Client connected for write messages")
+	l.Info("Client connected for write user messages")
+	ticker := time.NewTicker(time.Second * 9)
+
+	defer func() {
+		ticker.Stop()
+		c.manager.removeClient(c)
+	}()
+	for {
+		select {
+		case message, ok := <-c.egress:
+			if !ok {
+				c.connection.WriteMessage(websocket.CloseMessage, nil)
+				return
+			}
+			data, _ := json.Marshal(message)
+			err := c.connection.WriteMessage(websocket.TextMessage, data)
+			if err != nil {
+				l.Sugar().Error(err)
+			}
+		case <-ticker.C:
+			log.Println("ping")
+			c.connection.WriteMessage(websocket.PingMessage, nil)
+		}
+	}
+}
+
+func (c *Client) writeBotMessages(ctx context.Context) {
+	l := logs.GetLoggerctx(ctx)
+
+	l.Info("Client connected for write bot messages")
 	ticker := time.NewTicker(time.Second * 9)
 
 	defer func() {

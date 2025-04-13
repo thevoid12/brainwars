@@ -68,8 +68,7 @@ func HomeHandler(c *gin.Context) {
 	fmt.Println("hlo")
 	// get the user credentials
 	RenderTemplate(c, "home.html", gin.H{
-		"title":   "home Page",
-		"user-id": "00000000-0000-0000-0000-000000000001",
+		"title": "home Page",
 	})
 }
 
@@ -79,6 +78,7 @@ func CreateRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
 
 	c.Request.ParseForm()
+
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
 	gameType := c.PostForm("game-type")
@@ -86,6 +86,7 @@ func CreateRoomHandler(c *gin.Context) {
 	topic := c.PostForm("topic")
 	timelimit := c.PostForm("timelimit")
 	roomName := c.PostForm("roomName")
+
 	tl, err := strconv.Atoi(timelimit)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "time limit is in wrong format", err)
@@ -98,10 +99,6 @@ func CreateRoomHandler(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(c.Request.Form)
-	fmt.Println(gameType)
-	fmt.Println(bots)
-	fmt.Println(topic)
 	gt := model.SP
 	if gameType == "2" {
 		gt = model.MP
