@@ -59,7 +59,7 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, 
 
 			// Create a new bot client
 			botClient := NewClient(wsconn, m, roomCode, true, botType, member.UserID, roomDetails)
-			go botClient.writeBotMessages(ctx) // bot should write their messages as well to ui
+			// go botClient.writeBotMessages(ctx) // bot should write their messages as well to ui
 			// Initialize the bot with event channel and start its behavior handler
 			m.InitializeBot(ctx, botClient)
 

@@ -24,6 +24,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
 
@@ -311,7 +312,9 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 
 		// Broadcast to all clients including bots
 		for client := range manager.clients[roomCode] {
-			client.egress <- endEvent
+			if !client.isBot {
+				client.egress <- endEvent
+			}
 		}
 
 		// Also notify bots about game end
@@ -491,6 +494,10 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	ackData, _ := json.Marshal(ackPayload)
 	ackEvent := Event{Type: "answer_received", Payload: ackData}
 	// update the db
+	err := sendLiveLeaderBoard(ctx, c.manager, c.roomCode)
+	if err != nil {
+		return err
+	}
 
 	// Send acknowledgment only to the client who submitted
 	c.egress <- ackEvent
@@ -576,6 +583,47 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 		c.egress <- ackEvent
 
 	}
+
+	return nil
+}
+
+func sendLiveLeaderBoard(ctx context.Context, manager *Manager, roomCode string) error {
+	l := logs.GetLoggerctx(ctx)
+
+	manager.Lock()
+	gameState, exists := manager.gameStates[roomCode]
+	manager.Unlock()
+	if !exists {
+		l.Sugar().Error("game state not found for room %s", roomCode)
+		return fmt.Errorf("game state not found for room %s", roomCode)
+	}
+
+	sort.Slice(gameState.Participants, func(i, j int) bool {
+		return gameState.Participants[i].Score > gameState.Participants[j].Score
+	})
+
+	// Send game end event
+	lbPayload := struct {
+		Message string                  `json:"message"`
+		Scores  []quizmodel.Participant `json:"scores"`
+	}{
+		Message: "Game has ended. Here are the final scores.",
+		Scores:  gameState.Participants,
+	}
+
+	lbData, _ := json.Marshal(lbPayload)
+	lbEvent := Event{Type: EventLeaderBoard, Payload: lbData}
+
+	// Broadcast to all clients including bots
+	for client := range manager.clients[roomCode] {
+		if !client.isBot {
+			client.egress <- lbEvent
+		}
+	}
+
+	// Also notify bots about game end
+	// manager.broadcastToBots(ctx, roomCode, endEvent) TODO: somehow notify bots to exit the routine clear the client memory
+	//	quiz.HandleLastQuestion(ctx,roomCode,)
 
 	return nil
 }
@@ -817,18 +865,3 @@ func SendMessageHandler(ctx context.Context, event Event, c *Client) error {
 	}
 	return nil
 }
-
-// payload structure {data:ready_game, time:time.now()}
-
-// func ChatRoomHandler(event Event, c *Client) error {
-// 	var changeRoomEvent ChangeRoomEvent
-// 	if err := json.Unmarshal(event.Payload, &changeRoomEvent); err != nil {
-// 		return fmt.Errorf("bad payload: %v", err)
-// 	}
-// 	c.manager.Lock()
-// 	c.manager.removeClient(c)
-// 	c.roomCode = changeRoomEvent.Name
-// 	c.manager.addClient(c)
-// 	c.manager.Unlock()
-// 	return nil
-// }

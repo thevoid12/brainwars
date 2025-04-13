@@ -1,11 +1,15 @@
 {{ define "content" }}
-<h1>gameeeeeee</h1>
 <div id="ws-container" data-roomcode="{{ .roomCode }}"></div>
 <!-- Question Container -->
 <div id="question-block">
   Waiting for first question...
 </div>
-
+<div id="leaderboard-section">
+  <h2>Leaderboard</h2>
+  <ul id="leaderboard-list">
+    <!-- Dynamic leaderboard data will be inserted here -->
+  </ul>
+</div>
 <script>
   window.onload = function () {
     if (window["WebSocket"]) {
@@ -28,7 +32,7 @@
         } else if (data.type === "end_game") {
           renderEndGame(data.payload);
         } else if (data.type === "leaderboard") {
-          // display leaderboard in ui
+          renderLeaderboard(data.payload.scores);
         }
         else if (data.type === "game_error") {
           // display the error as pop up
@@ -96,7 +100,16 @@
           });
         }
       }
+      function renderLeaderboard(scoreList) {
+        const leaderboardList = document.getElementById("leaderboard-list");
+        leaderboardList.innerHTML = ""; // Clear previous entries
 
+        scoreList.forEach(entry => {
+          const li = document.createElement("li");
+          li.textContent = `${entry.username}: ${entry.score}`;
+          leaderboardList.appendChild(li);
+        });
+      }
 
       function renderEndGame(payload) {
         const questionBlock = document.getElementById("question-block");
