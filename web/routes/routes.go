@@ -18,7 +18,7 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 	router = gin.Default()
 	router.Use(gin.Recovery())
 	//Assests and Tailwind
-	router.StaticFS("/assets", http.FS(assests.AssestFS))
+	router.StaticFS("/assets", http.FS(assests.AssestFS)) // Serve embedded files (e.g. JS, CSS, images) under the /assets URL prefix using the embedded filesystem assests.AssestFS.
 
 	router.LoadHTMLGlob("web/ui/templates/*")
 

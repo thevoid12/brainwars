@@ -1,0 +1,128 @@
+
+window.onload = function () {
+  if (window["WebSocket"]) {
+    let roomcode = document.getElementById("ws-container").dataset.roomcode;
+    console.log("WebSocket is supported");
+    let protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+    let conn = new WebSocket(protocol + window.location.host + "/bw/ws?roomCode=" + encodeURIComponent(roomcode));
+
+    conn.onopen = function (e) {
+      console.log("Connection established!");
+      var payload = { data: "welcome boys!", time: new Date().toISOString() }
+      let data = JSON.stringify({ type: "send_message", payload: payload });
+      conn.send(data);
+    };
+    conn.onmessage = function (e) {
+      console.log(e.data);
+      const data = JSON.parse(e.data);
+      if (data.type === "new_question") {
+        renderQuestion(data.payload);
+      } else if (data.type === "end_game") {
+        renderEndGame(data.payload);
+      } else if (data.type === "leaderboard") {
+        renderLeaderboard(data.payload.scores);
+      }
+      else if (data.type === "game_error") {
+        // display the error as pop up
+      }
+    };
+    conn.onclose = function (e) {
+      console.log("Connection closed!");
+    };
+
+    function renderQuestion(payload) {
+      const questionBlock = document.getElementById("question-block");
+      const { questionIndex, totalQuestions, question, timeLimit } = payload;
+      const { ID: questionID, Question: questionText, Options } = question;
+
+      // Store question ID in data attribute for later
+      questionBlock.dataset.questionid = questionID;
+
+      let html = `
+  <div class="question-box">
+    <div><strong>Question ${questionIndex} of ${totalQuestions}</strong></div>
+    <h3>${questionText}</h3>
+    <ul>
+      `;
+
+      Options.forEach(opt => {
+        html += `<li>
+      <button class="option-btn" data-optionid="${opt.ID}">${opt.Option}</button>
+    </li>`;
+      });
+
+      html += `</ul>
+    <div><small>Time limit: ${timeLimit} minute(s)</small></div>
+    <button id="next-question-btn">Next Question</button>
+  </div>`;
+
+      questionBlock.innerHTML = html;
+
+      // Attach click handlers for options
+      document.querySelectorAll(".option-btn").forEach(btn => {
+        btn.addEventListener("click", function () {
+          const selectedOptionID = this.dataset.optionid;
+          const answerPayload = {
+            type: "submit_answer",
+            payload: {
+              questionDataID: questionID,
+              answerOption: parseInt(selectedOptionID),
+            }
+          };
+          conn.send(JSON.stringify(answerPayload));
+        });
+      });
+
+      // Handle Next Question button
+      const nextBtn = document.getElementById("next-question-btn");
+      if (nextBtn) {
+        nextBtn.addEventListener("click", function () {
+          const questionID = parseInt(questionBlock.dataset.questionid);
+          const nextQuestionPayload = {
+            type: "next_question",
+            payload: {
+              questionID: questionID
+            }
+          };
+          conn.send(JSON.stringify(nextQuestionPayload));
+        });
+      }
+    }
+    function renderLeaderboard(scoreList) {
+      const leaderboardList = document.getElementById("leaderboard-list");
+      leaderboardList.innerHTML = ""; // Clear previous entries
+
+      scoreList.forEach(entry => {
+        const li = document.createElement("li");
+        li.textContent = `${entry.username}: ${entry.score}`;
+        leaderboardList.appendChild(li);
+      });
+    }
+
+    function renderEndGame(payload) {
+      const questionBlock = document.getElementById("question-block");
+      const { message, scores, finishTime } = payload;
+
+      let html = `
+  <div class="endgame-box">
+    <h2>${message}</h2>
+    <p><strong>Game Finished At:</strong> ${new Date(finishTime).toLocaleString()}</p>
+    `;
+
+      if (scores.length === 0) {
+        html += `<p>No scores available.</p>`;
+      } else {
+        html += `<ul>`;
+        scores.forEach(score => {
+          html += `<li>${score.username}: ${score.score}</li>`;
+        });
+        html += `</ul>`;
+      }
+
+      html += `</div>`;
+      questionBlock.innerHTML = html;
+    }
+  } else {
+    alert("WebSockets are not supported in this browser.");
+  }
+};

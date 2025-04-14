@@ -433,6 +433,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 
 	// Only process if game is in progress
 	if gameState.RoomStatus != roommodel.Started || gameState.CurrentQuestionIndex >= len(gameState.Questions.QuestionData) {
+		// we reach here after game over
 		c.manager.Unlock()
 		l.Sugar().Error("game is not in active question phase")
 		return fmt.Errorf("game is not in active question phase")

@@ -56,6 +56,7 @@
 - [ ] need to figure out websocket reconnection if something is messed up
 - [ ] remove egress channel and change it into connection map so that even bot can use the same client whenever the want to send
 - [ ] display the answers user selected when they click analyze button
+- [ ] points system needs to change, every other attempts you need to reduce points
 
 {"type":"send_message","payload":{"data":"welcome boys!","time":"2025-03-22T13:38:23.65Z","sent":"2025-03-22T19:08:23.675124+05:30"}}
 croom:31 {"type":"ready_game","payload":{"data":"User admin is ready","time":"2025-03-22T19:08:23.681868+05:30"}}
