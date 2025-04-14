@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
@@ -186,6 +187,8 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		if err != nil {
 			return
 		}
+		// TODO: redirect to home/ wherever after the game completes
+
 	}
 
 	return
@@ -320,6 +323,19 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 		// Also notify bots about game end
 		// manager.broadcastToBots(ctx, roomCode, endEvent) TODO: somehow notify bots to exit the routine clear the client memory
 		//	quiz.HandleLastQuestion(ctx,roomCode,)
+
+		// updating leader board
+		for _, player := range gameState.Participants {
+			err := room.UpdateLeaderBoard(ctx, &roommodel.EditLeaderBoardReq{
+				RoomCode: roomCode,
+				UserID:   player.UserID,
+				Score:    float64(player.Score),
+			})
+			if err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}
 

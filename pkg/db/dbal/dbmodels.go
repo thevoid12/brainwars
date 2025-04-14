@@ -32,6 +32,7 @@ type Leaderboard struct {
 	UpdatedOn pgtype.Timestamp
 	CreatedBy string
 	UpdatedBy string
+	IsDeleted bool
 }
 
 type Question struct {

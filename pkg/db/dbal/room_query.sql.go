@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const creatLeaderBoard = `-- name: CreatLeaderBoard :one
+const creatLeaderBoard = `-- name: CreatLeaderBoard :exec
 INSERT INTO leaderboard (
   id, 
   room_code,
@@ -20,10 +20,10 @@ INSERT INTO leaderboard (
   created_on, 
   updated_on, 
   created_by, 
-  updated_by    
+  updated_by,
+  is_deleted    
 ) 
-VALUES ($1, $2, $3, $4, NOW(), NOW(), $5, $6)
-RETURNING id, room_code, user_id, score, created_on, updated_on, created_by, updated_by
+VALUES ($1, $2, $3, $4, NOW(), NOW(), $5, $6,$7)
 `
 
 type CreatLeaderBoardParams struct {
@@ -33,30 +33,21 @@ type CreatLeaderBoardParams struct {
 	Score     float64
 	CreatedBy string
 	UpdatedBy string
+	IsDeleted bool
 }
 
 // ------------------------------------- leaderboard ------------------------------------------------------------------------
-func (q *Queries) CreatLeaderBoard(ctx context.Context, arg CreatLeaderBoardParams) (Leaderboard, error) {
-	row := q.db.QueryRow(ctx, creatLeaderBoard,
+func (q *Queries) CreatLeaderBoard(ctx context.Context, arg CreatLeaderBoardParams) error {
+	_, err := q.db.Exec(ctx, creatLeaderBoard,
 		arg.ID,
 		arg.RoomCode,
 		arg.UserID,
 		arg.Score,
 		arg.CreatedBy,
 		arg.UpdatedBy,
+		arg.IsDeleted,
 	)
-	var i Leaderboard
-	err := row.Scan(
-		&i.ID,
-		&i.RoomCode,
-		&i.UserID,
-		&i.Score,
-		&i.CreatedOn,
-		&i.UpdatedOn,
-		&i.CreatedBy,
-		&i.UpdatedBy,
-	)
-	return i, err
+	return err
 }
 
 const createRoom = `-- name: CreateRoom :one
@@ -203,7 +194,7 @@ func (q *Queries) CreateRoomMember(ctx context.Context, arg CreateRoomMemberPara
 }
 
 const getLeaderBoardByID = `-- name: GetLeaderBoardByID :many
-SELECT id, room_code, user_id, score, created_on, updated_on, created_by, updated_by FROM leaderboard
+SELECT id, room_code, user_id, score, created_on, updated_on, created_by, updated_by, is_deleted FROM leaderboard
 WHERE id = $1 AND is_deleted = false
 `
 
@@ -225,6 +216,7 @@ func (q *Queries) GetLeaderBoardByID(ctx context.Context, id pgtype.UUID) ([]Lea
 			&i.UpdatedOn,
 			&i.CreatedBy,
 			&i.UpdatedBy,
+			&i.IsDeleted,
 		); err != nil {
 			return nil, err
 		}
@@ -486,7 +478,7 @@ func (q *Queries) GetRoomMemberByRoomCodeAndUserID(ctx context.Context, arg GetR
 }
 
 const listLeaderBoardByRoomCode = `-- name: ListLeaderBoardByRoomCode :many
-SELECT id, room_code, user_id, score, created_on, updated_on, created_by, updated_by FROM leaderboard
+SELECT id, room_code, user_id, score, created_on, updated_on, created_by, updated_by, is_deleted FROM leaderboard
 WHERE room_code = $1 AND is_deleted = false 
 ORDER BY score DESC
 `
@@ -509,6 +501,7 @@ func (q *Queries) ListLeaderBoardByRoomCode(ctx context.Context, roomCode string
 			&i.UpdatedOn,
 			&i.CreatedBy,
 			&i.UpdatedBy,
+			&i.IsDeleted,
 		); err != nil {
 			return nil, err
 		}

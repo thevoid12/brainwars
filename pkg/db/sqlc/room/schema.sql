@@ -41,5 +41,6 @@ CREATE TABLE IF NOT EXISTS leaderboard (
   updated_on TIMESTAMP NOT NULL DEFAULT NOW(),
   created_by TEXT NOT NULL,
   updated_by TEXT NOT NULL,
+  is_deleted BOOL NOT NULL,
   UNIQUE (room_code, user_id)
 );

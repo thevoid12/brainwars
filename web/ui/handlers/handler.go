@@ -141,6 +141,7 @@ func CreateRoomHandler(c *gin.Context) {
 		"title":   "Home Page",
 		"user-id": userID,
 	})
+
 }
 
 // after the room is created, the user can join the room
@@ -174,6 +175,14 @@ func JoinRoomHandler(c *gin.Context) {
 		})
 		if err != nil {
 			RenderErrorTemplate(c, "home.html", "Failed to join room", err)
+		}
+		err = room.CreateLeaderBoard(ctx, &model.EditLeaderBoardReq{
+			UserID:   userID,
+			RoomCode: roomCode,
+			Score:    0,
+		})
+		if err != nil {
+			RenderErrorTemplate(c, "home.html", "Failed to setup leaderboard", err)
 		}
 	}
 

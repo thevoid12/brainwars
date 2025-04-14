@@ -42,6 +42,16 @@ func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq,
 			l.Sugar().Error("Could not join room", err)
 			return "", err
 		}
+
+		// creating default users leaderboard value to 0
+		err = CreateLeaderBoard(ctx, &model.EditLeaderBoardReq{
+			UserID:   membersID.UserID,
+			RoomCode: roomDetails.RoomCode,
+			Score:    0,
+		})
+		if err != nil {
+			return "", err
+		}
 	}
 
 	// create questions on that topic which llm will generate
@@ -180,7 +190,7 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 		CreatedBy: req.UserID.String(),
 		UpdatedBy: req.UserID.String(),
 	}
-	_, err = dBal.CreatLeaderBoard(ctx, lbParams)
+	err = dBal.CreatLeaderBoard(ctx, lbParams)
 	if err != nil {
 		l.Sugar().Error("Could not create new leaderboard in database", err)
 		return nil, err
@@ -678,11 +688,38 @@ func LeaveRoom(ctx context.Context, req model.RoomMemberReq) (err error) {
 }
 
 /********************** LEADER BOARD **************************************/
-func CreateLeaderBoard(ctx context.Context) {
+func CreateLeaderBoard(ctx context.Context, req *model.EditLeaderBoardReq) error {
+	l := logs.GetLoggerctx(ctx)
 
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return err
+	}
+
+	dBal := dbal.New(dbConn.Db)
+
+	err = dBal.CreatLeaderBoard(ctx, dbal.CreatLeaderBoardParams{
+		RoomCode: req.RoomCode,
+		UserID: pgtype.UUID{
+			Bytes: req.UserID,
+			Valid: true,
+		},
+		Score:     float64(req.Score),
+		UpdatedBy: req.UserID.String(),
+		ID:        pgtype.UUID{Bytes: uuid.New(), Valid: true},
+		CreatedBy: req.UserID.String(),
+		IsDeleted: false,
+	})
+	if err != nil {
+		l.Sugar().Error("Create leader board for user failed", err)
+		return err
+	}
+
+	return nil
 }
 
-func UpdateLeaderBoard(ctx context.Context, req model.EditLeaderBoardReq) (err error) {
+func UpdateLeaderBoard(ctx context.Context, req *model.EditLeaderBoardReq) (err error) {
 	l := logs.GetLoggerctx(ctx)
 
 	dbConn, err := dbpkg.InitDB()
@@ -727,7 +764,7 @@ func ListLeaderBoardByRoomCode(ctx context.Context, req model.RoomCodeReq) (lead
 	}
 	for _, lb := range dbRecord {
 		leaderBoard = append(leaderBoard, &model.Leaderboard{
-			RoomID: lb.ID.Bytes,
+			ID:     lb.ID.Bytes,
 			UserID: lb.UserID.Bytes,
 			Score:  lb.Score,
 		})

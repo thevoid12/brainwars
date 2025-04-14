@@ -110,9 +110,10 @@ type UserIDReq struct {
 
 /******** Leader board ***************/
 type Leaderboard struct {
-	RoomID uuid.UUID
-	UserID uuid.UUID
-	Score  float64
+	ID       uuid.UUID // leaderboard id
+	RoomCode string
+	UserID   uuid.UUID
+	Score    float64
 }
 type EditLeaderBoardReq struct {
 	UserID   uuid.UUID

@@ -98,7 +98,7 @@ SET
 WHERE room_code = $1 AND user_id = $5 AND is_deleted=false;
 
 --------------------------------------- leaderboard ------------------------------------------------------------------------
--- name: CreatLeaderBoard :one
+-- name: CreatLeaderBoard :exec
 INSERT INTO leaderboard (
   id, 
   room_code,
@@ -107,10 +107,10 @@ INSERT INTO leaderboard (
   created_on, 
   updated_on, 
   created_by, 
-  updated_by    
+  updated_by,
+  is_deleted    
 ) 
-VALUES ($1, $2, $3, $4, NOW(), NOW(), $5, $6)
-RETURNING *;
+VALUES ($1, $2, $3, $4, NOW(), NOW(), $5, $6,$7);
 
 -- name: ListLeaderBoardByRoomCode :many
 SELECT * FROM leaderboard

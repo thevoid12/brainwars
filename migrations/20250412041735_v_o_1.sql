@@ -7,7 +7,7 @@ insert into users (id, username, refresh_token, user_type,bot_type, user_meta, p
 
 
 ALTER TABLE room_member ADD COLUMN room_id TEXT NOT NULL;  -- note this will work when the table is empty else we need to give default value
-
+ALTER TABLE leaderboard ADD COLUMN is_deleted BOOL NOT NULL DEFAULT false; 
 -- +goose StatementEnd
 
 -- +goose Down
@@ -15,5 +15,8 @@ DELETE FROM users WHERE id = '00000000-0000-0000-0000-000000000005';
 DELETE FROM users WHERE id = '00000000-0000-0000-0000-000000000006';
 DELETE FROM users WHERE id = '00000000-0000-0000-0000-000000000007';
 DELETE FROM users WHERE id = '00000000-0000-0000-0000-000000000008';
+
+ALTER TABLE room_member DROP COLUMN room_id;
+ALTER TABLE leaderboard DROP COLUMN is_deleted;
 -- +goose StatementBegin
 -- +goose StatementEnd
