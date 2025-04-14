@@ -34,10 +34,11 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 	rSecure.Use(middleware.SessionMiddleware())
 
 	// index
-
 	rSecure.GET("/brainwars", handlers.LandingPageHandler)
 	rSecure.GET("/home", handlers.HomeHandler)
 
+	// navbar
+	rSecure.GET("/navbar", handlers.GetNavbar)
 	// room
 	rSecure.POST("/croom", handlers.CreateRoomHandler)
 	rSecure.GET("/lroom", handlers.ListAllRoomsHanlder)

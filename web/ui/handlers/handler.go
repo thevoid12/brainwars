@@ -57,6 +57,10 @@ import (
 // 	c.String(http.StatusOK, "Hello from the server!")
 // }
 
+func GetNavbar(c *gin.Context) {
+	RenderSubTemplate(c, "navbar.html", nil)
+}
+
 func LandingPageHandler(c *gin.Context) {
 	fmt.Println("hiiii")
 	RenderTemplate(c, "brainwars.html", gin.H{

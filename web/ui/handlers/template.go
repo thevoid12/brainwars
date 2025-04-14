@@ -36,3 +36,30 @@ func RenderTemplate(c *gin.Context, pageTemplate string, data gin.H) {
 		return
 	}
 }
+
+// just a part in a page
+func RenderSubTemplate(c *gin.Context, pageTemplate string, data gin.H) {
+	ctx := c.Request.Context()
+	l := logs.GetLoggerctx(ctx)
+
+	// Define the paths to the layout and page templates
+	templatePaths := []string{
+		filepath.Join(viper.GetString("app.uiTemplates"), pageTemplate), // Load the actual page template
+	}
+
+	// Parse the templates
+	tmpl, err := template.ParseFiles(templatePaths...)
+	if err != nil {
+		l.Sugar().Error("ParseFiles failed:", err)
+		// RenderErrorTemplate(c, "Internal server error occurred", err)
+		return
+	}
+
+	// Execute the layout template, which will pull the content block from the page template
+	err = tmpl.ExecuteTemplate(c.Writer, pageTemplate, data)
+	if err != nil {
+		l.Sugar().Error("ExecuteTemplate failed:", err)
+		// RenderErrorTemplate(c, "Internal server error occurred", err)
+		return
+	}
+}

@@ -1,6 +1,9 @@
 {{ define "content" }}
 {{.welcome}}
-<form action="/bw/croom" method="post">
+
+<div class="navbar" data-hx-get="/bw/navbar" hx-trigger="load" hx-swap="innerHTML">
+</div>
+<form action=" /bw/croom" method="post">
   <label for="roomName">Room Name:</label>
   <input type="text" id="roomName" name="roomName" placeholder="Enter A room Name">
   <label for="game-type">Game Type:</label>
