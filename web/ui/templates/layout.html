@@ -5,7 +5,7 @@
   <title>{{ .title }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/assets/ext/htmx.min.js"></script>
-  <script src="/assets/ext/alpine.min.js" defer></script>
+  <script src="/assets/js/brainwars.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -28,16 +28,11 @@
       }
     }
   </script>
-  <style>
-    [x-cloak] {
-      display: none !important;
-    }
-  </style>
-
 </head>
 
-<body class="bg-gray-100">
-  <div id="outer-page-content" data-hx-headers='{"X-XSRF-TOKEN":"{{ .CsrfToken }}"}'>
+<body>
+  <div id="outer-page-content" class="bg-gray-50 h-screen flex overflow-hidden"
+    data-hx-headers='{"X-XSRF-TOKEN":"{{ .CsrfToken }}"}'>
     {{ template "content" . }}
   </div>
 </body>

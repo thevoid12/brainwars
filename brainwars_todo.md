@@ -43,7 +43,7 @@
 - [x] room members room_id column should be renamed to room_code
 - [x] fix room members 
 - [ ] get the bot times drop down from backend and fill the dropdown
--  [ ] use safehtml for all the backend data which we are sending to ui
+- [ ] use safehtml for all the backend data which we are sending to ui
 - [ ] add otp ferature in websocket to prevent csrf 
 - [ ] rename answer id to answer option
 - [ ] pong not working after some time!
@@ -57,7 +57,7 @@
 - [ ] remove egress channel and change it into connection map so that even bot can use the same client whenever the want to send
 - [ ] display the answers user selected when they click analyze button
 - [ ] points system needs to change, every other attempts you need to reduce points
-
+- [ ] productionize tailwind remove tailwind.config from layout
 {"type":"send_message","payload":{"data":"welcome boys!","time":"2025-03-22T13:38:23.65Z","sent":"2025-03-22T19:08:23.675124+05:30"}}
 croom:31 {"type":"ready_game","payload":{"data":"User admin is ready","time":"2025-03-22T19:08:23.681868+05:30"}}
 croom:31 {"type":"ready_game","payload":{"data":"Bot Sec10 is ready","time":"2025-03-22T19:08:26.826269+05:30"}}
