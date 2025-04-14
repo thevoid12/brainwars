@@ -1,15 +1,25 @@
 {{ define "content" }}
 <script src="/assets/js/ws.js"></script>
-<div id="ws-container" data-roomcode="{{ .roomCode }}"></div>
-<!-- Question Container -->
-<div id="question-block">
-  Waiting for first question...
-</div>
-<div id="leaderboard-section">
-  <h2>Leaderboard</h2>
-  <ul id="leaderboard-list">
-    <!-- Dynamic leaderboard data will be inserted here -->
-  </ul>
+<div class="navbar" data-hx-get="/bw/navbar" hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="flex overflow-auto w-full">
+  <!-- Left section: Quiz -->
+  <div class="flex-1 p-4">
+    <div id="ws-container" data-roomcode="{{ .roomCode }}"></div>
+    <!-- Question Container -->
+    <div id="question-block">
+      Waiting for the first question...
+      <!-- TODO: this has to be waiting animation -->
+    </div>
+  </div>
+
+  <!-- Right section: Leaderboard -->
+  <div class="w-1/3 p-4 bg-gray-100">
+    <div id="leaderboard-section">
+      <ul id="leaderboard-list">
+        <!-- Dynamic leaderboard data will be inserted here -->
+      </ul>
+    </div>
+  </div>
 </div>
 
 {{ end }}
