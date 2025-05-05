@@ -1,0 +1,31 @@
+# we will do a multistage build for golang to reduce the file size.
+FROM golang:tip-alpine3.21 AS basebuild
+# /app will be our working directory
+WORKDIR /app  
+
+COPY . . 
+# the repltive path is based on the context given to docker build command in the docker-compose.yml file 
+
+# CGO_ENABLED=0 for static linking , GOOS — Target Operating System , GOARCH — Target CPU Architecture
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o brainwars .
+
+# -----------------------------------------------------------
+FROM basebuild AS dev
+# Install air for hot reload & delve for debugging
+RUN go install github.com/air-verse/air@latest && \
+  go install github.com/go-delve/delve/cmd/dlv@latest
+
+# running it through air package for hot reloading
+CMD ["air", "-c", ".air.toml"]  
+
+# -----------------------------------------------------------
+# for multistage build i use scratch( clean slate)
+FROM scratch AS production
+WORKDIR /app
+# i am copying the base exe from golang to our scratch container
+COPY --from=basebuild /app/brainwars ./
+# a compiled Go binary does not embed the contents of your .env file in it TODO: we need to fix this env business
+COPY ../.env ./  
+
+ENTRYPOINT ["/app/brainwars"] 
+# now we have a scractch image 
