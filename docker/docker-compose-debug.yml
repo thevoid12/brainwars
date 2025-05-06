@@ -1,0 +1,18 @@
+services:
+  golang:
+    command:
+      - "dlv"
+      - "debug"
+      - "/app/main.go"
+      - "--listen=:4000"
+      - "--headless=true"
+      - "--log=true"
+      - "--log-output=debugger,debuglineerr,gdbwire,lldbout,rpc"
+      - "--accept-multiclient"
+      - "--continue"
+      - "--api-version=2"
+    ports:
+      - "8080:8080" # we are mentioning 8080 as well because this ports will replace the port from compose-debug while when stacked up(run together)
+      # delve debug port
+      - "4000:4000"
+

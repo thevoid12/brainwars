@@ -48,3 +48,22 @@ sqlc:
 dev:
 	go build brainwars
 	./brainwars
+
+DEV_COMPOSE_FILE=./docker/docker-compose-dev.yml
+DEBUG_COMPOSE_FILE=./docker/docker-compose-debug.yml
+
+.PHONY: compose-up
+compose-up:
+	docker compose -f $(DEV_COMPOSE_FILE) up -d
+
+.PHONY: compose-up-build
+compose-up-build:
+	docker compose -f $(DEV_COMPOSE_FILE) up --build
+
+.PHONY: compose-up-debug
+compose-up-debug:
+	docker compose -f $(DEV_COMPOSE_FILE) -f $(DEBUG_COMPOSE_FILE) up -d
+	
+.PHONY: compose-up-debug-build
+compose-up-debug-build: # using multiple docker compose file and building together will stack up the compose.
+	docker compose -f $(DEV_COMPOSE_FILE) -f $(DEBUG_COMPOSE_FILE) up --build

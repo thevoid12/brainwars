@@ -40,6 +40,7 @@ func loadEnv() DBConfig {
 		Name:     getEnv("PG_DB", "random"),
 		SSLMode:  getEnv("PG_SSLMODE", "disable"),
 	}
+
 }
 
 // InitDB initializes the database connection

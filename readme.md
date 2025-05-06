@@ -1,3 +1,14 @@
+# .env format brainwars
+```bash
+DATABASE_URL=postgres://postgres:postgres@db:5432/brainwars
+ENV=dev
+PG_USER=postgres
+PG_PASSWORD=postgres
+PG_HOST=db
+PG_PORT=5432
+PG_DB=brainwars
+PG_SSLMODE=disable
+```
 # brainwars v1 design:
 
 - user signs in

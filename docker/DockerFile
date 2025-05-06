@@ -1,9 +1,11 @@
 # we will do a multistage build for golang to reduce the file size.
-FROM golang:tip-alpine3.21 AS basebuild
+FROM golang:1.23.8-alpine3.20 AS basebuild
 # /app will be our working directory
 WORKDIR /app  
 
 COPY . . 
+COPY ./.env ./
+
 # the repltive path is based on the context given to docker build command in the docker-compose.yml file 
 
 # CGO_ENABLED=0 for static linking , GOOS — Target Operating System , GOARCH — Target CPU Architecture
@@ -11,12 +13,17 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o brainwars .
 
 # -----------------------------------------------------------
 FROM basebuild AS dev
-# Install air for hot reload & delve for debugging
-RUN go install github.com/air-verse/air@latest && \
-  go install github.com/go-delve/delve/cmd/dlv@latest
+# Install air for hot reload & delve for debugging, netcat for health check, need goose as well for initial migration
+RUN apk add --no-cache netcat-openbsd && \
+go install github.com/air-verse/air@latest && \
+  go install github.com/go-delve/delve/cmd/dlv@latest && \
+  go install github.com/pressly/goose/v3/cmd/goose@latest && \
+  which goose && goose --version
 
+ENV PATH="/go/bin:${PATH}"
+# RUN which goose && goose --version
 # running it through air package for hot reloading
-CMD ["air", "-c", ".air.toml"]  
+# CMD ["air", "-c", ".air.toml"]  
 
 # -----------------------------------------------------------
 # for multistage build i use scratch( clean slate)
