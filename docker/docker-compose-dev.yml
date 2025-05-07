@@ -1,3 +1,7 @@
+# in this docker compose file both golang and postgres are in 2 different containers
+# and they are connected to each other using the same default network
+# so our golang container can access the postgres container and our code runs in the golang container
+# and the postgres container is used to store the data
 services:
   # PostgreSQL service
   db:

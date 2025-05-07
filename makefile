@@ -47,7 +47,6 @@ sqlc:
 
 dev:
 	go build brainwars
-	./brainwars
 
 DEV_COMPOSE_FILE=./docker/docker-compose-dev.yml
 DEBUG_COMPOSE_FILE=./docker/docker-compose-debug.yml

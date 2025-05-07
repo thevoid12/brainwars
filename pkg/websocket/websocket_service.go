@@ -624,7 +624,7 @@ func sendLiveLeaderBoard(ctx context.Context, manager *Manager, roomCode string)
 		Message string                  `json:"message"`
 		Scores  []quizmodel.Participant `json:"scores"`
 	}{
-		Message: "Game has ended. Here are the final scores.",
+		Message: "The live leaderboard is updated.",
 		Scores:  gameState.Participants,
 	}
 

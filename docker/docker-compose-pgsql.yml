@@ -1,0 +1,20 @@
+# in this docker compose file we have only one service which is postgres
+# the golang service runs our local machine and connects to the postgres service which is running in the docker container
+services:
+  # PostgreSQL service
+  db:
+    image: postgres:15
+    container_name: brainwars_pgsql
+    environment:
+      # todo all these value should come from secret vault
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: brainwars
+    volumes:
+      - pg_data:/var/lib/postgresql/data # Mount the named volume pg_data into the container at /var/lib/postgresql/data, which is where PostgreSQL stores all of its database files.
+    ports:
+      - "15432:5432" # Exposing port to access it externally <host_port>:<container_port>
+    restart: unless-stopped
+
+volumes:
+  pg_data:
