@@ -144,6 +144,7 @@ func ListQuestionsByRoomCode(ctx context.Context, roomCode string) (questionDeta
 		l.Sugar().Error("Could not unmarshal question data", err)
 		return nil, err
 	}
+	qs = qs[:question.QuestionCount]
 
 	questionDetails.QuestionData = qs
 
