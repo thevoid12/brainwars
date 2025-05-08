@@ -94,7 +94,7 @@ window.onload = function () {
               </div>
             </div>
     
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6" id="user-response" style="display: none;">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6" id="user-response">
               <div class="flex items-start">
                 <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 flex-shrink-0 mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
@@ -105,7 +105,6 @@ window.onload = function () {
                 </div>
                 <div>
                   <h3 class="text-lg font-semibold text-gray-800">You</h3>
-                  <p class="text-gray-700 mt-1">Your answer is:</p>
                   <div class="mt-2 flex items-center">
                     <div class="text-2xl font-bold text-primary-600" id="timer-display">${timeLimit * 60}</div>
                     <svg class="animate-spin ml-2 h-5 w-5 text-primary-500"
@@ -159,7 +158,7 @@ window.onload = function () {
           this.querySelector(".option-box").classList.add("bg-primary-500", "text-white", "border-primary-500");
 
           // Show user response area
-          document.getElementById("user-response").style.display = "block";
+          // document.getElementById("user-response").style.display = "block";
 
           const answerPayload = {
             type: "submit_answer",
@@ -242,28 +241,7 @@ window.onload = function () {
     document.head.appendChild(script);
 
     function renderEndGame(payload) {
-  //     const questionBlock = document.getElementById("question-block");
-  //     const { message, scores, finishTime } = payload;
 
-  //     let html = `
-  // <div class="endgame-box">
-  //   <h2>${message}</h2>
-  //   <p><strong>Game Finished At:</strong> ${new Date(finishTime).toLocaleString()}</p>
-  //   `;
-
-  //     if (scores.length === 0) {
-  //       html += `<p>No scores available.</p>`;
-  //     } else {
-  //       html += `<ul>`;
-  //       scores.forEach(score => {
-  //         html += `<li>${score.username}: ${score.score}</li>`;
-  //       });
-  //       html += `</ul>`;
-  //     }
-
-  //     html += `</div>`;
-  //     questionBlock.innerHTML = html;
-  //   }
    const questionBlock = document.getElementById("question-block");
     const { message, scores, finishTime } = payload;
 
