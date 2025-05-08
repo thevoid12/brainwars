@@ -236,30 +236,118 @@ window.onload = function () {
       leaderboardList.innerHTML = tableHTML;
     }
 
-    function renderEndGame(payload) {
-      const questionBlock = document.getElementById("question-block");
-      const { message, scores, finishTime } = payload;
+    // Add the canvas-confetti script
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js'; // todo: check if it is safe to directly use this
+    document.head.appendChild(script);
 
-      let html = `
-  <div class="endgame-box">
-    <h2>${message}</h2>
-    <p><strong>Game Finished At:</strong> ${new Date(finishTime).toLocaleString()}</p>
+    function renderEndGame(payload) {
+  //     const questionBlock = document.getElementById("question-block");
+  //     const { message, scores, finishTime } = payload;
+
+  //     let html = `
+  // <div class="endgame-box">
+  //   <h2>${message}</h2>
+  //   <p><strong>Game Finished At:</strong> ${new Date(finishTime).toLocaleString()}</p>
+  //   `;
+
+  //     if (scores.length === 0) {
+  //       html += `<p>No scores available.</p>`;
+  //     } else {
+  //       html += `<ul>`;
+  //       scores.forEach(score => {
+  //         html += `<li>${score.username}: ${score.score}</li>`;
+  //       });
+  //       html += `</ul>`;
+  //     }
+
+  //     html += `</div>`;
+  //     questionBlock.innerHTML = html;
+  //   }
+   const questionBlock = document.getElementById("question-block");
+    const { message, scores, finishTime } = payload;
+
+    // Start confetti
+    startConfetti();
+
+    let html = `
+      <div class="flex-1 flex flex-col items-center justify-center p-8">
+        <div class="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full">
+          <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-primary-600 mb-2">${message}</h2>
+            <p class="text-gray-600">Game finished on ${new Date(finishTime).toLocaleString()}</p>
+          </div>
+
+          <div class="space-y-6">
+            ${scores.length > 0 ? `
+              <div class="flex flex-col">
+                ${scores.map((score, index) => `
+                  <div class="flex items-center p-4 ${index === 0 ? 'bg-yellow-50' : ''} rounded-lg mb-2">
+                    <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mr-4">
+                      <span class="text-2xl font-bold ${index === 0 ? 'text-yellow-500' : 'text-primary-600'}">
+                        ${index + 1}
+                      </span>
+                    </div>
+                    <div class="flex-1">
+                      <h3 class="font-semibold text-lg">${score.username}</h3>
+                      <p class="text-gray-600">Score: ${score.score}</p>
+                    </div>
+                    ${index === 0 ? `
+                      <div class="ml-4">
+                        <svg class="w-8 h-8 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                      </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : `
+              <div class="text-center text-gray-500">
+                No scores available
+              </div>
+            `}
+          </div>
+
+          <div class="mt-8 text-center">
+            <button onclick="window.location.reload()" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg transition-colors">
+             Analyze Results 
+            </button>
+          </div>
+        </div>
+      </div>
     `;
 
-      if (scores.length === 0) {
-        html += `<p>No scores available.</p>`;
-      } else {
-        html += `<ul>`;
-        scores.forEach(score => {
-          html += `<li>${score.username}: ${score.score}</li>`;
-        });
-        html += `</ul>`;
-      }
+    questionBlock.innerHTML = html;
+  }
 
-      html += `</div>`;
-      questionBlock.innerHTML = html;
+  // Add this confetti function
+    function startConfetti() {
+      const duration = 4000; // Increased from 3000 to 5000ms
+      const end = Date.now() + duration;
+
+      (function frame() {
+        confetti({
+          particleCount: 5, // Increased from 2 to 5
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#ff0000', '#00ff00', '#0000ff']
+        });
+        confetti({
+          particleCount: 5, // Increased from 2 to 5
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#ff0000', '#00ff00', '#0000ff']
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      }());
     }
   } else {
     alert("WebSockets are not supported in this browser.");
   }
-};
+}
