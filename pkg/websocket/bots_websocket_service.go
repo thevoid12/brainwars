@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,26 +36,8 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, 
 		if member.IsBot && member.RoomMemberStatus == roommodel.ReadyQuiz {
 			// Determine bot type based on member properties or some naming convention
 			// For example, if bot names contain their type like "Bot-30sec", "Bot-1min", etc.
-			var botType usermodel.BotType
-			if strings.Contains(member.UserDetails.UserName, "Sec10") {
-				botType = usermodel.Sec10
-			} else if strings.Contains(member.UserDetails.UserName, "Sec15") {
-				botType = usermodel.Sec15
-			} else if strings.Contains(member.UserDetails.UserName, "Sec20") {
-				botType = usermodel.Sec20
-			} else if strings.Contains(member.UserDetails.UserName, "Sec30") {
-				botType = usermodel.Sec30
-			} else if strings.Contains(member.UserDetails.UserName, "Sec45") {
-				botType = usermodel.Sec45
-			} else if strings.Contains(member.UserDetails.UserName, "Sec1") {
-				botType = usermodel.Sec1
-			} else if strings.Contains(member.UserDetails.UserName, "Sec2") {
-				botType = usermodel.Sec2
-			} else {
-				// Default bot type
-				botType = usermodel.Sec30
-			}
 
+			botType := usermodel.BotType(member.UserDetails.BotType)
 			// Create a new bot client
 			botClient := NewClient(wsconn, m, roomCode, true, botType, member.UserID, roomDetails)
 			// go botClient.writeBotMessages(ctx) // bot should write their messages as well to ui
