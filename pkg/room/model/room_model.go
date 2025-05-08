@@ -78,6 +78,11 @@ type EditRoomReq struct {
 	Roomstatus RoomStatus
 }
 
+type RoomMetaReq struct {
+	RoomCode string
+	RoomMeta string
+}
+
 type RoomMember struct {
 	ID               uuid.UUID
 	UserID           uuid.UUID

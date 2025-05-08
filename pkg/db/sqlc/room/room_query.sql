@@ -46,6 +46,13 @@ SET
   room_status = $9
 WHERE id = $1;
 
+-- name: UpdateRoomMetaByRoomCode :exec
+UPDATE room
+SET 
+  room_meta = $2,
+  updated_on = NOW(),
+  updated_by = $3
+WHERE room_code = $1 AND is_deleted = false;
 -------------------------------------- Room Member ------------------------------------------------------------------------
 
 -- name: CreateRoomMember :one

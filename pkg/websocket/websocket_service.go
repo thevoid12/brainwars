@@ -329,6 +329,18 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string, an
 
 		// manager.broadcastToBots(ctx, roomCode, endEvent) TODO: somehow notify bots to exit the routine clear the client memory
 		//	quiz.HandleLastQuestion(ctx,roomCode,)
+		events := []Event{endEvent}
+		eventjson, err := json.Marshal(events)
+		if err != nil {
+			l.Sugar().Error("json marshal failed", err)
+			return err
+		}
+		err = room.UpdateRoomMeta(ctx, roommodel.RoomMetaReq{
+			RoomCode: roomCode,
+			RoomMeta: string(eventjson)})
+		if err != nil {
+			return err
+		}
 
 		// updating leader board
 		for _, player := range gameState.Participants {
@@ -343,7 +355,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string, an
 		}
 		//TODO: find a better way to update the database and clear the memory as well after updating the pgsql db
 		// updating the answer history in answer table
-		err := updateAnswerHistory(ctx, ansHistory)
+		err = updateAnswerHistory(ctx, ansHistory)
 		return err
 	}
 

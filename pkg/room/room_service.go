@@ -256,6 +256,33 @@ func UpdateRoom(ctx context.Context, req model.EditRoomReq) (err error) {
 	return nil
 }
 
+func UpdateRoomMeta(ctx context.Context, req model.RoomMetaReq) (err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return err
+	}
+	defer dbConn.Db.Close()
+	dBal := dbal.New(dbConn.Db)
+	room, err := dBal.GetRoomByRoomCode(ctx, req.RoomCode)
+	if err != nil || len(room) == 0 {
+		l.Sugar().Error("Could not get room by room code in database", err)
+		return err
+	}
+
+	err = dBal.UpdateRoomMetaByRoomCode(ctx, dbal.UpdateRoomMetaByRoomCodeParams{
+		RoomMeta:  []byte(req.RoomMeta),
+		RoomCode:  req.RoomCode,
+		UpdatedBy: room[0].UpdatedBy,
+	})
+	if err != nil {
+		l.Sugar().Error("Could not update room meta by room code in database", err)
+		return err
+	}
+	return nil
+}
+
 func GetRoomByID(ctx context.Context, roomID uuid.UUID) (roomDetails *model.Room, err error) {
 	l := logs.GetLoggerctx(ctx)
 	dbConn, err := dbpkg.InitDB()
