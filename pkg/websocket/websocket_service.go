@@ -459,6 +459,10 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	found := false
 	for i, participant := range gameState.Participants {
 		if participant.UserID == c.userID {
+			// if he has already answered the question we will -50 the points
+			if participant.LastAnsweredQestion == currentQuestion.ID {
+				gameState.Participants[i].Score -= 50
+			}
 			if isCorrect {
 				// Calculate score based on answer speed
 				answerTime := submission.AnswerTime.Sub(gameState.StartTime)
