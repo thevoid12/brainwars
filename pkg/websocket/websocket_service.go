@@ -56,7 +56,6 @@ type Manager struct {
 }
 
 type ClientList map[*Client]bool
-
 type Client struct {
 	connection *websocket.Conn
 	manager    *Manager
@@ -67,6 +66,7 @@ type Client struct {
 	botType    usermodel.BotType // Empty for real users, "30sec", "1min", "2min" for bots
 	userID     uuid.UUID         // Store the user ID for easier reference
 	room       *roommodel.Room
+	ansHistory map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq // map[questionD]map[userID]answerIW
 }
 
 type NewMessageEvent struct {
@@ -105,8 +105,8 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 		botType:    botType,
 		userID:     userID,
 		room:       room,
+		ansHistory: make(map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq),
 	}
-
 }
 
 // when user joins a room this serveWs handler is called
@@ -266,7 +266,7 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	c.manager.Unlock()
 
 	// Fetch questions from the database
-	questions, err := quiz.ListQuestionsByRoomCode(ctx, c.roomCode)
+	questions, err := quiz.ListQuestionsByRoomCode(ctx, c.roomCode) // TODO: instead od storing all generated questions in the db and fetching them here we need to store in memory and use it and slowly update it back to the database
 	if err != nil {
 		l.Sugar().Error("failed to fetch questions:", err)
 		return err
@@ -274,15 +274,15 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 
 	// Store questions in game state
 	c.manager.Lock()
-	gameState.Questions = questions // TODO: remove it
+	gameState.Questions = questions
 	c.manager.Unlock()
 
 	// Send the first question to all clients
-	return sendNextQuestion(ctx, c.manager, c.roomCode)
+	return sendNextQuestion(ctx, c.manager, c.roomCode, c.ansHistory)
 }
 
 // Send the next question to all clients in a room
-func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) error {
+func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string, ansHistory map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq) error {
 	l := logs.GetLoggerctx(ctx)
 
 	manager.Lock()
@@ -313,14 +313,20 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 		endGameData, _ := json.Marshal(endGamePayload)
 		endEvent := Event{Type: EventEndGame, Payload: endGameData}
 
-		// Broadcast to all clients including bots
+		// Broadcast to all clients
 		for client := range manager.clients[roomCode] {
 			if !client.isBot {
 				client.egress <- endEvent
 			}
 		}
 
-		// Also notify bots about game end
+		// Notify bots about game end so that it can update its answer history and cleanup
+		botGameoverEvent := Event{
+			Type:    EventBotGameOver,
+			Payload: json.RawMessage{},
+		}
+		manager.broadcastToBots(ctx, roomCode, botGameoverEvent)
+
 		// manager.broadcastToBots(ctx, roomCode, endEvent) TODO: somehow notify bots to exit the routine clear the client memory
 		//	quiz.HandleLastQuestion(ctx,roomCode,)
 
@@ -335,8 +341,10 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 				return err
 			}
 		}
-
-		return nil
+		//TODO: find a better way to update the database and clear the memory as well after updating the pgsql db
+		// updating the answer history in answer table
+		err := updateAnswerHistory(ctx, ansHistory)
+		return err
 	}
 
 	// Get the current question
@@ -389,7 +397,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 			if gameState.CurrentQuestionIndex == currentIndex {
 				gameState.CurrentQuestionIndex++
 				manager.Unlock()
-				err = sendNextQuestion(ctx, manager, roomCode)
+				err = sendNextQuestion(ctx, manager, roomCode, ansHistory)
 				if err != nil {
 					l.Sugar().Error("send next question failed", err)
 				}
@@ -464,6 +472,20 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 			}
 			gameState.Participants[i].LastAnsweredQestion = currentQuestion.ID
 			found = true
+			// Update the answer history
+			if _, exists := c.ansHistory[currentQuestion.ID]; !exists {
+				c.ansHistory[currentQuestion.ID] = make(map[uuid.UUID]*quizmodel.AnswerReq)
+			}
+			c.ansHistory[currentQuestion.ID][c.userID] = &quizmodel.AnswerReq{
+				RoomCode:       c.roomCode,
+				UserID:         submission.UserID,
+				QuestionID:     currentQuestion.ID,
+				QuestionDataID: submission.QuestionDataID,
+				AnswerOption:   submission.AnswerOption,
+				IsCorrect:      isCorrect,
+				AnswerTime:     submission.AnswerTime,
+				CreatedBy:      "system",
+			}
 			break
 		}
 	}
@@ -493,6 +515,20 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 			IsReady:             true,
 			LastAnsweredQestion: currentQuestion.ID,
 		})
+		// Update the answer history
+		if _, exists := c.ansHistory[currentQuestion.ID]; !exists {
+			c.ansHistory[currentQuestion.ID] = make(map[uuid.UUID]*quizmodel.AnswerReq)
+		}
+		c.ansHistory[currentQuestion.ID][c.userID] = &quizmodel.AnswerReq{
+			RoomCode:       c.roomCode,
+			UserID:         submission.UserID,
+			QuestionID:     currentQuestion.ID,
+			QuestionDataID: submission.QuestionDataID,
+			AnswerOption:   submission.AnswerOption,
+			IsCorrect:      isCorrect,
+			AnswerTime:     submission.AnswerTime,
+			CreatedBy:      "system",
+		}
 	}
 
 	c.manager.Unlock()
@@ -528,33 +564,6 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 	l := logs.GetLoggerctx(ctx)
 
 	// check the db if all users in the game have submitted the answers
-	// roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
-	// 	UserID:   c.userID,
-	// 	RoomCode: c.roomCode,
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
-	// if the data comes from db
-	// answers, err := quiz.ListAnswersByRoomCode(ctx, c.roomCode)
-	// if err != nil {
-	// 	return fmt.Errorf("list Answers by room code failed", err)
-	// }
-	// isAllMembersSubmitted := true
-	// answeredMap := make(map[uuid.UUID]bool)
-	// for _, answer := range answers {
-	// 	answeredMap[answer.UserID] = true
-	// }
-	// for _, roomMember := range roomMembers {
-	// 	if !roomMember.IsBot {
-	// 		if _, ok := answeredMap[roomMember.UserID]; !ok {
-	// 			isAllMembersSubmitted = false
-	// 			break
-	// 		}
-	// 	}
-	// }
-
 	// go in-memory
 	c.manager.Lock()
 	gameState, exists := c.manager.gameStates[c.roomCode]
@@ -583,7 +592,7 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 
 			gameState.CurrentQuestionIndex++
 			c.manager.Unlock()
-			return sendNextQuestion(ctx, c.manager, c.roomCode)
+			return sendNextQuestion(ctx, c.manager, c.roomCode, c.ansHistory)
 		} else {
 			c.manager.Unlock()
 		}
@@ -601,6 +610,20 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 
 	}
 
+	return nil
+}
+
+func updateAnswerHistory(ctx context.Context, ansHistory map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq) error {
+	l := logs.GetLoggerctx(ctx)
+	for _, answermap := range ansHistory {
+		for _, answerreq := range answermap {
+			err := quiz.CreateAnswer(ctx, answerreq)
+			if err != nil {
+				l.Sugar().Error("create answer failed", err)
+				return err // todo:retry logic needs to be added
+			}
+		}
+	}
 	return nil
 }
 

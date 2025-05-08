@@ -151,7 +151,7 @@ func ListQuestionsByRoomCode(ctx context.Context, roomCode string) (questionDeta
 }
 
 // CreateAnswer creates a new answer in the database
-func CreateAnswer(ctx context.Context, req model.AnswerReq) error {
+func CreateAnswer(ctx context.Context, req *model.AnswerReq) error {
 	l := logs.GetLoggerctx(ctx)
 	params := dbal.CreateAnswerParams{
 		RoomCode:       req.RoomCode,

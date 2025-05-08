@@ -28,6 +28,7 @@ const (
 	//EventReadyGame is that the user is ready to start the game
 	EventReadyGame    = "ready_game"
 	EventEndGame      = "end_game"
+	EventBotGameOver  = "bot_game_over" // notifies the bot that the game is over so that it can stop
 	EventGameStatus   = "game_status"
 	EventSubmitAnswer = "submit_answer"
 	EventNewQuestion  = "new_question"

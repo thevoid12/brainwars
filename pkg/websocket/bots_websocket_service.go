@@ -157,8 +157,16 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 			case EventReadyGame:
 				l.Sugar().Debugf("Bot %s is ready to play", c.userID)
 
-			case EventEndGame:
-				return // Exit the bot behavior goroutine when game ends
+			case EventBotGameOver:
+				l.Sugar().Debugf("Bot %s received game over event", c.userID)
+				// Clean up bot resources or perform any necessary actions
+				//Update bot answer history in db
+				err := updateAnswerHistory(ctx, c.ansHistory)
+				if err != nil {
+					return
+				}
+				//TODO:reasource cleanup
+				// Close the bot's event channel
 			}
 		}
 	}
