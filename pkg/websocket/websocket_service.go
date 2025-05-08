@@ -459,6 +459,10 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	found := false
 	for i, participant := range gameState.Participants {
 		if participant.UserID == c.userID {
+			found = true
+			if gameState.Participants[i].LastChoosenOption == int(submission.AnswerOption) {
+				break
+			}
 			// if he has already answered the question we will -50 the points
 			if participant.LastAnsweredQestion == currentQuestion.ID {
 				gameState.Participants[i].Score -= 50
@@ -475,7 +479,8 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 				gameState.Participants[i].Score += 100 + int(speedBonus*3.33)
 			}
 			gameState.Participants[i].LastAnsweredQestion = currentQuestion.ID
-			found = true
+			gameState.Participants[i].LastChoosenOption = int(submission.AnswerOption)
+
 			// Update the answer history
 			if _, exists := c.ansHistory[currentQuestion.ID]; !exists {
 				c.ansHistory[currentQuestion.ID] = make(map[uuid.UUID]*quizmodel.AnswerReq)
@@ -510,7 +515,6 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 		if isCorrect {
 			score = 100 // Base score for correct answer
 		}
-
 		gameState.Participants = append(gameState.Participants, quizmodel.Participant{
 			UserID:              c.userID,
 			Username:            username,
@@ -518,6 +522,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 			Score:               score,
 			IsReady:             true,
 			LastAnsweredQestion: currentQuestion.ID,
+			LastChoosenOption:   int(submission.AnswerOption),
 		})
 		// Update the answer history
 		if _, exists := c.ansHistory[currentQuestion.ID]; !exists {

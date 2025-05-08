@@ -116,6 +116,7 @@ type Participant struct {
 	Score               int       `json:"score"`
 	IsReady             bool      `json:"isReady"`
 	LastAnsweredQestion uuid.UUID `json:"answerID"`
+	LastChoosenOption   int       `json:"chosenOption"`
 }
 
 type QuizError struct {
