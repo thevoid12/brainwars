@@ -236,9 +236,17 @@ window.onload = function () {
     }
 
     // Add the canvas-confetti script
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js'; // todo: check if it is safe to directly use this
-    document.head.appendChild(script);
+    const confettiScript = document.createElement('script');
+    confettiScript.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js';
+    document.head.appendChild(confettiScript);
+
+    // Load and wait for modal script
+    // const modalScript = document.createElement('script');
+    // modalScript.src = '/assets/js/modal.js';
+    // modalScript.onload = () => {
+    //     console.log('Modal script loaded');
+    // };
+    // document.head.appendChild(modalScript);
 
     function renderEndGame(payload) {
 
@@ -288,7 +296,7 @@ window.onload = function () {
           </div>
 
           <div class="mt-8 text-center">
-            <button onclick="window.location.reload()" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg transition-colors">
+            <button onclick="openModal({ url: '/bw/home/', method: 'GET', message: 'Clicking Yes will move you out of the game room. Are you sure?' })" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg transition-colors">
              Analyze Results 
             </button>
           </div>
@@ -296,6 +304,18 @@ window.onload = function () {
       </div>
     `;
 
+    html+=`<!-- Modal Backdrop -->
+  <div id="modal-backdrop"
+     class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+              <!-- Modal Box -->
+  <div class="bg-white p-6 rounded-2xl shadow-2xl text-center w-80">
+    <p id="modal-message" class="mb-4 text-lg font-semibold">Are you sure?</p>
+    <div class="flex justify-center gap-4">
+      <button onclick="confirmYes()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Yes</button>
+      <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400">Cancel</button>
+    </div>
+  </div>
+</div>`
     questionBlock.innerHTML = html;
   }
 

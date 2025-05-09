@@ -69,7 +69,6 @@ func LandingPageHandler(c *gin.Context) {
 }
 
 func HomeHandler(c *gin.Context) {
-	fmt.Println("hlo")
 	// get the user credentials
 	RenderTemplate(c, "home.html", gin.H{
 		"title": "home Page",
