@@ -90,6 +90,7 @@ type Answer struct {
 	UserID         uuid.UUID
 	QuestionID     uuid.UUID
 	QuestionDataID uuid.UUID
+	QuestionData   *QuestionData
 	AnswerOption   int32
 	IsCorrect      bool
 	AnswerTime     time.Time
@@ -114,6 +115,7 @@ type Participant struct {
 	Username            string    `json:"username"`
 	IsBot               bool      `json:"isBot"`
 	Score               int       `json:"score"`
+	Position            int
 	IsReady             bool      `json:"isReady"`
 	LastAnsweredQestion uuid.UUID `json:"answerID"`
 	LastChoosenOption   int       `json:"chosenOption"`
@@ -121,4 +123,10 @@ type Participant struct {
 
 type QuizError struct {
 	Message string `json:"errorMessage"`
+}
+
+type EndGamePayload struct {
+	Message      string        `json:"message"`
+	Participants []Participant `json:"scores"`
+	FinishTime   time.Time     `json:"finishTime"`
 }

@@ -34,8 +34,11 @@ if (method === 'POST' && body) {
     });
 }
 else if (method === 'GET' && body) {
-    const queryString = new URLSearchParams(body).toString();
-    form.action += '?' + queryString;
+    const searchParams = new URLSearchParams();
+    Object.entries(body).forEach(([key, value]) => {
+        
+    form.action += `${value.toString()}/`;
+    });
 }
 
 document.body.appendChild(form);

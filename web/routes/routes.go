@@ -53,13 +53,8 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 	rSecure.GET("/quest", handlers.CreateQuestionPageHanlder)
 	rSecure.POST("/cquest", handlers.CreateQuestionsHandler)
 
-	// quiz
-	// router.GET("/", func(c *gin.Context) { c.Redirect(http.StatusMovedPermanently, "sec/home") })
-	// rSecure.POST("/checkmail", handlers.IndexHandler)
-	// router.GET("/test", handlers.IndexHandler) // without middleware
-	// router.GET("/", handlers.IndexHandler)
-	// router.GET("/about", handlers.AboutHandler)
-	//	router.GET("/message", handlers.MessageHandler)
+	// analytics
+	rSecure.GET("/analyze/:code", handlers.AnalyticsHandler)
 
 	//auth group sets the context and calls auth middleware
 	rAuth := router.Group("/auth")

@@ -4,6 +4,7 @@ import (
 	logs "brainwars/pkg/logger"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
+
 	roommodel "brainwars/pkg/room/model"
 	usermodel "brainwars/pkg/users/model"
 	"context"

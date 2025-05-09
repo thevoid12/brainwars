@@ -9,9 +9,12 @@ import (
 	"brainwars/pkg/room/model"
 	usermodel "brainwars/pkg/users/model"
 	"brainwars/pkg/util"
+
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"sort"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -485,6 +488,78 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 	}
 
 	return roomDetails, nil
+}
+
+func ListGameAnalytics(ctx context.Context, req model.RoomCodeReq) (meta *quizmodel.EndGamePayload, answers []*quizmodel.Answer, err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, nil, err
+	}
+	defer dbConn.Db.Close()
+	dBal := dbal.New(dbConn.Db)
+	room, err := dBal.GetRoomByRoomCode(ctx, req.RoomCode)
+	if err != nil {
+		l.Sugar().Error("Could not get room by room code in database", err)
+		return nil, nil, err
+	}
+
+	type event struct {
+		Type    string          `json:"type"`
+		Payload json.RawMessage `json:"payload"`
+	}
+	e := []*event{}
+	err = json.Unmarshal(room[0].RoomMeta, &e)
+	if err != nil {
+		l.Sugar().Error("Could not unmarshal room event in database", err)
+		return nil, nil, err
+	}
+	if e[0].Type != "end_game" {
+		l.Sugar().Error("Game is not ended yet")
+		return nil, nil, errors.New("game is not ended yet")
+	}
+	err = json.Unmarshal(e[0].Payload, &meta)
+	if err != nil {
+		l.Sugar().Error("Could not unmarshal room event payload in database", err)
+		return nil, nil, err
+	}
+
+	sort.Slice(meta.Participants, func(i, j int) bool {
+		return meta.Participants[i].Score > meta.Participants[j].Score
+	})
+	pos := 1
+	for i := range meta.Participants {
+		meta.Participants[i].Position = pos
+		pos++
+	}
+
+	answers, err = quiz.ListAnswersByRoomCode(ctx, req.RoomCode)
+	if err != nil {
+		l.Sugar().Error("Could not get answers by room code in database", err)
+	}
+	questionData, err := quiz.ListQuestionsByRoomCode(ctx, req.RoomCode)
+	if err != nil {
+		return nil, nil, err
+	}
+	questionDataMap := make(map[uuid.UUID]*quizmodel.QuestionData)
+	for _, data := range questionData.QuestionData {
+		questionDataMap[data.ID] = data
+	}
+	for i, answer := range answers {
+		questionData, ok := questionDataMap[answer.QuestionDataID]
+		if !ok {
+			l.Sugar().Error("Could not get question data by ID in database", err)
+			return nil, nil, err
+		}
+		answers[i].QuestionData = questionData
+	}
+
+	sort.Slice(answers, func(i, j int) bool {
+		return answers[i].AnswerTime.Before(answers[j].AnswerTime)
+	})
+
+	return meta, answers, nil
 }
 
 func ListRoomMembersByRoomCode(ctx context.Context, req model.RoomCodeReq) (roomMembers []*model.RoomMember, err error) {

@@ -296,7 +296,7 @@ window.onload = function () {
           </div>
 
           <div class="mt-8 text-center">
-            <button onclick="openModal({ url: '/bw/home/', method: 'GET', message: 'Clicking Yes will move you out of the game room. Are you sure?' })" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg transition-colors">
+            <button onclick="openModal({ url: '/bw/analyze/', method: 'GET',body: { roomCode: '${roomcode}' },  message: 'Clicking Yes will move you out of the game room. Are you sure?' })" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg transition-colors">
              Analyze Results 
             </button>
           </div>
