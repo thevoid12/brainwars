@@ -42,7 +42,43 @@
       {{ end }}
     </div>
   </div>
+
+  <!-- answers block -->
+  <div class="mt-10 space-y-8">
+    <h2 class="text-2xl font-semibold text-center text-primary-700">Answer Review</h2>
+    {{ range $a := .answers }}
+      <div class="p-6 bg-white shadow rounded-lg">
+        <p class="font-semibold text-gray-800 mb-4">{{ $a.QuestionData.Question }}</p>
+        <div class="space-y-2">
+          {{ range $opt := $a.QuestionData.Options }}
+            {{ $isCorrect := eq $opt.ID $a.QuestionData.Answer }}
+            {{ $isSelected := eq $opt.ID $a.AnswerOption }}
+  
+            <div class="p-3 rounded-lg border
+              {{ if and $isSelected $a.IsCorrect }} bg-green-100 border-green-400 text-green-800
+              {{ else if and $isSelected (not $a.IsCorrect) }} bg-red-100 border-red-400 text-red-800
+              {{ else if and (not $isSelected) $isCorrect }} bg-green-50 border-green-200 text-green-700
+              {{ else }} border-gray-300 {{ end }}
+            ">
+              <span class="font-medium">{{ $opt.Option }}</span>
+              {{ if and $isSelected $a.IsCorrect }}
+                <span class="ml-2 text-green-600 font-semibold">✔ Correct</span>
+              {{ else if and $isSelected (not $a.IsCorrect) }}
+                <span class="ml-2 text-red-600 font-semibold">✘ Your choice</span>
+              {{ else if and (not $isSelected) $isCorrect }}
+                <span class="ml-2 text-green-500 italic">(Correct Answer)</span>
+              {{ end }}
+            </div>
+          {{ end }}
+        </div>
+      </div>
+    {{ end }}
+  </div>
 </div>
+
+
+
+
 {{ end }}
 
 
@@ -62,4 +98,46 @@ type EndGamePayload struct {
 	Message      string        `json:"message"`
 	Participants []Participant `json:"scores"`
 	FinishTime   time.Time     `json:"finishTime"`
+} -->
+
+<!-- 
+type Answer struct {
+	ID uuid.UUID
+	// RoomID       uuid.UUID
+	RoomCode       string
+	UserID         uuid.UUID
+	UserDetails    *usermodel.UserInfo
+	QuestionNumber int // just for ui purpose
+	QuestionID     uuid.UUID
+	QuestionDataID uuid.UUID
+	QuestionData   *QuestionData
+	AnswerOption   int32
+	IsCorrect      bool
+	AnswerTime     time.Time
+	CreatedBy      string
+	UpdatedBy      string
+} -->
+
+<!-- 
+type QuestionData struct {
+	ID       uuid.UUID // unique id for each question
+	Question string
+	Options  []Options
+	Answer   int // option id: which option is correct
+}
+
+type Options struct {
+	ID     int
+	Option string
+} --> 
+
+<!-- type UserInfo struct {
+    ID           uuid.UUID
+    UserName     string
+    RefreshToken string
+    UserType     UserType
+    BotType
+    IsPremium bool
+    IsActive  bool
+    IsDeleted bool
 } -->

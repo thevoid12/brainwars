@@ -2,6 +2,7 @@ package model
 
 import (
 	roommodel "brainwars/pkg/room/model"
+	usermodel "brainwars/pkg/users/model"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,6 +89,8 @@ type Answer struct {
 	// RoomID       uuid.UUID
 	RoomCode       string
 	UserID         uuid.UUID
+	UserDetails    *usermodel.UserInfo
+	QuestionNumber int // just for ui purpose
 	QuestionID     uuid.UUID
 	QuestionDataID uuid.UUID
 	QuestionData   *QuestionData

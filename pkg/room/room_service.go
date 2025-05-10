@@ -7,6 +7,7 @@ import (
 	"brainwars/pkg/quiz"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room/model"
+	user "brainwars/pkg/users"
 	usermodel "brainwars/pkg/users/model"
 	"brainwars/pkg/util"
 
@@ -546,6 +547,13 @@ func ListGameAnalytics(ctx context.Context, req model.RoomCodeReq) (meta *quizmo
 	for _, data := range questionData.QuestionData {
 		questionDataMap[data.ID] = data
 	}
+
+	sort.Slice(answers, func(i, j int) bool {
+		return answers[i].AnswerTime.Before(answers[j].AnswerTime)
+	})
+
+	lastq := uuid.UUID{}
+	questionNumber := 1
 	for i, answer := range answers {
 		questionData, ok := questionDataMap[answer.QuestionDataID]
 		if !ok {
@@ -553,11 +561,17 @@ func ListGameAnalytics(ctx context.Context, req model.RoomCodeReq) (meta *quizmo
 			return nil, nil, err
 		}
 		answers[i].QuestionData = questionData
+		userDetails, err := user.GetUserDetailsbyID(ctx, answer.UserID)
+		if err != nil {
+			return nil, nil, err
+		}
+		answers[i].UserDetails = userDetails
+		if lastq != answer.QuestionID {
+			questionNumber++
+			lastq = answer.QuestionID
+		}
+		answers[i].QuestionNumber = questionNumber
 	}
-
-	sort.Slice(answers, func(i, j int) bool {
-		return answers[i].AnswerTime.Before(answers[j].AnswerTime)
-	})
 
 	return meta, answers, nil
 }
