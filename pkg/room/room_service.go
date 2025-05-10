@@ -553,7 +553,7 @@ func ListGameAnalytics(ctx context.Context, req model.RoomCodeReq) (meta *quizmo
 	})
 
 	lastq := uuid.UUID{}
-	questionNumber := 1
+	questionNumber := 0
 	for i, answer := range answers {
 		questionData, ok := questionDataMap[answer.QuestionDataID]
 		if !ok {
