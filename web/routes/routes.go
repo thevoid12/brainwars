@@ -25,7 +25,6 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 	manager := websocket.NewManager(ctx)
 	//secure group
 	rSecure := router.Group("/bw")
-
 	// middleware
 	rSecure.Use(gin.Recovery())
 	rSecure.Use(middleware.ContextMiddleware(ctx))
