@@ -335,7 +335,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string, an
 			l.Sugar().Error("json marshal failed", err)
 			return err
 		}
-		err = room.UpdateRoomMeta(ctx, roommodel.RoomMetaReq{
+		err = room.UpdateRoomMetaAndStatus(ctx, roommodel.RoomMetaReq{
 			RoomCode: roomCode,
 			RoomMeta: string(eventjson)})
 		if err != nil {

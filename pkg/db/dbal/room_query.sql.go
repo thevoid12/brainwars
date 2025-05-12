@@ -829,22 +829,29 @@ func (q *Queries) UpdateRoomMemberByRoomCodeAndUserID(ctx context.Context, arg U
 	return err
 }
 
-const updateRoomMetaByRoomCode = `-- name: UpdateRoomMetaByRoomCode :exec
+const updateRoomMetaAndStatusByRoomCode = `-- name: UpdateRoomMetaAndStatusByRoomCode :exec
 UPDATE room
 SET 
   room_meta = $2,
+  room_status = $3,
   updated_on = NOW(),
-  updated_by = $3
+  updated_by = $4
 WHERE room_code = $1 AND is_deleted = false
 `
 
-type UpdateRoomMetaByRoomCodeParams struct {
-	RoomCode  string
-	RoomMeta  []byte
-	UpdatedBy string
+type UpdateRoomMetaAndStatusByRoomCodeParams struct {
+	RoomCode   string
+	RoomMeta   []byte
+	RoomStatus string
+	UpdatedBy  string
 }
 
-func (q *Queries) UpdateRoomMetaByRoomCode(ctx context.Context, arg UpdateRoomMetaByRoomCodeParams) error {
-	_, err := q.db.Exec(ctx, updateRoomMetaByRoomCode, arg.RoomCode, arg.RoomMeta, arg.UpdatedBy)
+func (q *Queries) UpdateRoomMetaAndStatusByRoomCode(ctx context.Context, arg UpdateRoomMetaAndStatusByRoomCodeParams) error {
+	_, err := q.db.Exec(ctx, updateRoomMetaAndStatusByRoomCode,
+		arg.RoomCode,
+		arg.RoomMeta,
+		arg.RoomStatus,
+		arg.UpdatedBy,
+	)
 	return err
 }

@@ -263,7 +263,7 @@ func UpdateRoom(ctx context.Context, req model.EditRoomReq) (err error) {
 	return nil
 }
 
-func UpdateRoomMeta(ctx context.Context, req model.RoomMetaReq) (err error) {
+func UpdateRoomMetaAndStatus(ctx context.Context, req model.RoomMetaReq) (err error) {
 	l := logs.GetLoggerctx(ctx)
 	dbConn, err := dbpkg.InitDB()
 	if err != nil {
@@ -278,10 +278,11 @@ func UpdateRoomMeta(ctx context.Context, req model.RoomMetaReq) (err error) {
 		return err
 	}
 
-	err = dBal.UpdateRoomMetaByRoomCode(ctx, dbal.UpdateRoomMetaByRoomCodeParams{
-		RoomMeta:  []byte(req.RoomMeta),
-		RoomCode:  req.RoomCode,
-		UpdatedBy: room[0].UpdatedBy,
+	err = dBal.UpdateRoomMetaAndStatusByRoomCode(ctx, dbal.UpdateRoomMetaAndStatusByRoomCodeParams{
+		RoomMeta:   []byte(req.RoomMeta),
+		RoomCode:   req.RoomCode,
+		UpdatedBy:  room[0].UpdatedBy,
+		RoomStatus: string(model.Ended),
 	})
 	if err != nil {
 		l.Sugar().Error("Could not update room meta by room code in database", err)

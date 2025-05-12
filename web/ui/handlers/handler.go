@@ -248,23 +248,20 @@ func AnalyticsHandler(c *gin.Context) {
 	})
 }
 
-// func MyQuizHistoryHandler(c *gin.Context) {
-// 	ctx := c.Request.Context()
-// 	userInfo := util.GetUserInfoFromctx(ctx)
-// 	userID := userInfo.ID
+func MyQuizHistoryHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	userInfo := util.GetUserInfoFromctx(ctx)
+	userID := userInfo.ID
 
-// 	meta, answers, err := room.ListGameAnalytics(ctx, roommodel.RoomCodeReq{
-// 		UserID:   userID,
-// 		RoomCode: roomCode,
-// 	})
-// 	if err != nil {
-// 		RenderErrorTemplate(c, "home.html", "Failed to get analytics", err)
-// 		return
-// 	}
-// 	RenderTemplate(c, "analysis.html", gin.H{
-// 		"title":    "Analytics",
-// 		"roomCode": roomCode,
-// 		"meta":     meta,
-// 		"answers":  answers,
-// 	})
-// }
+	roomDetails, err := room.ListRoom(ctx, roommodel.UserIDReq{
+		UserID: userID,
+	})
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "Failed to get analytics", err)
+		return
+	}
+	RenderTemplate(c, "my_quiz.html", gin.H{
+		"title":       "My quiz history",
+		"roomDetails": roomDetails,
+	})
+}

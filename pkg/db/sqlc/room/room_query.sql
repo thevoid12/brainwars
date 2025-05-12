@@ -53,12 +53,13 @@ SET
   room_status = $9
 WHERE id = $1;
 
--- name: UpdateRoomMetaByRoomCode :exec
+-- name: UpdateRoomMetaAndStatusByRoomCode :exec
 UPDATE room
 SET 
   room_meta = $2,
+  room_status = $3,
   updated_on = NOW(),
-  updated_by = $3
+  updated_by = $4
 WHERE room_code = $1 AND is_deleted = false;
 
 
