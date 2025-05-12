@@ -53,20 +53,23 @@ type Manager struct {
 	handlers   map[string]EventHandler
 	roomStates map[string]*roommodel.RoomStatus
 	gameStates map[string]*quizmodel.GameState
+	MTOC       time.Time // Manager Time of creation
 }
 
 type ClientList map[*Client]bool
 type Client struct {
-	connection *websocket.Conn
-	manager    *Manager
-	egress     chan Event
-	botEvents  chan Event // Only used for bot clients
-	roomCode   string
-	isBot      bool              // Flag to identify bot clients
-	botType    usermodel.BotType // Empty for real users, "30sec", "1min", "2min" for bots
-	userID     uuid.UUID         // Store the user ID for easier reference
-	room       *roommodel.Room
-	ansHistory map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq // map[questionD]map[userID]answerIW
+	QuestionCancel context.CancelFunc // cancel func for the current question's goroutine
+	TOC            time.Time          // Time of creation
+	connection     *websocket.Conn
+	manager        *Manager
+	egress         chan Event
+	botEvents      chan Event // Only used for bot clients
+	roomCode       string
+	isBot          bool              // Flag to identify bot clients
+	botType        usermodel.BotType // Empty for real users, "30sec", "1min", "2min" for bots
+	userID         uuid.UUID         // Store the user ID for easier reference
+	room           *roommodel.Room
+	ansHistory     map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq // map[questionD]map[userID]answerIW
 }
 
 type NewMessageEvent struct {
@@ -106,6 +109,7 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 		userID:     userID,
 		room:       room,
 		ansHistory: make(map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq),
+		TOC:        time.Now(),
 	}
 }
 
@@ -114,7 +118,6 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 func (m *Manager) ServeWS(c *gin.Context) {
 	ctx := c.Request.Context()
 	l := logs.GetLoggerctx(ctx)
-	log.Println("New connection")
 	conn, err := websocketUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		l.Sugar().Error("websocket upgrade error:", err)
@@ -191,7 +194,6 @@ func (m *Manager) ServeWS(c *gin.Context) {
 
 	}
 
-	return
 }
 
 // Set up bots to be ready when a human player joins
@@ -204,15 +206,17 @@ func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID 
 	var userDetails *usermodel.UserInfo
 	var err error
 
+	// TODO: get from context
+	userDetails = util.GetUserInfoFromctx(ctx)
 	// Retry logic for getting user details
-	for retries := 0; retries < 3; retries++ {
-		userDetails, err = user.GetUserDetailsbyID(ctx, userID)
-		if err == nil {
-			break
-		}
-		l.Sugar().Warnf("Get user details attempt %d failed: %v. Retrying...", retries+1, err)
-		time.Sleep(1 * time.Second)
-	}
+	// for retries := 0; retries < 3; retries++ {
+	// 	userDetails, err = user.GetUserDetailsbyID(ctx, userID)
+	// 	if err == nil {
+	// 		break
+	// 	}
+	// 	l.Sugar().Warnf("Get user details attempt %d failed: %v. Retrying...", retries+1, err)
+	// 	time.Sleep(1 * time.Second)
+	// }
 
 	// Set the user to ready state
 	// Notify all clients that this user is ready
@@ -266,7 +270,7 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	c.manager.Unlock()
 
 	// Fetch questions from the database
-	questions, err := quiz.ListQuestionsByRoomCode(ctx, c.roomCode) // TODO: instead od storing all generated questions in the db and fetching them here we need to store in memory and use it and slowly update it back to the database
+	questions, err := quiz.ListQuestionsByRoomCode(ctx, c.roomCode) // TODO: instead of storing all generated questions in the db and fetching them here we need to store in memory and use it and slowly update it back to the database
 	if err != nil {
 		l.Sugar().Error("failed to fetch questions:", err)
 		return err
@@ -353,10 +357,15 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string, an
 				return err
 			}
 		}
-		//TODO: find a better way to update the database and clear the memory as well after updating the pgsql db
+		//TODO: find a better way to update the database (like a queue kind of thingy to
+		// update db later and clear the memory as well after updating the pgsql db
 		// updating the answer history in answer table
 		err = updateAnswerHistory(ctx, ansHistory)
-		return err
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	// Get the current question
@@ -443,7 +452,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	}
 
 	// Get the game state
-	c.manager.Lock()
+	c.manager.Lock() // TODO: check if we are locking for too long
 	gameState, exists := c.manager.gameStates[c.roomCode]
 	if !exists {
 		c.manager.Unlock()
@@ -702,7 +711,8 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 		return fmt.Errorf("user not found")
 	}
 
-	// TODO: this api is wrong
+	// TODO: this api is wrong we can update inmemory
+
 	// Update the room member's ready status
 	err = room.UpdateRoomMemberStatusByID(ctx, roommodel.RoomMemberReq{
 		UserID:           c.userID,
@@ -788,6 +798,7 @@ func (m *Manager) addClient(client *Client) {
 		m.clients[client.roomCode] = make(ClientList)
 	}
 	m.clients[client.roomCode][client] = true
+	m.MTOC = time.Now()
 	m.Unlock()
 }
 
@@ -848,35 +859,6 @@ func (c *Client) writeUsersMessages(ctx context.Context) {
 	l := logs.GetLoggerctx(ctx)
 
 	l.Info("Client connected for write user messages")
-	ticker := time.NewTicker(time.Second * 9)
-
-	defer func() {
-		ticker.Stop()
-		c.manager.removeClient(c)
-	}()
-	for {
-		select {
-		case message, ok := <-c.egress:
-			if !ok {
-				c.connection.WriteMessage(websocket.CloseMessage, nil)
-				return
-			}
-			data, _ := json.Marshal(message)
-			err := c.connection.WriteMessage(websocket.TextMessage, data)
-			if err != nil {
-				l.Sugar().Error(err)
-			}
-		case <-ticker.C:
-			log.Println("ping")
-			c.connection.WriteMessage(websocket.PingMessage, nil)
-		}
-	}
-}
-
-func (c *Client) writeBotMessages(ctx context.Context) {
-	l := logs.GetLoggerctx(ctx)
-
-	l.Info("Client connected for write bot messages")
 	ticker := time.NewTicker(time.Second * 9)
 
 	defer func() {

@@ -127,6 +127,12 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 
 			switch event.Type {
 			case EventNewQuestion:
+
+				// Cancel previous answer goroutine if any
+				if c.QuestionCancel != nil {
+					c.QuestionCancel()
+				}
+
 				// Parse the question data
 				questionEvent := questionEvent{}
 				if err := json.Unmarshal(event.Payload, &questionEvent); err != nil {
@@ -143,15 +149,19 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 					delay = maxDelay
 				}
 
+				// Create a new context for this question
+				qCtx, cancel := context.WithCancel(ctx)
+				c.QuestionCancel = cancel
+
 				// Spawn a new goroutine for delayed answer submission
 				go func(qID uuid.UUID, d time.Duration, botID uuid.UUID) {
 					l.Sugar().Debugf("Bot %v will answer question %v in %v", botID, qID, d)
 
 					select {
-					case <-ctx.Done():
+					case <-qCtx.Done():
 						return
 					case <-time.After(d):
-						c.submitRandomAnswer(ctx, qID)
+						c.submitRandomAnswer(qCtx, qID)
 					}
 				}(questionEvent.Question.ID, delay, c.userID)
 
@@ -160,6 +170,9 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 
 			case EventBotGameOver:
 				l.Sugar().Debugf("Bot %s received game over event", c.userID)
+				if c.QuestionCancel != nil { // cancel if any running answer goroutines coz we no need them
+					c.QuestionCancel()
+				}
 				// Clean up bot resources or perform any necessary actions
 				//Update bot answer history in db
 				err := updateAnswerHistory(ctx, c.ansHistory)
@@ -228,22 +241,6 @@ func (c *Client) submitRandomAnswer(ctx context.Context, questionID uuid.UUID) {
 		if err != nil {
 			return
 		}
-		// TODO: WE NEED to write the result in db
-		// err := quiz.CreateAnswer(ctx, quizmodel.AnswerReq{ // this will go inside submit answer handler
-		// 	RoomCode:       c.roomCode,
-		// 	UserID:         c.userID,
-		// 	QuestionID:     questionID,
-		// 	QuestionDataID: currentQuestion.ID,
-		// 	AnswerOption:   int32(selectedOption.ID),
-		// 	IsCorrect:      currentQuestion.Answer == selectedOption.ID,
-		// 	AnswerTime:     time.Now(),
-		// 	CreatedBy:      c.userID.String(),
-		// })
-		// if err != nil {
-		// 	l.Sugar().Error("submiting answer failed ", err)
-		// }
-
-		//	client.egress <- answerEvent
 	}
 
 	// Channel is full or closed
