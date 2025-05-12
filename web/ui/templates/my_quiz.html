@@ -20,7 +20,7 @@
         {{ define "content" }}
         <div class="navbar" data-hx-get="/bw/navbar" hx-trigger="load" hx-swap="innerHTML"></div>
         
-        <div class="max-w-4xl mx-auto mt-6 space-y-6">
+        <div class="max-w-4xl mx-auto mt-6 space-y-6 w-full overflow-auto">
           {{range .roomDetails}}
             <div class="border rounded-lg p-5 shadow-md bg-white relative">
               <!-- Header -->
