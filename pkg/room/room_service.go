@@ -387,20 +387,22 @@ func ListRoom(ctx context.Context, req model.UserIDReq) (roomDetails []*model.Ro
 	}
 	for _, room := range rooms {
 		roomDetails = append(roomDetails, &model.Room{
-			ID:         room.ID.Bytes,
-			RoomName:   room.RoomName.String,
-			UserMeta:   string(room.RoomMeta),
-			GameType:   model.GT(room.GameType),
-			IsActive:   room.IsActive,
-			IsDeleted:  room.IsDeleted,
-			CreatedOn:  room.CreatedOn.Time,
-			UpdatedOn:  room.UpdatedOn.Time,
-			RoomCode:   room.RoomCode,
-			RoomMeta:   string(room.RoomMeta),
-			RoomChat:   string(room.RoomChat),
-			Roomstatus: model.RoomStatus(room.RoomStatus),
-			CreatedBy:  room.CreatedBy,
-			UpdatedBy:  room.UpdatedBy,
+			ID:            room.ID.Bytes,
+			RoomName:      room.RoomName.String,
+			UserMeta:      string(room.RoomMeta),
+			GameType:      model.GT(room.GameType),
+			IsActive:      room.IsActive,
+			IsDeleted:     room.IsDeleted,
+			CreatedOn:     room.CreatedOn.Time,
+			UpdatedOn:     room.UpdatedOn.Time,
+			RoomCode:      room.RoomCode,
+			RoomMeta:      string(room.RoomMeta),
+			RoomChat:      string(room.RoomChat),
+			Roomstatus:    model.RoomStatus(room.RoomStatus),
+			CreatedBy:     room.CreatedBy,
+			UpdatedBy:     room.UpdatedBy,
+			QuestionTopic: room.Topic.String,
+			TimeLimit:     int(room.TimeLimit),
 		})
 	}
 	return roomDetails, nil

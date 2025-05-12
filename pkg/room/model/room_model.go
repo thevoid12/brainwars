@@ -53,20 +53,22 @@ const (
 
 // Room is a struct that defines the room model
 type Room struct {
-	ID         uuid.UUID
-	RoomName   string
-	RoomCode   string
-	UserMeta   string
-	RoomMeta   string
-	RoomChat   string
-	GameType   GT
-	Roomstatus RoomStatus
-	IsActive   bool
-	IsDeleted  bool
-	CreatedBy  string
-	UpdatedBy  string
-	CreatedOn  time.Time
-	UpdatedOn  time.Time
+	ID            uuid.UUID
+	RoomName      string
+	RoomCode      string
+	UserMeta      string
+	RoomMeta      string
+	RoomChat      string
+	GameType      GT
+	Roomstatus    RoomStatus
+	IsActive      bool
+	IsDeleted     bool
+	CreatedBy     string
+	UpdatedBy     string
+	CreatedOn     time.Time
+	UpdatedOn     time.Time
+	QuestionTopic string // for listing
+	TimeLimit     int    // for listing
 }
 
 type EditRoomReq struct {

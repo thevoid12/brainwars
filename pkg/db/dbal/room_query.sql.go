@@ -595,45 +595,34 @@ func (q *Queries) ListRoomMembersByRoomCode(ctx context.Context, roomCode string
 }
 
 const listRoomsByUserID = `-- name: ListRoomsByUserID :many
-SELECT r.id, r.room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, room_status, r.is_active, r.is_deleted, r.created_on, r.updated_on, r.created_by, r.updated_by, rm.id, rm.room_code, room_id, user_id, is_bot, joined_on, room_member_status, rm.is_active, rm.is_deleted, rm.created_on, rm.updated_on, rm.created_by, rm.updated_by
+SELECT r.id, r.room_code, r.room_name, r.room_owner, r.room_chat, r.room_meta, r.room_lock, r.game_type, r.room_status, r.is_active, r.is_deleted, r.created_on, r.updated_on, r.created_by, r.updated_by,q.topic,q.time_limit
 FROM room r
 INNER JOIN room_member rm ON rm.room_id = r.id
+inner join question q on r.room_code = q.room_code
 WHERE rm.user_id = $1
   AND r.is_deleted = false
   AND rm.is_deleted = false
-  and r.room_meta == '[{}]'
-ORDER BY r.updated_on DESC
+ORDER BY r.updated_on desc
 `
 
 type ListRoomsByUserIDRow struct {
-	ID               pgtype.UUID
-	RoomCode         string
-	RoomName         pgtype.Text
-	RoomOwner        pgtype.UUID
-	RoomChat         []byte
-	RoomMeta         []byte
-	RoomLock         bool
-	GameType         string
-	RoomStatus       string
-	IsActive         bool
-	IsDeleted        bool
-	CreatedOn        pgtype.Timestamp
-	UpdatedOn        pgtype.Timestamp
-	CreatedBy        string
-	UpdatedBy        string
-	ID_2             pgtype.UUID
-	RoomCode_2       string
-	RoomID           pgtype.UUID
-	UserID           pgtype.UUID
-	IsBot            bool
-	JoinedOn         pgtype.Timestamp
-	RoomMemberStatus string
-	IsActive_2       bool
-	IsDeleted_2      bool
-	CreatedOn_2      pgtype.Timestamp
-	UpdatedOn_2      pgtype.Timestamp
-	CreatedBy_2      string
-	UpdatedBy_2      string
+	ID         pgtype.UUID
+	RoomCode   string
+	RoomName   pgtype.Text
+	RoomOwner  pgtype.UUID
+	RoomChat   []byte
+	RoomMeta   []byte
+	RoomLock   bool
+	GameType   string
+	RoomStatus string
+	IsActive   bool
+	IsDeleted  bool
+	CreatedOn  pgtype.Timestamp
+	UpdatedOn  pgtype.Timestamp
+	CreatedBy  string
+	UpdatedBy  string
+	Topic      pgtype.Text
+	TimeLimit  int32
 }
 
 func (q *Queries) ListRoomsByUserID(ctx context.Context, userID pgtype.UUID) ([]ListRoomsByUserIDRow, error) {
@@ -661,19 +650,8 @@ func (q *Queries) ListRoomsByUserID(ctx context.Context, userID pgtype.UUID) ([]
 			&i.UpdatedOn,
 			&i.CreatedBy,
 			&i.UpdatedBy,
-			&i.ID_2,
-			&i.RoomCode_2,
-			&i.RoomID,
-			&i.UserID,
-			&i.IsBot,
-			&i.JoinedOn,
-			&i.RoomMemberStatus,
-			&i.IsActive_2,
-			&i.IsDeleted_2,
-			&i.CreatedOn_2,
-			&i.UpdatedOn_2,
-			&i.CreatedBy_2,
-			&i.UpdatedBy_2,
+			&i.Topic,
+			&i.TimeLimit,
 		); err != nil {
 			return nil, err
 		}

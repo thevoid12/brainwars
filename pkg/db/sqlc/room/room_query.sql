@@ -21,14 +21,14 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), $10, $11, $12,$13)
 RETURNING *;
 
 -- name: ListRoomsByUserID :many
-SELECT *
+SELECT r.*,q.topic,q.time_limit
 FROM room r
 INNER JOIN room_member rm ON rm.room_id = r.id
+inner join question q on r.room_code = q.room_code
 WHERE rm.user_id = $1
   AND r.is_deleted = false
   AND rm.is_deleted = false
-  and r.room_meta == '[{}]'
-ORDER BY r.updated_on DESC;
+ORDER BY r.updated_on desc;
 
 
 -- name: GetRoomByID :many
