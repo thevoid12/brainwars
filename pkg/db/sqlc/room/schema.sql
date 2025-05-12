@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS room (
 CREATE TABLE IF NOT EXISTS room_member (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_code TEXT NOT NULL,
-  room_id TEXT NOT NULL, -- primary key of room table
+  room_id UUID NOT NULL, -- primary key of room table
   user_id UUID NOT NULL ,
   is_bot BOOLEAN NOT NULL DEFAULT false,
   joined_on TIMESTAMP NOT NULL,

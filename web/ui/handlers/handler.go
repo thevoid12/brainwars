@@ -247,3 +247,24 @@ func AnalyticsHandler(c *gin.Context) {
 		"answers":  answers,
 	})
 }
+
+// func MyQuizHistoryHandler(c *gin.Context) {
+// 	ctx := c.Request.Context()
+// 	userInfo := util.GetUserInfoFromctx(ctx)
+// 	userID := userInfo.ID
+
+// 	meta, answers, err := room.ListGameAnalytics(ctx, roommodel.RoomCodeReq{
+// 		UserID:   userID,
+// 		RoomCode: roomCode,
+// 	})
+// 	if err != nil {
+// 		RenderErrorTemplate(c, "home.html", "Failed to get analytics", err)
+// 		return
+// 	}
+// 	RenderTemplate(c, "analysis.html", gin.H{
+// 		"title":    "Analytics",
+// 		"roomCode": roomCode,
+// 		"meta":     meta,
+// 		"answers":  answers,
+// 	})
+// }

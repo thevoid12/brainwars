@@ -172,7 +172,10 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 		IsDeleted:        false,
 		CreatedBy:        req.UserID.String(),
 		UpdatedBy:        req.UserID.String(),
-		RoomID:           roomID.String(),
+		RoomID: pgtype.UUID{
+			Bytes: roomID,
+			Valid: true,
+		},
 	}
 	_, err = dBal.CreateRoomMember(ctx, roomMemberParams)
 	if err != nil {
@@ -373,7 +376,7 @@ func ListRoom(ctx context.Context, req model.UserIDReq) (roomDetails []*model.Ro
 	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
-	rooms, err := dBal.ListRoomByUserID(ctx, pgtype.UUID{
+	rooms, err := dBal.ListRoomsByUserID(ctx, pgtype.UUID{
 		Bytes: req.UserID,
 		Valid: true,
 	})
@@ -463,7 +466,10 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 		IsDeleted:        false,
 		CreatedBy:        req.UserID.String(),
 		UpdatedBy:        req.UserID.String(),
-		RoomID:           room[0].ID.String(),
+		RoomID: pgtype.UUID{
+			Bytes: room[0].ID.Bytes,
+			Valid: true,
+		},
 	})
 
 	if err != nil {
@@ -615,7 +621,7 @@ func ListRoomMembersByRoomCode(ctx context.Context, req model.RoomCodeReq) (room
 			JoinedOn:  member.JoinedOn.Time,
 			CreatedOn: member.CreatedOn.Time,
 			UpdatedOn: member.UpdatedOn.Time,
-			RoomID:    uuid.MustParse(member.RoomID),
+			RoomID:    member.RoomID.Bytes,
 		})
 	}
 	return roomMembers, nil
@@ -669,7 +675,7 @@ func GetRoomMemberByRoomCodeAndUserID(ctx context.Context, req model.RoomMemberR
 		JoinedOn:  dbRecord[0].JoinedOn.Time,
 		CreatedOn: dbRecord[0].CreatedOn.Time,
 		UpdatedOn: dbRecord[0].UpdatedOn.Time,
-		RoomID:    uuid.MustParse(dbRecord[0].RoomID),
+		RoomID:    dbRecord[0].RoomID.Bytes,
 	}
 	return roomMember, nil
 }

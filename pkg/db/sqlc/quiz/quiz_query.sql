@@ -29,6 +29,7 @@ FROM question
 WHERE room_code = $1
 ORDER BY created_on ASC;
 
+
 ---------------------------- answers --------------------------------------
 
 -- name: CreateAnswer :exec

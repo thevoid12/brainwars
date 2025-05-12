@@ -55,6 +55,7 @@ func Initialize(ctx context.Context, l *zap.Logger) (router *gin.Engine) {
 
 	// analytics
 	rSecure.GET("/analyze/:code", handlers.AnalyticsHandler)
+	// rSecure.GET("/my-quiz", handlers.MyQuizHistoryHandler)
 
 	//auth group sets the context and calls auth middleware
 	rAuth := router.Group("/auth")

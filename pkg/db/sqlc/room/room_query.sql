@@ -20,9 +20,16 @@ INSERT INTO room (
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), $10, $11, $12,$13)
 RETURNING *;
 
--- name: ListRoomByUserID :many
-SELECT * FROM room
-WHERE room_owner = $1 AND is_deleted = false;
+-- name: ListRoomsByUserID :many
+SELECT *
+FROM room r
+INNER JOIN room_member rm ON rm.room_id = r.id
+WHERE rm.user_id = $1
+  AND r.is_deleted = false
+  AND rm.is_deleted = false
+  and r.room_meta == '[{}]'
+ORDER BY r.updated_on DESC;
+
 
 -- name: GetRoomByID :many
 SELECT * FROM room
@@ -53,6 +60,8 @@ SET
   updated_on = NOW(),
   updated_by = $3
 WHERE room_code = $1 AND is_deleted = false;
+
+
 -------------------------------------- Room Member ------------------------------------------------------------------------
 
 -- name: CreateRoomMember :one

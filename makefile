@@ -10,6 +10,11 @@ export $(shell sed 's/=.*//' .env)
 # Define the file patterns to include in the search
 	FILE_PATTERN ?= *.go
 
+migration-create:
+	@echo "**************************** migration create ***************************************"
+	goose -dir migrations create $(NAME) -ext sql
+	@echo "******************************************************************************"
+
 migrate-up:
 	@echo "**************************** migration up ***************************************"
 	@command="goose -dir migrations postgres \"user=${PG_USER} password=${PG_PASSWORD} dbname=${PG_DB} sslmode=${PG_SSLMODE}\" up"; \

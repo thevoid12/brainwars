@@ -157,7 +157,7 @@ type CreateRoomMemberParams struct {
 	IsDeleted        bool
 	CreatedBy        string
 	UpdatedBy        string
-	RoomID           string
+	RoomID           pgtype.UUID
 }
 
 // ------------------------------------ Room Member ------------------------------------------------------------------------
@@ -318,7 +318,7 @@ WHERE room_member.id = $1 AND room_member.is_deleted = false
 type GetRoomMemberByIDRow struct {
 	ID               pgtype.UUID
 	RoomCode         string
-	RoomID           string
+	RoomID           pgtype.UUID
 	UserID           pgtype.UUID
 	IsBot            bool
 	JoinedOn         pgtype.Timestamp
@@ -404,7 +404,7 @@ type GetRoomMemberByRoomCodeAndUserIDParams struct {
 type GetRoomMemberByRoomCodeAndUserIDRow struct {
 	ID               pgtype.UUID
 	RoomCode         string
-	RoomID           string
+	RoomID           pgtype.UUID
 	UserID           pgtype.UUID
 	IsBot            bool
 	JoinedOn         pgtype.Timestamp
@@ -513,47 +513,6 @@ func (q *Queries) ListLeaderBoardByRoomCode(ctx context.Context, roomCode string
 	return items, nil
 }
 
-const listRoomByUserID = `-- name: ListRoomByUserID :many
-SELECT id, room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, room_status, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM room
-WHERE room_owner = $1 AND is_deleted = false
-`
-
-func (q *Queries) ListRoomByUserID(ctx context.Context, roomOwner pgtype.UUID) ([]Room, error) {
-	rows, err := q.db.Query(ctx, listRoomByUserID, roomOwner)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Room
-	for rows.Next() {
-		var i Room
-		if err := rows.Scan(
-			&i.ID,
-			&i.RoomCode,
-			&i.RoomName,
-			&i.RoomOwner,
-			&i.RoomChat,
-			&i.RoomMeta,
-			&i.RoomLock,
-			&i.GameType,
-			&i.RoomStatus,
-			&i.IsActive,
-			&i.IsDeleted,
-			&i.CreatedOn,
-			&i.UpdatedOn,
-			&i.CreatedBy,
-			&i.UpdatedBy,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listRoomMembersByRoomCode = `-- name: ListRoomMembersByRoomCode :many
 SELECT room_member.id, room_code, room_id, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, username, refresh_token, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
 WHERE room_code = $1 AND room_member.is_deleted = false
@@ -562,7 +521,7 @@ WHERE room_code = $1 AND room_member.is_deleted = false
 type ListRoomMembersByRoomCodeRow struct {
 	ID               pgtype.UUID
 	RoomCode         string
-	RoomID           string
+	RoomID           pgtype.UUID
 	UserID           pgtype.UUID
 	IsBot            bool
 	JoinedOn         pgtype.Timestamp
@@ -618,6 +577,97 @@ func (q *Queries) ListRoomMembersByRoomCode(ctx context.Context, roomCode string
 			&i.BotType,
 			&i.UserMeta,
 			&i.Premium,
+			&i.IsActive_2,
+			&i.IsDeleted_2,
+			&i.CreatedOn_2,
+			&i.UpdatedOn_2,
+			&i.CreatedBy_2,
+			&i.UpdatedBy_2,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRoomsByUserID = `-- name: ListRoomsByUserID :many
+SELECT r.id, r.room_code, room_name, room_owner, room_chat, room_meta, room_lock, game_type, room_status, r.is_active, r.is_deleted, r.created_on, r.updated_on, r.created_by, r.updated_by, rm.id, rm.room_code, room_id, user_id, is_bot, joined_on, room_member_status, rm.is_active, rm.is_deleted, rm.created_on, rm.updated_on, rm.created_by, rm.updated_by
+FROM room r
+INNER JOIN room_member rm ON rm.room_id = r.id
+WHERE rm.user_id = $1
+  AND r.is_deleted = false
+  AND rm.is_deleted = false
+  and r.room_meta == '[{}]'
+ORDER BY r.updated_on DESC
+`
+
+type ListRoomsByUserIDRow struct {
+	ID               pgtype.UUID
+	RoomCode         string
+	RoomName         pgtype.Text
+	RoomOwner        pgtype.UUID
+	RoomChat         []byte
+	RoomMeta         []byte
+	RoomLock         bool
+	GameType         string
+	RoomStatus       string
+	IsActive         bool
+	IsDeleted        bool
+	CreatedOn        pgtype.Timestamp
+	UpdatedOn        pgtype.Timestamp
+	CreatedBy        string
+	UpdatedBy        string
+	ID_2             pgtype.UUID
+	RoomCode_2       string
+	RoomID           pgtype.UUID
+	UserID           pgtype.UUID
+	IsBot            bool
+	JoinedOn         pgtype.Timestamp
+	RoomMemberStatus string
+	IsActive_2       bool
+	IsDeleted_2      bool
+	CreatedOn_2      pgtype.Timestamp
+	UpdatedOn_2      pgtype.Timestamp
+	CreatedBy_2      string
+	UpdatedBy_2      string
+}
+
+func (q *Queries) ListRoomsByUserID(ctx context.Context, userID pgtype.UUID) ([]ListRoomsByUserIDRow, error) {
+	rows, err := q.db.Query(ctx, listRoomsByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRoomsByUserIDRow
+	for rows.Next() {
+		var i ListRoomsByUserIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomCode,
+			&i.RoomName,
+			&i.RoomOwner,
+			&i.RoomChat,
+			&i.RoomMeta,
+			&i.RoomLock,
+			&i.GameType,
+			&i.RoomStatus,
+			&i.IsActive,
+			&i.IsDeleted,
+			&i.CreatedOn,
+			&i.UpdatedOn,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+			&i.ID_2,
+			&i.RoomCode_2,
+			&i.RoomID,
+			&i.UserID,
+			&i.IsBot,
+			&i.JoinedOn,
+			&i.RoomMemberStatus,
 			&i.IsActive_2,
 			&i.IsDeleted_2,
 			&i.CreatedOn_2,

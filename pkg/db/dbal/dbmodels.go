@@ -69,7 +69,7 @@ type Room struct {
 type RoomMember struct {
 	ID               pgtype.UUID
 	RoomCode         string
-	RoomID           string
+	RoomID           pgtype.UUID
 	UserID           pgtype.UUID
 	IsBot            bool
 	JoinedOn         pgtype.Timestamp
