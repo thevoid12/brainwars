@@ -80,7 +80,6 @@
               <!-- Analyze Button -->
               {{if eq .Roomstatus "ENDED"}}
               <div class="mt-4">
-                <h2 class="text-lg font-semibold text-gray-800 mb-1">Join Room</h2>
                 <a href="/bw/analyze/{{.RoomCode}}" class="inline-block bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 text-sm">
                   Analyze
                 </a>
@@ -89,19 +88,7 @@
             </div>
           {{end}}
         </div>
-        
-        <!-- JS for copy feedback -->
-        <script>
-          function copyRoomCode(code) {
-            const text = document.getElementById("code-" + code).innerText;
-            navigator.clipboard.writeText(text).then(() => {
-              const msg = document.getElementById("copied-msg-" + code);
-              msg.classList.remove("hidden");
-              setTimeout(() => {
-                msg.classList.add("hidden");
-              }, 1500);
-            });
-          }
-        </script>
+
+       
         {{ end }}
         
