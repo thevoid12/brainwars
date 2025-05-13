@@ -12,5 +12,9 @@
   },
   "game": {
     "gamestartbuffer": 3
+  },
+  "cacheCleaner":{
+    "intervalMinutes":10 ,
+    "repeatIntervalMinutes":5
   }
 }

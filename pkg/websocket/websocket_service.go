@@ -12,6 +12,7 @@ import (
 	"brainwars/pkg/quiz"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
+
 	"brainwars/pkg/room/model"
 	roommodel "brainwars/pkg/room/model"
 	user "brainwars/pkg/users"
@@ -53,7 +54,6 @@ type Manager struct {
 	handlers   map[string]EventHandler
 	roomStates map[string]*roommodel.RoomStatus
 	gameStates map[string]*quizmodel.GameState
-	MTOC       time.Time // Manager Time of creation
 }
 
 type ClientList map[*Client]bool
@@ -89,6 +89,7 @@ func NewManager(ctx context.Context) *Manager {
 		gameStates: make(map[string]*quizmodel.GameState),
 	}
 	m.setupEventHandlers()
+	m.MemoryCleanup(ctx)
 	return m
 }
 
@@ -111,6 +112,52 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 		ansHistory: make(map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq),
 		TOC:        time.Now(),
 	}
+}
+
+func (m *Manager) MemoryCleanup(ctx context.Context) {
+	l := logs.GetLoggerctx(ctx)
+	ticker := time.NewTicker(time.Minute * time.Duration(viper.GetInt("cacheCleaner.repeatIntervalMinutes")))
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				m.Lock()
+				interval := time.Minute * time.Duration(viper.GetInt("cacheCleaner.intervalMinutes"))
+				for roomCode, clients := range m.clients {
+					for client := range clients {
+						fmt.Println(client.TOC.Format("2006-01-02 15:04:05"))
+						expiry := client.TOC.Add(interval)
+						fmt.Println(expiry.Format("2006-01-02 15:04:05"))
+						fmt.Println(time.Now().Format("2006-01-02 15:04:05"))
+						// Check if the client is inactive (e.g., not sending/receiving messages)
+						if time.Now().After(expiry) {
+							// if client is not closed then close it TODO: what will happen if  the connection is already closed?
+							if client.connection != nil {
+								client.connection.Close()
+							}
+							// Remove the client from the list
+							delete(clients, client)
+							l.Sugar().Info("Client %s removed from room %s due to inactivity", client.userID.String(), roomCode)
+						}
+					}
+					// If no clients are left in the room, remove the room from the manager
+					if len(clients) == 0 {
+						delete(m.clients, roomCode)
+					}
+				}
+				m.Unlock()
+			}
+		}
+	}()
+	// Stop the ticker when the context is done
+	go func() {
+		<-ctx.Done()
+		ticker.Stop()
+		done <- true
+	}()
 }
 
 // when user joins a room this serveWs handler is called
@@ -798,7 +845,6 @@ func (m *Manager) addClient(client *Client) {
 		m.clients[client.roomCode] = make(ClientList)
 	}
 	m.clients[client.roomCode][client] = true
-	m.MTOC = time.Now()
 	m.Unlock()
 }
 
@@ -879,7 +925,13 @@ func (c *Client) writeUsersMessages(ctx context.Context) {
 			}
 		case <-ticker.C:
 			log.Println("ping")
-			c.connection.WriteMessage(websocket.PingMessage, nil)
+			err := c.connection.WriteMessage(websocket.PingMessage, nil)
+			if err != nil {
+				l.Sugar().Error("ping error", err)
+			}
+		case <-ctx.Done():
+			l.Info("Context canceled, stopping writer")
+			return
 		}
 	}
 }
