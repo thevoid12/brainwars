@@ -258,6 +258,7 @@ window.onload = function () {
 
     let html = `
       <div class="flex-1 flex flex-col items-center justify-center p-8">
+    
         <div class="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full">
           <div class="text-center mb-8">
             <h2 class="text-3xl font-bold text-primary-600 mb-2">${message}</h2>
@@ -294,7 +295,11 @@ window.onload = function () {
               </div>
             `}
           </div>
-
+              <div class="mt-8 text-center">
+            <button onclick="openModal({ url: '/bw/home/', method: 'GET',  message: 'Clicking Yes redirect you to homePage. Are you sure?' })" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors">
+             End Game
+            </button>
+          </div>
           <div class="mt-8 text-center">
             <button onclick="openModal({ url: '/bw/analyze/', method: 'GET',body: { roomCode: '${roomcode}' },  message: 'Clicking Yes will move you out of the game room. Are you sure?' })" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg transition-colors">
              Analyze Results 

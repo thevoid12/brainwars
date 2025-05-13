@@ -884,8 +884,6 @@ func (c *Client) readMessages(ctx context.Context) {
 				l.Sugar().Errorf("unexpected close error: %v", err)
 			} else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				l.Sugar().Errorf("read timeout: %v", err)
-			} else {
-				l.Sugar().Errorf("error reading message: %v", err)
 			}
 			break
 		}
@@ -928,10 +926,15 @@ func (c *Client) writeUsersMessages(ctx context.Context) {
 			err := c.connection.WriteMessage(websocket.PingMessage, nil)
 			if err != nil {
 				l.Sugar().Error("ping error", err)
+				ticker.Stop()
+				c.manager.removeClient(c)
+				return
 			}
 		case <-ctx.Done():
 			l.Info("Context canceled, stopping writer")
+			ticker.Stop()
 			return
+
 		}
 	}
 }
