@@ -8,7 +8,41 @@
   <script src="/assets/js/brainwars.js"></script>
   <script src="/assets/js/modal.js"></script>
   <script src="/assets/js/copy.js"></script>
-
+  <script src="/assets/js/error.js"></script>
+ <style>
+        .error-popup {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background-color: #c53030; /* Tailwind's bg-red-600 */
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: scale(0);
+            opacity: 0;
+            transition: all 0.3s ease;
+            width: 40rem;
+            max-width: 90%;
+        }
+        .error-popup.show {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .close-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .close-btn svg {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+    </style>
   <script>
     tailwind.config = {
       theme: {
@@ -39,5 +73,21 @@
     {{ template "content" . }}
   </div>
 </body>
+
+
+<!-- Error Popup Component -->
+<div id="errorPopup" class="error-popup" data-error="{{ .ErrorMessage }}">
+    <div class="flex items-center">
+        <svg class="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span id="errorMessage" class="font-semibold text-lg"></span>
+    </div>
+    <button id="closeError" class="close-btn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+    </button>
+</div>
 
 </html>
