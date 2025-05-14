@@ -63,18 +63,19 @@ game
 - [x] add exit game button which will exit you out of the game remove ws
 - [x] write a timer which will delete the inmemory cache once in an hour
 - [x] find a way on how to check for memory leak
+- [x] error rendering on screen pop up
+- [x] error rendering on screen pop up
+- [x] shouldnt be able to exit without ticking a modal in between 
+- [x] close the ws connection when he clicks yes to the modal for game analysis
 - [ ] check for deadlock and race conditions
 - [ ] productionize tailwind remove tailwind.config from layout
-- [ ] error rendering on screen pop up
 - [ ] validate and sanitize all models
 - [ ] tips to imporve using gpt in analysis
 - [ ] if i do hard reload after game is over it again goes to the first question
-- [ ] close the ws connection when he clicks yes to the modal for game analysis
 - [ ] there is some bug with updating state of the room fix it check all the logic and make sure we are updating the db
 - [ ] disable refresh in game or atleast get a pop up. upon refreshjing he shouldf be kicked out of the ws and sent to home
 - [ ] close all open channels
 - [ ] confetti needs to come only for the winning user
-- [ ] shouldnt be able to exit without ticking a modal in between 
 - [ ] fix multiplayer
 - [ ] authentication and session
 - [ ] need to figure out websocket reconnection if something is messed up
@@ -86,13 +87,14 @@ game
 - [ ] xss protection
 - [ ] uploading pdf's to generate question
 - [ ] handle ui errors display appropriately
-- [ ] error rendering on screen pop up
 - [ ] validate and sanitize all models
 - [ ] auth
 - [ ] session
 - [ ] if a user leaves before starting a game we need to remove him( ie if his connection is not active or he leaves explicitly)
 - [ ] they shouldnt add a bot which takes more time than room each question time
 - [ ] there is another checklist shown with the status of others submitted the question or not
-
+- [ ] go through all app todos
+- [ ] go through all ui resize it and see if it needs some fixes like auto scrolling
+- [ ] cleanup of roomstatus and gamestatus in the manager (we are already cleaning client in the timer)
 ## v2
 - [ ] move to redis

@@ -124,26 +124,21 @@ func CreateRoomHandler(c *gin.Context) {
 		Topic: topic,
 		Count: qc,
 	}
+
 	roomCode, err := room.SetupGame(ctx, roomreq, botIDs, questReq)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Failed to Setup game", err)
 		return
 	}
 	if roomreq.GameType == model.SP {
+		// redirct to the game room
+		c.Redirect(302, fmt.Sprintf("/bw/ingame/%s", roomCode))
 		// immidiately join the room,start the game
-		RenderTemplate(c, "game.html", gin.H{
-			"title":    "game room",
-			"roomCode": roomCode,
-			"userID":   userID,
-		})
 
 		return
 	}
 	// if he is a multiplayer mode then redirect to main page through which he can join the game with room code
-	RenderTemplate(c, "home.html", gin.H{
-		"title":   "Home Page",
-		"user-id": userID,
-	})
+	c.Redirect(302, "/bw/home/")
 
 }
 
@@ -195,8 +190,30 @@ func JoinRoomHandler(c *gin.Context) {
 	})
 }
 
-func GameHandler(c *gin.Context) {
-	RenderTemplate(c, "quiz.html", gin.H{})
+func InGameHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	roomCode := c.Param("code")
+	userInfo := util.GetUserInfoFromctx(ctx)
+	userID := userInfo.ID
+
+	// check if the user is already in the room
+	roomMember, err := room.GetRoomMemberByRoomCodeAndUserID(ctx, roommodel.RoomMemberReq{
+		UserID:   userID,
+		RoomCode: roomCode,
+	})
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "Failed to join room", err)
+	}
+	if roomMember == nil {
+		RenderErrorTemplate(c, "home.html", "you are not in the room", err)
+	}
+
+	RenderTemplate(c, "game.html", gin.H{
+		"title":    "game room",
+		"roomCode": roomCode,
+		"userID":   userID,
+	})
+
 }
 
 func ListAllRoomsHanlder(c *gin.Context) {

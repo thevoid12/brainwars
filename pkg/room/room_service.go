@@ -35,6 +35,7 @@ func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq,
 
 	// Add room members
 	for _, membersID := range botIDs {
+		// TODO: if multiplayer if the bot has already joined the room then dont add it again
 		// get user details
 		_, err = JoinRoom(ctx, model.RoomMemberReq{
 			UserID:           membersID.UserID,

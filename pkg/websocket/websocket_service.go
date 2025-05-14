@@ -12,12 +12,12 @@ import (
 	"brainwars/pkg/quiz"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
-
 	"brainwars/pkg/room/model"
 	roommodel "brainwars/pkg/room/model"
 	user "brainwars/pkg/users"
 	usermodel "brainwars/pkg/users/model"
 	"brainwars/pkg/util"
+	"brainwars/web/ui/handlers"
 	"context"
 	"encoding/json"
 	"errors"
@@ -68,6 +68,7 @@ type Client struct {
 	isBot          bool              // Flag to identify bot clients
 	botType        usermodel.BotType // Empty for real users, "30sec", "1min", "2min" for bots
 	userID         uuid.UUID         // Store the user ID for easier reference
+	sID            uuid.UUID
 	room           *roommodel.Room
 	ansHistory     map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq // map[questionD]map[userID]answerIW
 }
@@ -93,7 +94,7 @@ func NewManager(ctx context.Context) *Manager {
 	return m
 }
 
-func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bool, botType usermodel.BotType, userID uuid.UUID, room *model.Room) *Client {
+func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bool, botType usermodel.BotType, userID uuid.UUID, sid uuid.UUID, room *model.Room) *Client {
 
 	// // Only set up pong handler for real clients with WebSocket connections
 	// if conn != nil {
@@ -108,6 +109,7 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 		isBot:      isBot,
 		botType:    botType,
 		userID:     userID,
+		sID:        sid,
 		room:       room,
 		ansHistory: make(map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq),
 		TOC:        time.Now(),
@@ -165,21 +167,34 @@ func (m *Manager) MemoryCleanup(ctx context.Context) {
 func (m *Manager) ServeWS(c *gin.Context) {
 	ctx := c.Request.Context()
 	l := logs.GetLoggerctx(ctx)
+	userInfo := util.GetUserInfoFromctx(ctx)
+	userID := userInfo.ID
+
+	// get the roomID from the query params
+	roomCode := c.Query("roomCode")
+	if roomCode == "" {
+		l.Sugar().Error("room code not found", nil)
+		return
+	}
+	m.Lock()
+	gameState, exists := m.gameStates[roomCode]
+	m.Unlock()
+
+	if exists {
+		if gameState.RoomStatus == roommodel.Started {
+			l.Sugar().Error("user already in the room (page refreshed)")
+			//http.Error(c.Writer, "REFRESHED_PAGE", http.StatusForbidden)
+			//c.Redirect(http.StatusFound, "/bw/home/")
+			handlers.RenderErrorTemplate(c, "home.html", "refreshing page kicks you out of the game since the game runs realtime!", nil)
+			return
+		}
+	}
+
 	conn, err := websocketUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		l.Sugar().Error("websocket upgrade error:", err)
 		return
 	}
-
-	// get the roomID from the query params
-	roomCode := c.Query("roomCode")
-	if roomCode == "" {
-		l.Sugar().Error("room code not found", err)
-		return
-	}
-
-	userInfo := util.GetUserInfoFromctx(ctx)
-	userID := userInfo.ID
 
 	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
 	if err != nil {
@@ -204,6 +219,9 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		return
 	}
 
+	// Check if the user is already in the room so when he refreshes the page
+	// he is pushed out of the page and the connection is closed since the game is realtime multiplayer
+
 	questions, err := quiz.ListQuestionsByRoomCode(ctx, roomCode)
 	if err != nil {
 		l.Sugar().Error("list questions by room code failed", err)
@@ -211,8 +229,9 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	}
 
 	totalQuestions := questions.QuestionCount
-
-	client := NewClient(conn, m, roomCode, false, "", userID, roomDetails)
+	// TODO: get sessionID from the context after auth is implemented as of now i am using a random uuid
+	sid := uuid.New()
+	client := NewClient(conn, m, roomCode, false, "", userID, sid, roomDetails)
 	m.addClient(client)
 
 	// Check if the room needs to be initialized
@@ -849,6 +868,7 @@ func (m *Manager) addClient(client *Client) {
 }
 
 func (m *Manager) removeClient(client *Client) {
+
 	m.Lock()
 	if _, exists := m.clients[client.roomCode]; exists {
 		delete(m.clients[client.roomCode], client)

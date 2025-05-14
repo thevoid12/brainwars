@@ -27,7 +27,10 @@ window.onload = function () {
       }
     };
     conn.onclose = function (e) {
+
       console.log("Connection closed!");
+      window.location.href = "/bw/home/"
+      return;
     };
 
     function renderQuestion(payload) {
