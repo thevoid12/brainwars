@@ -24,4 +24,17 @@
   </div>
 </div>
 <script src="/assets/js/game.js"></script>
+<script>
+  window.addEventListener("beforeunload", function (e) {
+  // Standard message; browsers don't show custom messages anymore
+  const confirmationMessage = "Refreshing will remove you from the game. Are you sure?";
+
+  // Required for Chrome and Firefox to show the confirmation dialog
+  e.preventDefault();
+  e.returnValue = confirmationMessage;
+
+  return confirmationMessage;
+});
+
+</script>
 {{ end }}

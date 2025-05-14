@@ -71,7 +71,7 @@ game
 - [ ] productionize tailwind remove tailwind.config from layout
 - [ ] validate and sanitize all models
 - [ ] tips to imporve using gpt in analysis
-- [ ] if i do hard reload after game is over it again goes to the first question
+- [x] if i do hard reload after game is over it again goes to the first question
 - [ ] there is some bug with updating state of the room fix it check all the logic and make sure we are updating the db
 - [ ] disable refresh in game or atleast get a pop up. upon refreshjing he shouldf be kicked out of the ws and sent to home
 - [ ] close all open channels
@@ -79,11 +79,11 @@ game
 - [ ] fix multiplayer
 - [ ] authentication and session
 - [ ] need to figure out websocket reconnection if something is messed up
-- [ ] remove egress channel and change it into connection map so 
+- [x] remove egress channel and change it into connection map so 
 - [ ] multiplayer
 - [ ] go through all fmt.println statements and remove unwanted stuff
 - [ ] use safehtml for all the backend data which we are sending to ui
-- [ ] add otp ferature in websocket to prevent csrf 
+- [ ] ad 
 - [ ] xss protection
 - [ ] uploading pdf's to generate question
 - [ ] handle ui errors display appropriately
@@ -96,5 +96,9 @@ game
 - [ ] go through all app todos
 - [ ] go through all ui resize it and see if it needs some fixes like auto scrolling
 - [ ] cleanup of roomstatus and gamestatus in the manager (we are already cleaning client in the timer)
+- [ ] navigation bugs fix (using back button) 2025-05-14T10:46:07.350+0530	error	users/user_service.go:19	Could not initialize databasefailed to connect to PostgreSQL: failed to connect to `user=postgres database=postgres`:
+	[::1]:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
+	127.0.0.1:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
+
 ## v2
 - [ ] move to redis
