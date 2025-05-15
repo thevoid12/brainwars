@@ -99,6 +99,150 @@ game
 - [ ] navigation bugs fix (using back button) 2025-05-14T10:46:07.350+0530	error	users/user_service.go:19	Could not initialize databasefailed to connect to PostgreSQL: failed to connect to `user=postgres database=postgres`:
 	[::1]:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
 	127.0.0.1:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
-
+- [ ] completely gamify the ui
+- [ ] auth 0 production needs to come from the official oauth keys https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/devkeys
 ## v2
 - [ ] move to redis
+auth0 docs:
+https://auth0.com/docs/quickstart/webapp/golang/interactive
+
+## security checklist
+Here is a **step-by-step checklist** to make your frontend (HTML + Go + HTMX + Gin) code as secure as practically possible against frontend attacks like **XSS**, **CSRF**, **Clickjacking**, and other common web threats. While nothing is ever **100% secure**, following these steps gives you **best-in-class protection**.
+
+---
+
+## ✅ Frontend Security Checklist (HTMX + Go + Gin)
+
+---
+
+### 🔐 1. **Sanitize All Dynamic Data**
+
+| Step | What to Do                                                                                           | Notes                                                                                                  |                             |
+| ---- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------- |
+| 1.1  | Use Go’s `html/template` (not `text/template`)                                                       | Ensures automatic HTML escaping                                                                        |                             |
+| 1.2  | Never use \`{{ .                                                                                     | safeHTML }}\` unless using a sanitizer (e.g. [bluemonday](https://github.com/microcosm-cc/bluemonday)) | Prevents raw HTML injection |
+| 1.3  | For JSON in attributes (like `data-hx-headers`), use `template.JS` and manually construct valid JSON | Prevents script context issues                                                                         |                             |
+
+---
+
+### 🛡️ 2. **CSRF Protection (HTMX-Compatible)**
+
+| Step | What to Do                                                                                    | Notes                                        |
+| ---- | --------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 2.1  | Generate a per-session CSRF token and store in `HttpOnly`, `Secure`, `SameSite=Strict` cookie | Use `c.SetCookie(...)` in Gin                |
+| 2.2  | Echo token in a meta tag or `data-hx-headers` (you are doing this)                            | Use Go's `template.JS` to safely encode JSON |
+| 2.3  | Validate CSRF token on each unsafe request (`POST`, `PUT`, etc.) server-side                  | Use middleware or per-route validation       |
+
+---
+
+### 🔒 3. **Set Critical HTTP Security Headers**
+
+Set these in middleware in Gin:
+
+```go
+func SecureHeaders() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Header("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+        c.Header("Content-Security-Policy", "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none';")
+        c.Header("X-Frame-Options", "DENY")
+        c.Header("X-Content-Type-Options", "nosniff")
+        c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+        c.Header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        c.Next()
+    }
+}
+```
+
+Apply it:
+
+```go
+r := gin.Default()
+r.Use(SecureHeaders())
+```
+
+---
+
+### 🧱 4. **Content Security Policy (CSP)**
+
+| Step | What to Do                                         | Notes                                                      |
+| ---- | -------------------------------------------------- | ---------------------------------------------------------- |
+| 4.1  | Disallow inline scripts unless using a nonce       | Helps mitigate XSS                                         |
+| 4.2  | Only allow scripts and styles from trusted sources | Use `'self'` and `nonce-<value>` or external files         |
+| 4.3  | Avoid `unsafe-inline`                              | Consider `strict-dynamic` with nonce for Alpine.js or HTMX |
+
+Example (strong CSP):
+
+```http
+Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none';
+```
+
+---
+
+### 🧪 5. **Input Validation & Output Escaping**
+
+| Step | What to Do                                             | Notes                                                           |
+| ---- | ------------------------------------------------------ | --------------------------------------------------------------- |
+| 5.1  | Sanitize or validate all user input on the server side | Use strong schema validation                                    |
+| 5.2  | Escape output based on context (HTML, JS, JSON, URLs)  | Go templates help here, but be cautious with embedded JS or CSS |
+
+---
+
+### 🧬 6. **Session and Cookie Hygiene**
+
+| Step | What to Do                                             | Notes                        |
+| ---- | ------------------------------------------------------ | ---------------------------- |
+| 6.1  | Set cookies as `Secure`, `HttpOnly`, `SameSite=Strict` | Prevents theft via XSS/CSRF  |
+| 6.2  | Rotate session IDs after login/logout                  | Prevents session fixation    |
+| 6.3  | Store minimal session data client-side                 | Avoid leaking sensitive data |
+
+---
+
+### 🧯 7. **Clickjacking Protection**
+
+Set one of:
+
+```http
+X-Frame-Options: DENY
+# or, better:
+Content-Security-Policy: frame-ancestors 'none';
+```
+
+---
+
+### 🔍 8. **Audit Static Files & External Dependencies**
+
+| Step | What to Do                                                     | Notes                                                        |
+| ---- | -------------------------------------------------------------- | ------------------------------------------------------------ |
+| 8.1  | Serve JS/CSS locally (don’t use CDNs without integrity checks) | Prevent supply-chain attacks                                 |
+| 8.2  | Use Subresource Integrity (SRI) if you must load from CDN      | `<script src="..." integrity="..." crossorigin="anonymous">` |
+| 8.3  | Periodically audit npm/pnpm packages for vulnerabilities       | `npm audit`, `osv.dev`, etc.                                 |
+
+---
+
+### 🧼 9. **Disable Unnecessary Browser Features**
+
+Use `Permissions-Policy` to lock down:
+
+```http
+Permissions-Policy: camera=(), microphone=(), geolocation=(), usb=()
+```
+
+---
+
+### 📜 10. **Limit Error Information in HTML**
+
+| Step | What to Do                                          | Notes                      |
+| ---- | --------------------------------------------------- | -------------------------- |
+| 10.1 | Do not show stack traces or internal errors in HTML | Show user-friendly message |
+| 10.2 | Log details server-side                             | Secure logs from tampering |
+
+---
+
+### ✅ Final Sanity Checks
+
+* [ ] HTTPS is enabled everywhere (force-redirect HTTP to HTTPS)
+* [ ] Static assets have appropriate cache headers (`Cache-Control`)
+* [ ] All user-generated content is validated and sanitized
+* [ ] Server-side logs are monitored and stored securely
+* [ ] Rate limiting or CAPTCHA is applied to sensitive endpoints
+

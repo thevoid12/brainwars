@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"brainwars/pkg/auth"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
 	"brainwars/pkg/room/model"
@@ -8,54 +9,111 @@ import (
 	usermodel "brainwars/pkg/users/model"
 	"brainwars/pkg/util"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
-// func IndexHandler(c *gin.Context) {
-// 	ctx := c.Request.Context()
-// 	l := logs.GetLoggerctx(ctx)
-// 	l.Info("this is a test info")
-// 	tmpl, err := template.ParseFiles(filepath.Join(viper.GetString("app.uiTemplates"), "index.html"))
-// 	if err != nil {
-// 		l.Sugar().Errorf("parse template failed", err)
-// 		RenderErrorTemplate(c, "Failed to parse form", err)
-// 		return
-// 	}
+func LoginPageHandler(c *gin.Context) {
+	RenderSubTemplate(c, "login.html", nil)
+}
 
-// 	// Execute the template and write the output to the response
-// 	err = tmpl.Execute(c.Writer, nil)
-// 	if err != nil {
-// 		l.Sugar().Errorf("execute template failed", err)
-// 		return
-// 	}
-// }
+// this is a closure
+// A closure is a function plus the variables it remembers from its surrounding context. because gin allows us to pass only one argument
+// so we are passing the auth object to the closure
+// and then we are using it in the closure
+func LoginHandler(authenticator *auth.Authenticator) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx := c.Request.Context() // this context has logger in it
+		state, err := auth.HandleLogin(ctx, c)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		c.Redirect(http.StatusTemporaryRedirect, authenticator.AuthCodeURL(state))
+	}
+}
 
-// // IndexHandler handles the home page
-// func IndexHandler(c *gin.Context) {
-// 	c.HTML(http.StatusOK, "layout.html", gin.H{
-// 		"title": "Home Page",
-// 	})
-// }
+// Once users have authenticated using Auth0's Universal Login Page, they will return to the app at the
+func LoginCallbackHandler(authenticator *auth.Authenticator) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		if c.Query("state") != session.Get("state") {
+			c.String(http.StatusBadRequest, "Invalid state parameter.")
+			return
+		}
 
-// // AboutHandler handles the about page
-// func AboutHandler(c *gin.Context) {
-// 	files, err := filepath.Glob("web/ui/templates/*")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	log.Println("**************************")
-// 	log.Println("Loaded templates:", files)
-// 	c.HTML(http.StatusOK, "about.html", gin.H{
-// 		"title": "About Page",
-// 	})
-// }
+		// Exchange an authorization code for a token.
+		token, err := authenticator.Exchange(c.Request.Context(), c.Query("code"))
+		if err != nil {
+			c.String(http.StatusUnauthorized, "Failed to convert an authorization code into a token.")
+			return
+		}
 
-// // MessageHandler handles HTMX request for message
-// func MessageHandler(c *gin.Context) {
-// 	c.String(http.StatusOK, "Hello from the server!")
-// }
+		idToken, err := authenticator.VerifyIDToken(c.Request.Context(), token)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Failed to verify ID Token.")
+			return
+		}
+
+		var profile map[string]interface{}
+		if err := idToken.Claims(&profile); err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		fmt.Println(profile)
+		session.Set("access_token", token.AccessToken)
+		session.Set("profile", profile)
+		if err := session.Save(); err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// Redirect to logged in page.
+		c.Redirect(http.StatusTemporaryRedirect, "/bw/home/") // todo: we need to take a look into authenticating the same in auth middleware
+
+	}
+}
+
+// Handler for our logout.
+func LogoutHandler(c *gin.Context) {
+	logoutUrl, err := url.Parse("https://" + os.Getenv("AUTH0_DOMAIN") + "/v2/logout")
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	scheme := "http"
+	if c.Request.TLS != nil {
+		scheme = "https"
+	}
+
+	returnTo, err := url.Parse(scheme + "://" + c.Request.Host)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	parameters := url.Values{}
+	parameters.Add("returnTo", returnTo.String())
+	parameters.Add("client_id", os.Getenv("AUTH0_CLIENT_ID"))
+	logoutUrl.RawQuery = parameters.Encode()
+
+	c.SetCookie(
+		"auth-session", // name
+		"",             // value
+		-1,             // maxAge (seconds) — -1 deletes the cookie
+		"/",            // path
+		"",             // domain
+		false,          // secure
+		true,           // httpOnly
+	)
+	c.Redirect(http.StatusTemporaryRedirect, logoutUrl.String())
+}
 
 func GetNavbar(c *gin.Context) {
 	RenderSubTemplate(c, "navbar.html", nil)

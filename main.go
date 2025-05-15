@@ -1,6 +1,7 @@
 package main
 
 import (
+	"brainwars/pkg/auth"
 	dbpkg "brainwars/pkg/db"
 	logs "brainwars/pkg/logger"
 	"brainwars/web/routes"
@@ -48,6 +49,11 @@ func main() {
 	}
 	defer dbConn.Db.Close()
 
-	route := routes.Initialize(ctx, l)
+	authenticator, err := auth.New()
+	if err != nil {
+		log.Fatalf("Failed to initialize the authenticator: %v", err)
+	}
+
+	route := routes.Initialize(ctx, l, authenticator)
 	route.Run(":" + viper.GetString("app.port"))
 }
