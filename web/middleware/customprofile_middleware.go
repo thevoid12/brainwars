@@ -18,7 +18,7 @@ import (
 func CustomProfileMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context() // this context has logger in it
-		// TODO: somehow pass the userID after authentication
+
 		session := sessions.Default(c)
 		profile := session.Get("profile")
 		claim := profile.(map[string]interface{})
@@ -33,9 +33,12 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		userInfo := util.GetUserInfoFromctx(ctx)
-		if userInfo == nil || userInfo.Auth0SubID != sub {
-			userInfo, err := user.GetUserDetailsbyAuth0SubID(ctx, sub)
+		uinfo := session.Get("user_info")
+
+		var userInfo *model.UserInfo
+
+		if uinfo == nil { // session doesnt have the userinfo. we go to the database fecth the info,store it in the session as well as context and use it everywhere
+			userInfo, err = user.GetUserDetailsbyAuth0SubID(ctx, sub)
 			if err != nil {
 				log.Fatalln("get user details by id failed", err)
 				return
@@ -52,8 +55,22 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 				}
 			}
 
-			ctx = util.SetUserInfoInctx(ctx, userInfo)
+			session.Set("user_info", userInfo) // gob register in main,go because to set custom go types we need to register the gob beforehand
+			err = session.Save()
+			if err != nil {
+				log.Fatalln("saving userinfo in the session failed", err)
+				return
+			}
+
+		} else {
+			userInfo = uinfo.(*model.UserInfo)
 		}
+
+		// i am storing it every single time in context because scope of the data in the context is the http request.
+		//Each HTTP request in Go is stateless and independent context.Context lives only for the lifetime of that request.
+		// When I navigate to another page ( make a new request), the context starts fresh and does not persist any values from previous requests.
+		ctx = util.SetUserInfoInctx(ctx, userInfo)
+
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}

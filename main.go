@@ -4,8 +4,10 @@ import (
 	"brainwars/pkg/auth"
 	dbpkg "brainwars/pkg/db"
 	logs "brainwars/pkg/logger"
+	"brainwars/pkg/users/model"
 	"brainwars/web/routes"
 	"context"
+	"encoding/gob"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -42,6 +44,8 @@ func main() {
 	ctx = logs.SetLoggerctx(ctx, l)
 
 	l.Sugar().Info("cache initialized successfully")
+
+	gob.Register(&model.UserInfo{}) // Register pointer type
 
 	dbConn, err := dbpkg.InitDB()
 	if err != nil {
