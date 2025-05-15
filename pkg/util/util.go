@@ -10,6 +10,10 @@ import (
 // get User from ctx
 func GetUserInfoFromctx(ctx context.Context) *usermodel.UserInfo {
 	userInfo := ctx.Value(constants.CONTEXT_KEY_USER)
+	if userInfo == nil {
+		return nil
+	}
+
 	return userInfo.(*usermodel.UserInfo) // type assersion
 }
 

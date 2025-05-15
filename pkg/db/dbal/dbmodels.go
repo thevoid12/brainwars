@@ -83,17 +83,17 @@ type RoomMember struct {
 }
 
 type User struct {
-	ID           pgtype.UUID
-	Username     string
-	RefreshToken string
-	UserType     string
-	BotType      pgtype.Text
-	UserMeta     []byte
-	Premium      bool
-	IsActive     bool
-	IsDeleted    bool
-	CreatedOn    pgtype.Timestamp
-	UpdatedOn    pgtype.Timestamp
-	CreatedBy    string
-	UpdatedBy    string
+	ID        pgtype.UUID
+	Auth0Sub  pgtype.Text
+	Username  string
+	UserType  string
+	BotType   pgtype.Text
+	UserMeta  []byte
+	Premium   bool
+	IsActive  bool
+	IsDeleted bool
+	CreatedOn pgtype.Timestamp
+	UpdatedOn pgtype.Timestamp
+	CreatedBy string
+	UpdatedBy string
 }

@@ -26,10 +26,10 @@ const (
 )
 
 type UserInfo struct {
-	ID           uuid.UUID
-	UserName     string
-	RefreshToken string
-	UserType     UserType
+	ID         uuid.UUID
+	Auth0SubID string
+	UserName   string
+	UserType   UserType
 	BotType
 	IsPremium bool
 	IsActive  bool
@@ -37,7 +37,8 @@ type UserInfo struct {
 }
 
 type NewUserReq struct {
-	UserName string
+	Auth0SubID string
+	UserName   string
 	UserType
 	IsPremium bool
 }

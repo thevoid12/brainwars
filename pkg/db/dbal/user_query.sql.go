@@ -11,8 +11,96 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createNewUser = `-- name: CreateNewUser :exec
+INSERT INTO users (
+  id,
+  auth0_sub,
+  username,
+  user_type,
+  bot_type,
+  user_meta,
+  premium,
+  is_active,
+  is_deleted,
+  created_by,
+  updated_by
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+)
+`
+
+type CreateNewUserParams struct {
+	ID        pgtype.UUID
+	Auth0Sub  pgtype.Text
+	Username  string
+	UserType  string
+	BotType   pgtype.Text
+	UserMeta  []byte
+	Premium   bool
+	IsActive  bool
+	IsDeleted bool
+	CreatedBy string
+	UpdatedBy string
+}
+
+func (q *Queries) CreateNewUser(ctx context.Context, arg CreateNewUserParams) error {
+	_, err := q.db.Exec(ctx, createNewUser,
+		arg.ID,
+		arg.Auth0Sub,
+		arg.Username,
+		arg.UserType,
+		arg.BotType,
+		arg.UserMeta,
+		arg.Premium,
+		arg.IsActive,
+		arg.IsDeleted,
+		arg.CreatedBy,
+		arg.UpdatedBy,
+	)
+	return err
+}
+
+const getUserDetailsByAuth0SubID = `-- name: GetUserDetailsByAuth0SubID :many
+SELECT id, auth0_sub, username, user_type, bot_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM users
+WHERE auth0_sub = $1 AND is_deleted = false
+`
+
+func (q *Queries) GetUserDetailsByAuth0SubID(ctx context.Context, auth0Sub pgtype.Text) ([]User, error) {
+	rows, err := q.db.Query(ctx, getUserDetailsByAuth0SubID, auth0Sub)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Auth0Sub,
+			&i.Username,
+			&i.UserType,
+			&i.BotType,
+			&i.UserMeta,
+			&i.Premium,
+			&i.IsActive,
+			&i.IsDeleted,
+			&i.CreatedOn,
+			&i.UpdatedOn,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserDetailsByID = `-- name: GetUserDetailsByID :many
-SELECT id, username, refresh_token, user_type, bot_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM users
+SELECT id, auth0_sub, username, user_type, bot_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by FROM users
 WHERE id = $1 AND is_deleted = false
 `
 
@@ -27,8 +115,8 @@ func (q *Queries) GetUserDetailsByID(ctx context.Context, id pgtype.UUID) ([]Use
 		var i User
 		if err := rows.Scan(
 			&i.ID,
+			&i.Auth0Sub,
 			&i.Username,
-			&i.RefreshToken,
 			&i.UserType,
 			&i.BotType,
 			&i.UserMeta,

@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
   id UUID NOT NULL PRIMARY KEY,
+  auth0_sub TEXT, -- unique customer id
   username TEXT NOT NULL,
-  refresh_token TEXT NOT NULL,
   user_type TEXT NOT NULL, -- normal user or bot
   bot_type TEXT, -- if a user is a bot he will have a bot type
   user_meta JSONB NOT NULL,
