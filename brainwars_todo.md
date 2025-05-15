@@ -67,29 +67,26 @@ game
 - [x] error rendering on screen pop up
 - [x] shouldnt be able to exit without ticking a modal in between 
 - [x] close the ws connection when he clicks yes to the modal for game analysis
+- [x] auth
+- [x] session
+- [x] remove egress channel and change it into connection map so 
+- [x] if i do hard reload after game is over it again goes to the first question
+- [x] authentication and session
 - [ ] check for deadlock and race conditions
 - [ ] productionize tailwind remove tailwind.config from layout
 - [ ] validate and sanitize all models
 - [ ] tips to imporve using gpt in analysis
-- [x] if i do hard reload after game is over it again goes to the first question
 - [ ] there is some bug with updating state of the room fix it check all the logic and make sure we are updating the db
 - [ ] disable refresh in game or atleast get a pop up. upon refreshjing he shouldf be kicked out of the ws and sent to home
 - [ ] close all open channels
 - [ ] confetti needs to come only for the winning user
 - [ ] fix multiplayer
-- [ ] authentication and session
-- [ ] need to figure out websocket reconnection if something is messed up
-- [x] remove egress channel and change it into connection map so 
 - [ ] multiplayer
 - [ ] go through all fmt.println statements and remove unwanted stuff
 - [ ] use safehtml for all the backend data which we are sending to ui
-- [ ] ad 
 - [ ] xss protection
-- [ ] uploading pdf's to generate question
 - [ ] handle ui errors display appropriately
 - [ ] validate and sanitize all models
-- [ ] auth
-- [ ] session
 - [ ] if a user leaves before starting a game we need to remove him( ie if his connection is not active or he leaves explicitly)
 - [ ] they shouldnt add a bot which takes more time than room each question time
 - [ ] there is another checklist shown with the status of others submitted the question or not
@@ -103,6 +100,13 @@ game
 - [ ] auth 0 production needs to come from the official oauth keys https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/devkeys https://community.auth0.com/t/how-to-move-from-development-key-to-production-key-for-tenant/62860/2 
 ## v2
 - [ ] move to redis
+- [ ] uploading pdf's to generate question
+## prod todo check
+- [ ] tailwind
+- [ ] get google auth keys and set it up properly
+- [ ] secret vault
+- [ ] setup proper docker container which can access the secrets
+  
 auth0 docs:
 https://auth0.com/docs/quickstart/webapp/golang/interactive
 
