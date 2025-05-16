@@ -174,6 +174,9 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		l.Sugar().Error("room code not found", nil)
 		return
 	}
+
+	// Check if the user is already in the room so when he refreshes the page
+	// he is pushed out of the page and the connection is closed since the game is realtime multiplayer
 	m.Lock()
 	gameState, exists := m.gameStates[roomCode]
 	m.Unlock()
@@ -186,6 +189,16 @@ func (m *Manager) ServeWS(c *gin.Context) {
 			handlers.RenderErrorTemplate(c, "home.html", "refreshing page kicks you out of the game since the game runs realtime!", nil)
 			return
 		}
+	} else {
+		questions, err := quiz.ListQuestionsByRoomCode(ctx, roomCode)
+		if err != nil {
+			l.Sugar().Error("list questions by room code failed", err)
+			return
+		}
+
+		totalQuestions := questions.QuestionCount
+		// Check if the room needs to be initialized
+		m.initializeRoomGameState(ctx, roomCode, totalQuestions)
 	}
 
 	conn, err := websocketUpgrader.Upgrade(c.Writer, c.Request, nil)
@@ -213,38 +226,30 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		return
 	}
 	if roomMember == nil {
-		l.Sugar().Error("there are no room mebers")
+		l.Sugar().Error("there are no room members")
 		return
 	}
-
-	// Check if the user is already in the room so when he refreshes the page
-	// he is pushed out of the page and the connection is closed since the game is realtime multiplayer
-
-	questions, err := quiz.ListQuestionsByRoomCode(ctx, roomCode)
-	if err != nil {
-		l.Sugar().Error("list questions by room code failed", err)
-		return
-	}
-
-	totalQuestions := questions.QuestionCount
 
 	client := NewClient(conn, m, roomCode, false, "", userID, roomDetails)
 	m.addClient(client)
 
-	// Check if the room needs to be initialized
-	m.initializeRoomGameState(ctx, roomCode, totalQuestions)
 	go client.readMessages(ctx)
 	go client.writeUsersMessages(ctx)
-	// When a human player joins, set bots to ready state
-	// even if 1 user joins the room then we instentaniously set up all the bots to ready state for the game to start.
-	// we get the list of bots from list all members in a room where bots are members as ready
+
 	err = m.setupUserForRoom(ctx, roomCode, userID)
 	if err != nil {
 		l.Sugar().Error("setup user for room failerd ", err)
 		return
 	}
 
-	m.setupBotsForRoom(ctx, conn, roomCode, roomDetails)
+	// checking !exists here because we need to initialize bots just once per room that is for the first time alone
+	if !exists {
+		// When a human player joins, set bots to ready state
+		// even if 1 user joins the room then we instentaniously set up all the bots to ready state for the game to start.
+		// we get the list of bots from list all members in a room where bots are members as ready
+		m.setupBotsForRoom(ctx, conn, roomCode, roomDetails)
+	}
+
 	// if the game is a single player game since the user is ready and bots are ready as well
 	//  we automatically display the first question. in terms of multiplayer game a button needs to be triggered
 	// to start the game
