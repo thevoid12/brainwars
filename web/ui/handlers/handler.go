@@ -166,7 +166,7 @@ func CreateRoomHandler(c *gin.Context) {
 	}
 	roomreq := roommodel.RoomReq{
 		UserID:    userID,
-		Username:  "admin",
+		Username:  userInfo.UserName,
 		UserMeta:  "[{}]",
 		RoomName:  roomName,
 		GameType:  gt,
@@ -196,8 +196,10 @@ func CreateRoomHandler(c *gin.Context) {
 		return
 	}
 	// if he is a multiplayer mode then redirect to main page through which he can join the game with room code
-	c.Redirect(302, "/bw/home/")
-
+	// give a green popup and be in the same page
+	RenderErrorTemplate(c, "home.html", "Successfully room created. Go to My Quiz for your room code", nil)
+	// c.Redirect(302, "/bw/home/")
+	return
 }
 
 // after the room is created, the user can join the room

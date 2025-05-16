@@ -32,7 +32,6 @@ type QuestionReq struct {
 	QuestionCount int
 	QuestionData  []*QuestionData
 	CreatedBy     string
-	Count         int
 	TimeLimit     int
 }
 

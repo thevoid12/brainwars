@@ -26,13 +26,16 @@ func RenderErrorTemplate(c *gin.Context, pageTemplate, errorMessage string, erro
 		return
 	}
 
-	actualErr := ""
+	actualErr := "| Actual: "
 	if errormsg != nil {
-		actualErr = errormsg.Error()
+		actualErr += errormsg.Error()
+	} else {
+		actualErr = ""
 	}
+
 	data := map[string]interface{}{
 		"Title":        "Error",
-		"ErrorMessage": errorMessage + " | Actual: " + actualErr,
+		"ErrorMessage": errorMessage + actualErr,
 	}
 
 	err = tmpl.Execute(c.Writer, data)

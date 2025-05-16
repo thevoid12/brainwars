@@ -42,12 +42,7 @@
         Set up your Quiz
       </h2>
       <form action="/bw/croom" method="post" class="space-y-4">
-        <!-- <div>
-          <label for="roomName" class="block text-sm font-medium text-gray-700">Room Name</label>
-          <input type="text" id="roomName" name="roomName" placeholder="Enter a room name"
-            class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-primary-500 focus:border-primary-500 text-gray-800 shadow-sm">
-        </div> -->
-
+      
         <div>
           <input type="text" name="game-type" id="game-type" value="" readonly hidden>
         </div>
@@ -67,32 +62,31 @@
 
         <div>
           <label for="topic" class="block text-sm font-medium text-gray-700">Topic</label>
-          <input type="text" id="topic" name="topic" placeholder="Enter topic"
+          <input type="text" id="topic" name="topic" placeholder="Enter topic" required
             class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-primary-500 focus:border-primary-500 text-gray-800 shadow-sm">
         </div>
 
         <div class="flex gap-4 mb-4 flex-wrap items-center">
           <div class="flex flex-col min-w-[120px]">
             <label for="questionCount" class="text-sm mb-1">Questions</label>
-            <input type="number" id="questionCount" name="questionCount" min="1" max="10" placeholder="e.g. 5"
-              class="px-2 py-1 border rounded text-sm" />
+            <input type="number" id="questionCount" name="questionCount" min="1" max="10" value="3"
+              class="px-2 py-1 border rounded text-sm" required />
           </div>
 
           <div class="flex flex-col min-w-[120px]">
-            <label for="timelimit" class="text-sm mb-1">Time / Qn (min)</label>
-            <input type="number" id="timelimit" name="timelimit" min="1" max="5" placeholder="e.g. 2"
+            <label for="timelimit" class="text-sm mb-1">Time Limit Per Qn (min)</label>
+            <input type="number" id="timelimit" name="timelimit" min="1" max="5" value="2"
               class="px-2 py-1 border rounded text-sm" />
           </div>
         </div>
 
         <div class="flex items-center justify-between mt-6">
-          <button type="submit"
-            class="bg-primary-500 hover:bg-primary-600 text-white font-medium px-5 py-2 rounded-lg shadow-sm transition">
+          <button id="start-quiz" type="submit" class="text-primary-600 hover:underline font-medium text-sm">
             Start Quiz
           </button>
-          <button type="button" data-hx-post="/bw/jroom" class="text-primary-600 hover:underline font-medium text-sm">
-            Join Room
-          </button>
+           <button id="create-game-room" type="submit" class="text-primary-600 hover:underline font-medium text-sm">
+            Create Game Room
+          </button> 
         </div>
       </form>
     </div>

@@ -58,34 +58,16 @@ func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq,
 			return "", err
 		}
 	}
-
+	// this can be in a go routine coz it calls a external api so we dont have to wait
 	// create questions on that topic which llm will generate
-	questionData, err := quiz.GenerateQuiz(ctx, &quizmodel.QuizReq{
-		Topic: questReq.Topic,
-		Count: questReq.Count,
-	})
-	if err != nil {
-		l.Sugar().Error("Could not generate quiz", err)
-		return "", err
-	}
-	// Create question request
-
-	questionReq := quizmodel.QuestionReq{
+	go quiz.SetupQuizQuestions(ctx, &quizmodel.QuestionReq{
 		RoomCode:      roomDetails.RoomCode,
 		Topic:         questReq.Topic,
-		QuestionData:  questionData,
-		CreatedBy:     string(roomDetails.CreatedBy),
-		Count:         questReq.Count,
 		QuestionCount: questReq.Count,
+		QuestionData:  []*quizmodel.QuestionData{},
+		CreatedBy:     roomDetails.CreatedBy,
 		TimeLimit:     req.TimeLimit,
-	}
-
-	// Create questions
-	err = quiz.CreateQuestion(ctx, questionReq)
-	if err != nil {
-		l.Sugar().Error("Could not create question", err)
-		return "", err
-	}
+	})
 
 	return roomDetails.RoomCode, nil
 }
@@ -168,7 +150,7 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 			Valid: true,
 		},
 		IsBot:            false,
-		RoomMemberStatus: string(model.JoinQuiz),
+		RoomMemberStatus: string(model.CreateQuiz),
 		IsActive:         true,
 		IsDeleted:        false,
 		CreatedBy:        req.UserID.String(),

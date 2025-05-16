@@ -44,6 +44,7 @@ type RoomReq struct {
 type RoomMemberStatus string
 
 const (
+	CreateQuiz   RoomMemberStatus = "CREATE_QUIZ"
 	JoinQuiz     RoomMemberStatus = "JOIN_QUIZ"
 	ReadyQuiz    RoomMemberStatus = "READY_QUIZ"
 	LeaveQuiz    RoomMemberStatus = "LEAVE_QUIZ"

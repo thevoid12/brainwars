@@ -85,14 +85,14 @@ game
 - [ ] go through all fmt.println statements and remove unwanted stuff
 - [ ] use safehtml for all the backend data which we are sending to ui
 - [ ] xss protection
-- [ ] handle ui errors display appropriately
-- [ ] validate and sanitize all models
+- [ ] handle ui errors display appropriately especially inside ws
 - [ ] if a user leaves before starting a game we need to remove him( ie if his connection is not active or he leaves explicitly)
 - [ ] they shouldnt add a bot which takes more time than room each question time
 - [ ] there is another checklist shown with the status of others submitted the question or not
 - [ ] go through all app todos
 - [ ] go through all ui resize it and see if it needs some fixes like auto scrolling
 - [ ] cleanup of roomstatus and gamestatus in the manager (we are already cleaning client in the timer)
+- [ ] success message should get green pop up
 - [ ] navigation bugs fix (using back button) 2025-05-14T10:46:07.350+0530	error	users/user_service.go:19	Could not initialize databasefailed to connect to PostgreSQL: failed to connect to `user=postgres database=postgres`:
 	[::1]:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
 	127.0.0.1:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)

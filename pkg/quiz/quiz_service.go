@@ -13,6 +13,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+// this is run in a goroutine
+func SetupQuizQuestions(ctx context.Context, req *model.QuestionReq) error {
+	l := logs.GetLoggerctx(ctx)
+
+	questionData, err := GenerateQuiz(ctx, &model.QuizReq{
+		Topic: req.Topic,
+		Count: req.QuestionCount,
+	})
+	if err != nil {
+		l.Sugar().Error("Could not generate quiz", err)
+		return err
+	}
+	// Create question request
+
+	questionReq := model.QuestionReq{
+		RoomCode:      req.RoomCode,
+		Topic:         req.Topic,
+		QuestionData:  questionData,
+		CreatedBy:     string(req.CreatedBy),
+		QuestionCount: req.QuestionCount,
+		TimeLimit:     req.TimeLimit,
+	}
+
+	// Create questions
+	err = CreateQuestion(ctx, questionReq)
+	if err != nil {
+		l.Sugar().Error("Could not create question", err)
+		return err
+	}
+	return nil
+}
+
 // llm generates the questions based on the topic and count
 // and returns the questions in the form of QuestionData
 // which is a slice of QuestionData
