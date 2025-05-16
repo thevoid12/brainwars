@@ -22,7 +22,7 @@ import (
 // bots can use the other channel to coordinate communication
 func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, roomCode string, roomDetails *roommodel.Room) {
 	l := logs.GetLoggerctx(ctx)
-
+	// TODO: if the bots are alredy set of that room ignore and move forward
 	// Get all room members including bots
 	roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
 		RoomCode: roomCode,
@@ -40,7 +40,7 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, 
 
 			botType := usermodel.BotType(member.UserDetails.BotType)
 			// Create a new bot client
-			botClient := NewClient(wsconn, m, roomCode, true, botType, member.UserID, uuid.UUID{}, roomDetails)
+			botClient := NewClient(wsconn, m, roomCode, true, botType, member.UserID, roomDetails)
 			// go botClient.writeBotMessages(ctx) // bot should write their messages as well to ui
 			// Initialize the bot with event channel and start its behavior handler
 			m.InitializeBot(ctx, botClient)
