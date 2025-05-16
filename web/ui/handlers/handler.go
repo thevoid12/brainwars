@@ -268,10 +268,17 @@ func InGameHandler(c *gin.Context) {
 		RenderErrorTemplate(c, "home.html", "you are not in the room", err)
 	}
 
+	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "Get room by room code failed", err)
+
+	}
+
 	RenderTemplate(c, "game.html", gin.H{
 		"title":    "game room",
 		"roomCode": roomCode,
 		"userID":   userID,
+		"gameType": roomDetails.GameType,
 	})
 
 }
