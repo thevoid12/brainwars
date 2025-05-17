@@ -4,6 +4,7 @@ window.onload = function () {
     let gameType = document.getElementById("ws-container").dataset.gametype;
     let lobbyPlayers = {};
     let playerListEl = document.getElementById("player-list");
+    let readyGameBtn = document.getElementById("ready-game-btn");
     let startGameBtn = document.getElementById("start-game-btn");
     let leaveRoomBtn = document.getElementById("leave-room-btn");
 
@@ -67,11 +68,23 @@ window.onload = function () {
       return;
     };
 
+      if (gameType === "MULTI_PLAYER" && readyGameBtn) {
+    readyGameBtn.classList.remove("hidden");
+    readyGameBtn.onclick = () => {
+      console.log("ready button clicked")
+    conn.send(JSON.stringify({ type: "ready_game" }));
+  };
+}
+
     if (gameType === "MULTI_PLAYER" && startGameBtn) {
     startGameBtn.classList.remove("hidden");
     startGameBtn.onclick = () => {
       console.log("start button clicked")
-    conn.send(JSON.stringify({ type: "owner_start_game" }));
+ openModal({ url: '/bw/home/', method: 'ws', body:JSON.stringify({ type: "start_game" }),wsconnection:conn, message: 'Clicking Yes will force start game Despite few players are not still ready. Are you sure?' })
+
+        document.getElementById("lobby-container").classList.add("hidden");
+        
+    conn.send(JSON.stringify({ type: "start_game" }));
   };
 }
  if (gameType === "MULTI_PLAYER" && leaveRoomBtn) {

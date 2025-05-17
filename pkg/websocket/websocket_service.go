@@ -378,29 +378,32 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	// Get the game state for this room
 	c.manager.Lock()
 	gameState, exists := c.manager.gameStates[c.roomCode]
+	c.manager.Unlock()
 	if !exists {
-		c.manager.Unlock()
+
 		return fmt.Errorf("game state not found for room %s", c.roomCode)
 	}
 
-	// Update game state
-	gameState.RoomStatus = roommodel.Started
-	gameState.StartTime = time.Now()
-	gameState.CurrentQuestionIndex = 0
-	c.manager.Unlock()
+	if gameState.Questions.QuestionData == nil { // init setup all questions for that room
+		c.manager.Lock()
+		// Update game state
+		gameState.RoomStatus = roommodel.Started
+		gameState.StartTime = time.Now()
+		gameState.CurrentQuestionIndex = 0
+		c.manager.Unlock()
 
-	// Fetch questions from the database
-	questions, err := quiz.ListQuestionsByRoomCode(ctx, c.roomCode) // TODO: instead of storing all generated questions in the db and fetching them here we need to store in memory and use it and slowly update it back to the database
-	if err != nil {
-		l.Sugar().Error("failed to fetch questions:", err)
-		return err
+		// Fetch questions from the database
+		questions, err := quiz.ListQuestionsByRoomCode(ctx, c.roomCode) // TODO: instead of storing all generated questions in the db and fetching them here we need to store in memory and use it and slowly update it back to the database
+		if err != nil {
+			l.Sugar().Error("failed to fetch questions:", err)
+			return err
+		}
+
+		// Store questions in game state
+		c.manager.Lock()
+		gameState.Questions = questions
+		c.manager.Unlock()
 	}
-
-	// Store questions in game state
-	c.manager.Lock()
-	gameState.Questions = questions
-	c.manager.Unlock()
-
 	// Send the first question to all clients
 	return sendNextQuestion(ctx, c.manager, c.roomCode, c.ansHistory)
 }
@@ -822,22 +825,21 @@ func sendLiveLeaderBoard(ctx context.Context, manager *Manager, roomCode string)
 func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error {
 	l := logs.GetLoggerctx(ctx)
 
-	// userDetails := util.GetUserInfoFromctx(ctx)
+	userDetails := util.GetUserInfoFromctx(ctx)
 
 	// TODO: this api is wrong we can update inmemory
 
 	// Update the room member's ready status
-	err := room.UpdateRoomMemberStatusByID(ctx, roommodel.RoomMemberReq{
-		UserID:           c.userID,
-		RoomID:           uuid.MustParse(c.roomCode),
-		RoomMemberStatus: roommodel.ReadyQuiz,
-	})
+	err := room.UpdateRoomMemberStatusByRoomCodeAndUserID(ctx, &roommodel.RoomCodeReq{
+		UserID:   userDetails.ID,
+		RoomCode: c.roomCode,
+	}, roommodel.ReadyQuiz)
 	if err != nil {
 		l.Sugar().Error("Failed to update ready status", err)
 		return err
 	}
 
-	// Check if all room members are ready
+	// Check if all room members are ready TODO: we dont have to go to database room member details are in memory
 	roomMembers, err := room.ListRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
 		RoomCode: c.roomCode,
 	})
@@ -849,10 +851,32 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	// Check if everyone is ready
 	allReady := true
 	for _, member := range roomMembers {
-		if member.RoomMemberStatus != roommodel.ReadyQuiz {
+		if member.RoomMemberStatus != roommodel.ReadyQuiz && !member.IsBot {
 			allReady = false
 			break
 		}
+	}
+
+	// Everyone is ready, start the game
+	gameReadyNotification := struct {
+		UserName string    `json:"userName"`
+		Message  string    `json:"message"`
+		Time     time.Time `json:"time"`
+	}{
+		UserName: userDetails.UserName,
+		Message:  fmt.Sprintf("user %s is ready", userDetails.UserName),
+		Time:     time.Now(),
+	}
+
+	readyEventJson, _ := json.Marshal(gameReadyNotification)
+	readyEvent := Event{Type: EventReadyGame, Payload: readyEventJson}
+
+	// Broadcast start notification to all clients
+	for client := range c.manager.clients[c.roomCode] {
+		if client.isBot {
+			continue
+		}
+		client.egress <- readyEvent
 	}
 
 	if allReady {
