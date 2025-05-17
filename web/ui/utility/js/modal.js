@@ -2,10 +2,11 @@ let modalAction = {
   url: null,
   method: 'GET',
   body: null,
+  wsconnection: WebSocket,
 };
 
-function openModal({ url, method = 'GET', body = null, message = 'Are you sure?' }) {
-  modalAction = { url, method, body };
+function openModal({ url, method = 'GET', body = null, message = 'Are you sure?',wsconnection =WebSocket }) {
+  modalAction = { url, method, body,wsconnection };
   document.getElementById('modal-message').textContent = message;
   document.getElementById('modal-backdrop').classList.remove('hidden');
 }
@@ -17,7 +18,7 @@ function closeModal() {
 
 function confirmYes() {
   closeModal();
-  const { url, method, body } = modalAction;
+  const { url, method, body,wsconnection } = modalAction;
   if (!url || !method) return;
 
 const form = document.createElement('form');
@@ -39,6 +40,10 @@ else if (method === 'GET' && body) {
         
     form.action += `${value.toString()}/`;
     });
+}
+else if (method =='ws' && body && wsconnection){ // websocket connection
+  wsconnection.send(body)
+  return 
 }
 
 document.body.appendChild(form);

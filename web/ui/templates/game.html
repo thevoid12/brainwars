@@ -2,14 +2,48 @@
 <script src="/assets/js/ws.js"></script>
 <div class="navbar" data-hx-get="/bw/navbar" hx-trigger="load" hx-swap="innerHTML"></div>
 
-
 <div class="flex overflow-auto w-full">
   <!-- Left section: Quiz -->
   <div class="flex-1 p-4">
-    <div id="ws-container" data-roomcode="{{ .roomCode }}"></div>
+    <div id="ws-container" data-roomcode="{{ .roomCode }}" data-gametype="{{ .gameType }}"></div>
     <!-- Question Container -->
     <div id="question-block">
-      Waiting for the first question...
+      {{if eq .gameType "SINGLE_PLAYER"}}
+      {{ else }}
+      <div class="flex items-center space-x-2 text-gray-600">
+      <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+      <span>Waiting for players to get ready...</span>
+    </div>
+        <div id="lobby-container" class="p-4">
+      <h2 class="text-lg font-semibold mb-3">Players in Lobby</h2>
+      <ul id="player-list" class="space-y-2">
+        <!-- Players will be dynamically inserted here -->
+      </ul>
+
+       <!-- todo: clicking ready should change the ready button completely to visually show that he is ready -->
+        <button  id="ready-game-btn" class="text-green-600 hover:underline font-medium text-sm">
+          Ready
+        </button>
+        <button  id="start-game-btn" class="text-primary-600 hover:underline font-medium text-sm">
+          Start Game
+        </button>
+         <button  id="leave-room-btn" class="text-red-600 hover:underline font-medium text-sm">
+          Leave Room
+        </button>
+      <!-- <button id="start-game-btn"
+              class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 hidden">
+        Start Game
+      </button> -->
+       <!-- <button id="leave-room-btn"
+              class="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-blue-700 hidden">
+        leave Room
+      </button> -->
+    </div>
+      {{ end }}
       <!-- TODO: this has to be waiting animation -->
     </div>
   </div>
@@ -23,8 +57,21 @@
     </div>
   </div>
 </div>
+
+ <div id="modal-backdrop"
+     class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+              <!-- Modal Box -->
+  <div class="bg-white p-6 rounded-2xl shadow-2xl text-center w-80">
+    <p id="modal-message" class="mb-4 text-lg font-semibold">Are you sure?</p>
+    <div class="flex justify-center gap-4">
+      <button onclick="confirmYes()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Yes</button>
+      <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400">Cancel</button>
+    </div>
+  </div>
+</div>`
+
 <script src="/assets/js/game.js"></script>
-<script>
+<!-- <script>
   window.addEventListener("beforeunload", function (e) {
   // Standard message; browsers don't show custom messages anymore
   const confirmationMessage = "Refreshing will remove you from the game. Are you sure?";
@@ -36,5 +83,5 @@
   return confirmationMessage;
 });
 
-</script>
+</script> -->
 {{ end }}

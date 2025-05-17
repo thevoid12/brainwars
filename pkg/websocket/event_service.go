@@ -24,9 +24,11 @@ const (
 	// EventSendMessage is the event name for new chat messages sent
 	EventSendMessage = "send_message"
 
-	EventStartGame = "start_game"
+	EventStartGame = "start_game" // (step3)
 	//EventReadyGame is that the user is ready to start the game
-	EventReadyGame    = "ready_game"
+	EventJoinedGame   = "joined_game" // Joined into the game (step1)
+	EventReadyGame    = "ready_game"  // ready to play the game (step2)
+	EventLeaveRoom    = "leave_room"  // leave game room
 	EventEndGame      = "end_game"
 	EventBotGameOver  = "bot_game_over" // notifies the bot that the game is over so that it can stop
 	EventGameStatus   = "game_status"
@@ -38,8 +40,9 @@ const (
 )
 
 type Payload struct {
-	Data string    `json:"data"`
-	Time time.Time `json:"time"`
+	UserName string    `json:"username"`
+	Data     string    `json:"data"`
+	Time     time.Time `json:"time"`
 }
 
 var (
@@ -58,6 +61,7 @@ func (m *Manager) setupEventHandlers() {
 	m.handlers[EventStartGame] = StartGameMessageHandler
 	m.handlers[EventSubmitAnswer] = SubmitAnswerHandler
 	m.handlers[EventNextQuestion] = NextQuestionHandler
+	m.handlers[EventLeaveRoom] = LeaveGameRoomHandler
 }
 
 func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error {

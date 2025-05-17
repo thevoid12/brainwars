@@ -1,21 +1,48 @@
-
 window.onload = function () {
   if (window["WebSocket"]) {
     let roomcode = document.getElementById("ws-container").dataset.roomcode;
+    let gameType = document.getElementById("ws-container").dataset.gametype;
+    let lobbyPlayers = {};
+    let playerListEl = document.getElementById("player-list");
+    let startGameBtn = document.getElementById("start-game-btn");
+    let leaveRoomBtn = document.getElementById("leave-room-btn");
+
     console.log("WebSocket is supported");
     let protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
     let conn = new WebSocket(protocol + window.location.host + "/bw/ws?roomCode=" + encodeURIComponent(roomcode));
 
     conn.onopen = function (e) {
       console.log("Connection established!");
-      var payload = { data: "welcome boys!", time: new Date().toISOString() }
+      var payload = { data: "welcome All!", time: new Date().toISOString() }
       let data = JSON.stringify({ type: "send_message", payload: payload });
       conn.send(data);
     };
     conn.onmessage = function (e) {
       console.log(e.data);
       const data = JSON.parse(e.data);
-      if (data.type === "new_question") {
+      
+       if (data.type === "joined_game" && gameType === "MULTI_PLAYER") {
+        console.log("joined part reached")
+        // TODO: show it on the player list in the left of the page that the player has joined whcich is at the same place where 
+        // leaderboard will be after the start of the game
+         const username = data.payload.username;
+          lobbyPlayers[username] = "joined";
+          renderLobbyPlayers();
+      }else if (data.type === "ready_game" && gameType === "MULTI_PLAYER") {
+         console.log("ready part reached")
+        const username = data.payload.username;
+        lobbyPlayers[username] = "ready";
+        renderLobbyPlayers();
+        // now ,joined will become ready
+        // this is done so that game can only be started after every user clicks ready or the owner overrides it
+        // when everyone is ready (which backend will give you a startgame)
+      } else if (data.type === "start_game") {
+       // backend will check if everyone is ready for the game to start. if true it will send a startgame event
+       // we will hit another end point
+         if (gameType === "MULTI_PLAYER") {
+        document.getElementById("lobby-container").classList.add("hidden");
+          }
+      } else if (data.type === "new_question") {
         renderQuestion(data.payload);
       } else if (data.type === "end_game") {
         renderEndGame(data.payload);
@@ -24,14 +51,62 @@ window.onload = function () {
       }
       else if (data.type === "game_error") {
         // display the error as pop up
-      }
-    };
+      } else if (data.type=="leave_room") {
+        // leave room in middle of the game
+        // put the payload in the chat
+        conn.close()
+         console.log("Connection closed!");
+         window.location.href = "/bw/home/";
+        return;
+    }
+  };
     conn.onclose = function (e) {
 
       console.log("Connection closed!");
       window.location.href = "/bw/home/"
       return;
     };
+
+    if (gameType === "MULTI_PLAYER" && startGameBtn) {
+    startGameBtn.classList.remove("hidden");
+    startGameBtn.onclick = () => {
+      console.log("start button clicked")
+    conn.send(JSON.stringify({ type: "owner_start_game" }));
+  };
+}
+ if (gameType === "MULTI_PLAYER" && leaveRoomBtn) {
+    leaveRoomBtn.classList.remove("hidden");
+    leaveRoomBtn.onclick = () => {
+      // showing the modal upon clicking  the modal we will kick him out
+      openModal({ url: '/bw/home/', method: 'ws', body:JSON.stringify({ type: "leave_room" }),wsconnection:conn, message: 'Clicking Yes redirect you to homePage. Are you sure?' })
+      console.log("leave button clicked")
+   // conn.send(JSON.stringify({ type: "leave_room" }));
+  };
+}
+
+function renderLobbyPlayers() {
+  if (!playerListEl) return;
+  playerListEl.innerHTML = "";
+
+  Object.entries(lobbyPlayers).forEach(([username, status]) => {
+    const li = document.createElement("li");
+    li.className = "flex items-center justify-between bg-gray-100 px-4 py-2 rounded";
+
+    li.innerHTML = `
+      <div class="flex items-center">
+        <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 mr-2">
+          ${username.slice(0, 2).toUpperCase()}
+        </div>
+        <span>${username}</span>
+      </div>
+      <span class="text-sm ${status === 'ready' ? 'text-green-600' : 'text-yellow-600'} font-semibold">
+        ${status === 'ready' ? 'Ready' : 'Joined'}
+      </span>
+    `;
+
+    playerListEl.appendChild(li);
+  });
+}
 
     function renderQuestion(payload) {
       const questionBlock = document.getElementById("question-block");

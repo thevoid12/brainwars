@@ -14,7 +14,6 @@ import (
 	"brainwars/pkg/room"
 	"brainwars/pkg/room/model"
 	roommodel "brainwars/pkg/room/model"
-	user "brainwars/pkg/users"
 	usermodel "brainwars/pkg/users/model"
 	"brainwars/pkg/util"
 	"brainwars/web/ui/handlers"
@@ -236,12 +235,6 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	go client.readMessages(ctx)
 	go client.writeUsersMessages(ctx)
 
-	err = m.setupUserForRoom(ctx, roomCode, userID)
-	if err != nil {
-		l.Sugar().Error("setup user for room failerd ", err)
-		return
-	}
-
 	// checking !exists here because we need to initialize bots just once per room that is for the first time alone
 	if !exists {
 		// When a human player joins, set bots to ready state
@@ -254,18 +247,28 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	//  we automatically display the first question. in terms of multiplayer game a button needs to be triggered
 	// to start the game
 	if roomDetails.GameType == roommodel.SP {
+		err = m.sendUserReadyState(ctx, roomCode)
+		if err != nil {
+			l.Sugar().Error("send single player user ready state failed ", err)
+			return
+		}
 		err = StartGameMessageHandler(ctx, Event{}, client)
 		if err != nil {
 			return
 		}
-		// TODO: redirect to home/ wherever after the game completes
 
+	} else { // if it is a multiplayer the user first just joins the common game lobby. he clicks a button and makes himself ready later
+		err = m.sendUserJoinedState(ctx, roomCode)
+		if err != nil {
+			l.Sugar().Error("setup user for room failerd ", err)
+			return
+		}
 	}
 
 }
 
-// Set up bots to be ready when a human player joins
-func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID uuid.UUID) error {
+// Set up user to be ion joined state when a human player joins
+func (m *Manager) sendUserJoinedState(ctx context.Context, roomCode string) error {
 	l := logs.GetLoggerctx(ctx)
 	// Use context with timeout for database operation
 	// dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -273,8 +276,6 @@ func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID 
 
 	var userDetails *usermodel.UserInfo
 	var err error
-
-	// TODO: get from context
 	userDetails = util.GetUserInfoFromctx(ctx)
 	// Retry logic for getting user details
 	// for retries := 0; retries < 3; retries++ {
@@ -288,18 +289,19 @@ func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID 
 
 	// Set the user to ready state
 	// Notify all clients that this user is ready
-	botReadyNotification := Payload{
-		Data: fmt.Sprintf("User %s is ready", userDetails.UserName),
-		Time: time.Now(),
+	joinNotification := Payload{
+		UserName: userDetails.UserName,
+		Data:     fmt.Sprintf("User %s joined", userDetails.UserName),
+		Time:     time.Now(),
 	}
 
-	data, err := json.Marshal(botReadyNotification)
+	data, err := json.Marshal(joinNotification)
 	if err != nil {
-		l.Sugar().Error("bot ready notification json marshal failed", err)
+		l.Sugar().Error(" user joined room notification json marshal failed", err)
 		return err
 	}
 
-	readyEvent := Event{Type: "ready_game", Payload: data}
+	JoinEvent := Event{Type: EventJoinedGame, Payload: data}
 
 	// TODO: update user room member's state to ready
 	// for retries := 0; retries < 3; retries++ {
@@ -311,9 +313,59 @@ func (m *Manager) setupUserForRoom(ctx context.Context, roomCode string, userID 
 	// 	time.Sleep(1 * time.Second)
 	// }
 
-	// Broadcast to all clients in the room
-	for client := range m.clients[roomCode] {
-		client.egress <- readyEvent
+	m.Lock()
+	clientList := m.clients[roomCode]
+	m.Unlock()
+	// Broadcast to all user clients in the room
+	for client := range clientList {
+		if !client.isBot {
+			client.egress <- JoinEvent
+		}
+	}
+
+	return nil
+}
+
+// Set up user to be in game ready state when a human player clicks ready
+func (m *Manager) sendUserReadyState(ctx context.Context, roomCode string) error {
+	l := logs.GetLoggerctx(ctx)
+
+	var userDetails *usermodel.UserInfo
+	var err error
+	userDetails = util.GetUserInfoFromctx(ctx)
+
+	joinNotification := Payload{
+		UserName: userDetails.UserName,
+		Data:     fmt.Sprintf("User %s ready", userDetails.UserName),
+		Time:     time.Now(),
+	}
+
+	data, err := json.Marshal(joinNotification)
+	if err != nil {
+		l.Sugar().Error(" user joined room notification json marshal failed", err)
+		return err
+	}
+
+	JoinEvent := Event{Type: EventReadyGame, Payload: data}
+
+	// TODO: update user room member's state to ready
+	// for retries := 0; retries < 3; retries++ {
+	// 	userDetails, err = room.UpdateRoomMemberByID(ctx)
+	// 	if err == nil {
+	// 		break
+	// 	}
+	// 	l.Sugar().Warnf("Get user details attempt %d failed: %v. Retrying...", retries+1, err)
+	// 	time.Sleep(1 * time.Second)
+	// }
+
+	m.Lock()
+	clientList := m.clients[roomCode]
+	m.Unlock()
+	// Broadcast to all user clients in the room
+	for client := range clientList {
+		if !client.isBot {
+			client.egress <- JoinEvent
+		}
 	}
 
 	return nil
@@ -770,19 +822,12 @@ func sendLiveLeaderBoard(ctx context.Context, manager *Manager, roomCode string)
 func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error {
 	l := logs.GetLoggerctx(ctx)
 
-	userDetails, err := user.GetUserDetailsbyID(ctx, c.userID)
-	if err != nil {
-		l.Sugar().Error("get user details by id failed", err)
-		return err
-	}
-	if userDetails == nil {
-		return fmt.Errorf("user not found")
-	}
+	// userDetails := util.GetUserInfoFromctx(ctx)
 
 	// TODO: this api is wrong we can update inmemory
 
 	// Update the room member's ready status
-	err = room.UpdateRoomMemberStatusByID(ctx, roommodel.RoomMemberReq{
+	err := room.UpdateRoomMemberStatusByID(ctx, roommodel.RoomMemberReq{
 		UserID:           c.userID,
 		RoomID:           uuid.MustParse(c.roomCode),
 		RoomMemberStatus: roommodel.ReadyQuiz,
@@ -828,6 +873,9 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 
 		// Broadcast start notification to all clients
 		for client := range c.manager.clients[c.roomCode] {
+			if client.isBot {
+				continue
+			}
 			client.egress <- startEvent
 		}
 
@@ -836,6 +884,36 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 			time.Sleep(time.Duration(viper.GetInt("game.gamestartbuffer")) * time.Second)
 			StartGameMessageHandler(ctx, startEvent, c)
 		}()
+	}
+
+	return nil
+}
+
+// leave the game room between game
+func LeaveGameRoomHandler(ctx context.Context, event Event, c *Client) error {
+	// l := logs.GetLoggerctx(ctx)
+	userDetails := util.GetUserInfoFromctx(ctx)
+
+	// before leaving remove this client
+	leaveGameNotfication := struct {
+		UserName string    `json:"userName"`
+		Message  string    `json:"message"`
+		Time     time.Time `json:"time"`
+	}{
+		UserName: userDetails.UserName,
+		Message:  fmt.Sprintf("user %s left the room", userDetails.UserName),
+		Time:     time.Now(),
+	}
+
+	startData, _ := json.Marshal(leaveGameNotfication)
+	eventPayload := Event{Type: EventLeaveRoom, Payload: startData}
+	// todo: remove that client from the manager
+
+	// Broadcast start notification to all clients
+	for client := range c.manager.clients[c.roomCode] {
+		if !client.isBot {
+			client.egress <- eventPayload
+		}
 	}
 
 	return nil
@@ -916,7 +994,7 @@ func (c *Client) readMessages(ctx context.Context) {
 		}
 		if err := c.manager.routeEvent(ctx, request, c); err != nil {
 			l.Sugar().Error("error routing event:", err)
-			// send the error received if any and display it in ui
+			// TODO: send the error received if any and display it in ui
 		}
 	}
 }

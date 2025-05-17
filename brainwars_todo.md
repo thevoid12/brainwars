@@ -98,6 +98,7 @@ game
 	127.0.0.1:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
 - [ ] completely gamify the ui
 - [ ] auth 0 production needs to come from the official oauth keys https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/devkeys https://community.auth0.com/t/how-to-move-from-development-key-to-production-key-for-tenant/62860/2 
+- [ ] add pagination to my quiz page
 ## v2
 - [ ] move to redis
 - [ ] uploading pdf's to generate question

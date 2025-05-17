@@ -58,20 +58,22 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, 
 			}
 			// Notify all clients that this bot is ready
 			botReadyNotification := Payload{
-				Data: fmt.Sprintf("Bot %s is ready", member.UserDetails.UserName),
-				Time: time.Now(),
+				UserName: member.UserDetails.UserName,
+				Data:     fmt.Sprintf("Bot %s is ready", member.UserDetails.UserName),
+				Time:     time.Now(),
 			}
 
 			data, _ := json.Marshal(botReadyNotification)
-			readyEvent := Event{Type: "ready_game", Payload: data}
-
+			readyEvent := Event{Type: EventReadyGame, Payload: data}
 			// Broadcast to all clients in the room
 			for client := range m.clients[roomCode] {
-				if client.isBot {
-					client.botEvents <- readyEvent
-					continue
+				// if client.isBot {
+				// 	client.botEvents <- readyEvent
+				// 	continue
+				// }
+				if !client.isBot {
+					client.egress <- readyEvent
 				}
-				client.egress <- readyEvent
 			}
 
 			l.Sugar().Infof("Bot %s (type: %s) added to room %s", member.UserID.String(), botType, roomCode)

@@ -34,3 +34,4 @@ function handleQuizStart(event, mode) {
 
     quizSetupSection.style.display = 'block';
 }
+

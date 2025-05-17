@@ -256,6 +256,11 @@ func InGameHandler(c *gin.Context) {
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
 
+	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "Room Does not exists", nil)
+	}
+
 	// check if the user is already in the room
 	roomMember, err := room.GetRoomMemberByRoomCodeAndUserID(ctx, roommodel.RoomMemberReq{
 		UserID:   userID,
@@ -266,12 +271,6 @@ func InGameHandler(c *gin.Context) {
 	}
 	if roomMember == nil {
 		RenderErrorTemplate(c, "home.html", "you are not in the room", err)
-	}
-
-	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
-	if err != nil {
-		RenderErrorTemplate(c, "home.html", "Get room by room code failed", err)
-
 	}
 
 	RenderTemplate(c, "game.html", gin.H{
