@@ -13,6 +13,6 @@ window.onload = function () {
       alert("Please enter a valid room code.");
       return;
     }
-    window.location.href = "/bw/ingame/" + encodeURIComponent(roomCode);
+    window.location.href = "/bw/jroom/" + encodeURIComponent(roomCode);
   });
 };

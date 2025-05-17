@@ -207,7 +207,7 @@ func CreateRoomHandler(c *gin.Context) {
 func JoinRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
 	// check if there is a room that exists
-	roomCode := c.PostForm("roomCode")
+	roomCode := c.Param("code")
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
 	roomDetail, err := room.GetRoomByRoomCode(ctx, roomCode)
@@ -244,10 +244,7 @@ func JoinRoomHandler(c *gin.Context) {
 		}
 	}
 
-	RenderTemplate(c, "game.html", gin.H{
-		"title":    "game room",
-		"roomCode": roomCode,
-	})
+	c.Redirect(http.StatusPermanentRedirect, "/bw/ingame/"+roomCode)
 }
 
 func InGameHandler(c *gin.Context) {

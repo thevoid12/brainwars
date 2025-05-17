@@ -64,7 +64,7 @@ func Initialize(ctx context.Context, l *zap.Logger, auth *auth.Authenticator) (r
 	// room
 	rSecure.POST("/croom", handlers.CreateRoomHandler)
 	rSecure.GET("/lroom", handlers.ListAllRoomsHanlder)
-	rSecure.GET("/jroom", handlers.JoinRoomHandler)
+	rSecure.GET("/jroom/:code", handlers.JoinRoomHandler)
 	rSecure.GET("/ingame/:code", handlers.InGameHandler)
 	// http: //localhost:8080/ingame/?roomCode=c5bb492a-051a-42a6-89ec-24e899ea3c14
 	// websocket

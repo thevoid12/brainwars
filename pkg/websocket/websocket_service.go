@@ -380,7 +380,6 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	gameState, exists := c.manager.gameStates[c.roomCode]
 	c.manager.Unlock()
 	if !exists {
-
 		return fmt.Errorf("game state not found for room %s", c.roomCode)
 	}
 

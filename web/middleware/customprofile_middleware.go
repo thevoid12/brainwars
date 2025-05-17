@@ -44,7 +44,7 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 				return
 			}
 			if userInfo == nil {
-				_, err = user.CreateNewUser(ctx, &model.NewUserReq{
+				userInfo, err = user.CreateNewUser(ctx, &model.NewUserReq{
 					Auth0SubID: sub,
 					UserName:   username,
 					UserType:   model.User,

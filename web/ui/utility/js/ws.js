@@ -81,10 +81,6 @@ window.onload = function () {
     startGameBtn.onclick = () => {
       console.log("start button clicked")
  openModal({ url: '/bw/home/', method: 'ws', body:JSON.stringify({ type: "start_game" }),wsconnection:conn, message: 'Clicking Yes will force start game Despite few players are not still ready. Are you sure?' })
-
-        document.getElementById("lobby-container").classList.add("hidden");
-        
-    conn.send(JSON.stringify({ type: "start_game" }));
   };
 }
  if (gameType === "MULTI_PLAYER" && leaveRoomBtn) {
@@ -93,7 +89,6 @@ window.onload = function () {
       // showing the modal upon clicking  the modal we will kick him out
       openModal({ url: '/bw/home/', method: 'ws', body:JSON.stringify({ type: "leave_room" }),wsconnection:conn, message: 'Clicking Yes redirect you to homePage. Are you sure?' })
       console.log("leave button clicked")
-   // conn.send(JSON.stringify({ type: "leave_room" }));
   };
 }
 

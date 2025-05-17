@@ -99,6 +99,8 @@ game
 - [ ] completely gamify the ui
 - [ ] auth 0 production needs to come from the official oauth keys https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/devkeys https://community.auth0.com/t/how-to-move-from-development-key-to-production-key-for-tenant/62860/2 
 - [ ] add pagination to my quiz page
+- [ ] my quiz page should say the multiplayer quiz as expired if it is created half an hour before
+- [ ] abandon state if comes out of quiz room
 ## v2
 - [ ] move to redis
 - [ ] uploading pdf's to generate question
