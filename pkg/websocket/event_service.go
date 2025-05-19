@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	logs "brainwars/pkg/logger"
 	quizmodel "brainwars/pkg/quiz/model"
 	"context"
 	"encoding/json"
@@ -65,7 +66,12 @@ func (m *Manager) setupEventHandlers() {
 }
 
 func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error {
+	l := logs.GetLoggerctx(ctx)
+	l.Sugar().Infof("Routing event type %s from user %s in room %s",
+		event.Type, c.userID, c.roomCode)
+
 	if handler, ok := m.handlers[event.Type]; ok {
+		c.manager = m
 		return handler(ctx, event, c)
 	}
 	return ErrEventNotSupported

@@ -37,8 +37,8 @@ import (
 
 var websocketUpgrader = websocket.Upgrader{
 	// 	CheckOrigin:     checkOrigin, TODO: SETUP ORIGIN CHECK
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize:  4096,
+	WriteBufferSize: 4096,
 }
 
 var ErrEventNotSupported = errors.New("this event type is not supported")
@@ -48,7 +48,9 @@ func checkOrigin(r *http.Request) bool {
 }
 
 type Manager struct {
-	clients map[string]ClientList // map key is roomCode value is the list of clients in that room
+	clients    map[string]ClientList            // map key is roomCode value is the list of clients in that room
+	botClients map[string]map[uuid.UUID]*Client // Separate map for bots per room map key is roomid, map[roomid]map[botid]client
+
 	sync.RWMutex
 	handlers   map[string]EventHandler
 	roomStates map[string]*roommodel.RoomStatus
@@ -84,11 +86,14 @@ func NewManager(ctx context.Context) *Manager {
 	m := &Manager{
 		clients:    make(map[string]ClientList),
 		handlers:   make(map[string]EventHandler),
+		botClients: make(map[string]map[uuid.UUID]*Client),
+
 		roomStates: make(map[string]*roommodel.RoomStatus),
 		gameStates: make(map[string]*quizmodel.GameState),
 	}
 	m.setupEventHandlers()
 	m.MemoryCleanup(ctx)
+	go m.startClientHealthCheck(ctx)
 	return m
 }
 
@@ -113,6 +118,7 @@ func NewClient(conn *websocket.Conn, manager *Manager, roomCode string, isBot bo
 	}
 }
 
+// TODO: here lock is open for a long time. find a way to reduce lock time
 func (m *Manager) MemoryCleanup(ctx context.Context) {
 	l := logs.GetLoggerctx(ctx)
 	ticker := time.NewTicker(time.Minute * time.Duration(viper.GetInt("cacheCleaner.repeatIntervalMinutes")))
@@ -140,6 +146,29 @@ func (m *Manager) MemoryCleanup(ctx context.Context) {
 							// Remove the client from the list
 							delete(clients, client)
 							l.Sugar().Info("Client %s removed from room %s due to inactivity", client.userID.String(), roomCode)
+						}
+					}
+					// If no clients are left in the room, remove the room from the manager
+					if len(clients) == 0 {
+						delete(m.clients, roomCode)
+					}
+				}
+
+				for roomCode, clients := range m.botClients {
+					for botid, client := range clients {
+						fmt.Println(client.TOC.Format("2006-01-02 15:04:05"))
+						expiry := client.TOC.Add(interval)
+						fmt.Println(expiry.Format("2006-01-02 15:04:05"))
+						fmt.Println(time.Now().Format("2006-01-02 15:04:05"))
+						// Check if the client is inactive (e.g., not sending/receiving messages)
+						if time.Now().After(expiry) {
+							// if client is not closed then close it TODO: what will happen if  the connection is already closed?
+							if client.connection != nil {
+								client.connection.Close()
+							}
+							// Remove the client from the list
+							delete(clients, botid)
+							l.Sugar().Info("bot Client %s removed from room %s due to inactivity", client.userID.String(), roomCode)
 						}
 					}
 					// If no clients are left in the room, remove the room from the manager
@@ -231,16 +260,15 @@ func (m *Manager) ServeWS(c *gin.Context) {
 
 	client := NewClient(conn, m, roomCode, false, "", userID, roomDetails)
 	m.addClient(client)
-
-	go client.readMessages(ctx)
-	go client.writeUsersMessages(ctx)
+	go m.readMessages(ctx, client)
+	go m.writeUsersMessages(ctx, client)
 
 	// checking !exists here because we need to initialize bots just once per room that is for the first time alone
 	if !exists {
 		// When a human player joins, set bots to ready state
 		// even if 1 user joins the room then we instentaniously set up all the bots to ready state for the game to start.
 		// we get the list of bots from list all members in a room where bots are members as ready
-		m.setupBotsForRoom(ctx, conn, roomCode, roomDetails)
+		m.setupBotsForRoom(ctx, roomCode, roomDetails)
 	}
 
 	// if the game is a single player game since the user is ready and bots are ready as well
@@ -858,7 +886,7 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 
 	// Everyone is ready, start the game
 	gameReadyNotification := struct {
-		UserName string    `json:"userName"`
+		UserName string    `json:"username"`
 		Message  string    `json:"message"`
 		Time     time.Time `json:"time"`
 	}{
@@ -867,11 +895,18 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 		Time:     time.Now(),
 	}
 
-	readyEventJson, _ := json.Marshal(gameReadyNotification)
+	readyEventJson, err := json.Marshal(gameReadyNotification)
+	if err != nil {
+		l.Sugar().Error("ready event json marshal failed", err)
+	}
 	readyEvent := Event{Type: EventReadyGame, Payload: readyEventJson}
 
 	// Broadcast start notification to all clients
-	for client := range c.manager.clients[c.roomCode] {
+	c.manager.Lock()
+	clients := c.manager.clients[c.roomCode]
+	c.manager.Unlock()
+	// fmt.Println(clients)
+	for client := range clients {
 		if client.isBot {
 			continue
 		}
@@ -894,8 +929,12 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 		startData, _ := json.Marshal(gameReadyNotification)
 		startEvent := Event{Type: EventStartGame, Payload: startData}
 
+		c.manager.Lock()
+		clients := c.manager.clients[c.roomCode]
+		c.manager.Unlock()
+
 		// Broadcast start notification to all clients
-		for client := range c.manager.clients[c.roomCode] {
+		for client := range clients {
 			if client.isBot {
 				continue
 			}
@@ -919,7 +958,7 @@ func LeaveGameRoomHandler(ctx context.Context, event Event, c *Client) error {
 
 	// before leaving remove this client
 	leaveGameNotfication := struct {
-		UserName string    `json:"userName"`
+		UserName string    `json:"username"`
 		Message  string    `json:"message"`
 		Time     time.Time `json:"time"`
 	}{
@@ -980,72 +1019,154 @@ func (m *Manager) removeClient(client *Client) {
 	m.Unlock()
 }
 
-func (c *Client) readMessages(ctx context.Context) {
-	l := logs.GetLoggerctx(ctx)
-	defer c.manager.removeClient(c)
-
-	if err := c.connection.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
-		l.Sugar().Error("set read deadline failed", err)
-		return
+func (m *Manager) addBot(roomCode string, bot *Client) {
+	m.Lock()
+	defer m.Unlock()
+	if _, exists := m.botClients[roomCode]; !exists {
+		m.botClients[roomCode] = make(map[uuid.UUID]*Client)
 	}
-	// Configure how to handle Pong responses
-	c.connection.SetPongHandler(c.pongHandler)
-	readLimit := viper.GetInt64("ws.maxReadSize")
-	if readLimit <= 0 {
-		readLimit = int64(maxReadLimit) // Use default if not configured
-	}
-	c.connection.SetReadLimit(readLimit) // max read size limit bytes
+	m.botClients[roomCode][bot.userID] = bot
+}
 
-	for {
-		_, payload, err := c.connection.ReadMessage()
-		if err != nil {
-			// Check specific error types
-			if websocket.IsUnexpectedCloseError(err,
-				websocket.CloseGoingAway,
-				websocket.CloseNormalClosure,
-				websocket.CloseNoStatusReceived) {
-				l.Sugar().Errorf("unexpected close error: %v", err)
-			} else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-				l.Sugar().Errorf("read timeout: %v", err)
-			}
-			break
-		}
-		var request Event
-		if err := json.Unmarshal(payload, &request); err != nil {
-			l.Sugar().Error("error unmarshalling message:", err)
-			break
-		}
-		if err := c.manager.routeEvent(ctx, request, c); err != nil {
-			l.Sugar().Error("error routing event:", err)
-			// TODO: send the error received if any and display it in ui
+func (m *Manager) removeBot(bot *Client) {
+	m.Lock()
+	defer m.Unlock()
+	if _, exists := m.botClients[bot.roomCode]; exists {
+		delete(m.botClients[bot.roomCode], bot.userID)
+		if len(m.botClients[bot.roomCode]) == 0 {
+			delete(m.botClients, bot.roomCode)
 		}
 	}
 }
 
-func (c *Client) writeUsersMessages(ctx context.Context) {
+// Add this to your manager to periodically check clients
+func (m *Manager) startClientHealthCheck(ctx context.Context) {
 	l := logs.GetLoggerctx(ctx)
 
-	l.Info("Client connected for write user messages")
-	ticker := time.NewTicker(time.Second * 9)
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			m.RLock()
+			for roomCode, clients := range m.clients {
+				log.Printf("Room %s has %d clients", roomCode, len(clients))
+				for client := range clients {
+					if client.isBot {
+						continue
+					}
+					startEvent := Event{Type: "test_event"}
+					se, err := json.Marshal(startEvent)
+					if err != nil {
+						l.Sugar().Error(err)
+					}
+					err = client.connection.WriteMessage(websocket.TextMessage, se)
+					if err != nil {
+						l.Sugar().Error("connection closed for the client(cannot write the user id)", client.userID)
+					}
+					log.Printf("Client %s in room %s is connected", client.userID, roomCode)
+				}
+			}
+			m.RUnlock()
+		}
+	}
+}
+
+func (m *Manager) readMessages(ctx context.Context, c *Client) {
+	l := logs.GetLoggerctx(ctx)
+	l.Sugar().Infof("Read goroutine started for user %s in room %s", c.userID, c.roomCode)
+
+	defer func() {
+		l.Sugar().Infof("Ending read goroutine for user %s", c.userID)
+		c.manager.removeClient(c)
+	}()
+
+	// I am registering pong handler here so that gorilla mux can handle pong
+	// internally whenever i ping is written to the ws
+	c.connection.SetPongHandler(c.pongHandler)
+
+	readLimit := viper.GetInt64("ws.maxReadSize")
+	if readLimit <= 0 {
+		readLimit = int64(maxReadLimit)
+	}
+	c.connection.SetReadLimit(readLimit)
+
+	for {
+		select {
+		case <-ctx.Done():
+			l.Sugar().Infof("Context cancelled for readMessages, user %s", c.userID)
+			return
+		default:
+			if c.connection == nil { // Should not happen for human clients after successful connection
+				l.Sugar().Errorf("User %s has nil connection in readMessages loop.", c.userID)
+				return
+			}
+			_, payload, err := c.connection.ReadMessage()
+
+			if err != nil {
+				l.Sugar().Errorf("Error reading message for user %s: %v. Connection type: %T", c.userID, err, c.connection)
+
+				if websocket.IsUnexpectedCloseError(err,
+					websocket.CloseGoingAway,
+					websocket.CloseNormalClosure,
+					websocket.CloseNoStatusReceived) {
+					l.Sugar().Errorf("unexpected close error: %v", err)
+				} else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+					l.Sugar().Errorf("read timeout: %v", err)
+				}
+
+				break
+			}
+			l.Sugar().Debugf("Raw message received from user %s: payload %s", c.userID, string(payload))
+
+			var request Event
+			if err := json.Unmarshal(payload, &request); err != nil {
+				l.Sugar().Error("error unmarshalling message:", err)
+				break
+			}
+
+			// Add additional logging here to debug the event routing
+			l.Sugar().Infof("Received event type %s from user %s", request.Type, c.userID)
+
+			if err := m.routeEvent(ctx, request, c); err != nil {
+				l.Sugar().Error("error routing event:", err)
+			}
+		}
+	}
+}
+
+func (m *Manager) writeUsersMessages(ctx context.Context, c *Client) {
+	l := logs.GetLoggerctx(ctx)
+
+	l.Sugar().Info("Client connected for write user messages")
+	ticker := time.NewTicker(pingInterval)
 
 	defer func() {
 		ticker.Stop()
-		c.manager.removeClient(c)
+		m.removeClient(c)
 	}()
 	for {
 		select {
 		case message, ok := <-c.egress:
 			if !ok {
 				c.connection.WriteMessage(websocket.CloseMessage, nil)
+				l.Info("connection cloed since not okay")
 				return
 			}
-			data, _ := json.Marshal(message)
-			err := c.connection.WriteMessage(websocket.TextMessage, data)
+			data, err := json.Marshal(message)
+			if err != nil {
+				l.Sugar().Error("json message marshall failed", err)
+			}
+
+			l.Sugar().Info(fmt.Sprintf("the data received by the writer is %s, for the user %s", string(data), c.userID.String()))
+			err = c.connection.WriteMessage(websocket.TextMessage, data)
 			if err != nil {
 				l.Sugar().Error(err)
 			}
 		case <-ticker.C:
 			log.Println("ping")
+			l.Sugar().Debugf("Sending ping to user %s", c.userID)
 			err := c.connection.WriteMessage(websocket.PingMessage, nil)
 			if err != nil {
 				l.Sugar().Error("ping error", err)

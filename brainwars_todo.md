@@ -101,6 +101,10 @@ game
 - [ ] add pagination to my quiz page
 - [ ] my quiz page should say the multiplayer quiz as expired if it is created half an hour before
 - [ ] abandon state if comes out of quiz room
+- [ ] game error needs to be displayed
+- [ ] fix multiplayer bugsssss
+- [ ] fix game lobby
+- [ ] fix the timer running even after game ends
 ## v2
 - [ ] move to redis
 - [ ] uploading pdf's to generate question

@@ -8,7 +8,7 @@
     "uiTemplates": "web/ui/templates/"
   },
   "ws": {
-    "maxReadSize": 512
+    "maxReadSize": 4068
   },
   "game": {
     "gamestartbuffer": 3

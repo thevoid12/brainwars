@@ -14,13 +14,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 )
 
 // Set up bots to be ready when a human player joins
 // bots doesnt work with egres channel. egress channel is for web socket connection
 // bots can use the other channel to coordinate communication
-func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, roomCode string, roomDetails *roommodel.Room) {
+func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDetails *roommodel.Room) {
 	l := logs.GetLoggerctx(ctx)
 	// TODO: if the bots are alredy set of that room ignore and move forward
 	// Get all room members including bots
@@ -40,22 +39,22 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, 
 
 			botType := usermodel.BotType(member.UserDetails.BotType)
 			// Create a new bot client
-			botClient := NewClient(wsconn, m, roomCode, true, botType, member.UserID, roomDetails)
+			botClient := NewClient(nil, m, roomCode, true, botType, member.UserID, roomDetails)
 			// go botClient.writeBotMessages(ctx) // bot should write their messages as well to ui
 			// Initialize the bot with event channel and start its behavior handler
 			m.InitializeBot(ctx, botClient)
 
 			// Add the client to the manager
-			m.addClient(botClient)
-
+			// m.addClient(botClient) // this line is the culprit
+			m.addBot(roomCode, botClient) // Add bot to the separate map
 			// update the bot status to BOT READY  quiz so that we dont set up client again in multiplayer setup
-			err = room.UpdateRoomMemberStatusByRoomCodeAndUserID(ctx, &roommodel.RoomCodeReq{
-				UserID:   member.UserID,
-				RoomCode: roomCode,
-			}, roommodel.BotReadyQuiz)
-			if err != nil {
-				return
-			}
+			// err = room.UpdateRoomMemberStatusByRoomCodeAndUserID(ctx, &roommodel.RoomCodeReq{
+			// 	UserID:   member.UserID,
+			// 	RoomCode: roomCode,
+			// }, roommodel.BotReadyQuiz)
+			// if err != nil {
+			// 	return
+			// }
 			// Notify all clients that this bot is ready
 			botReadyNotification := Payload{
 				UserName: member.UserDetails.UserName,
@@ -63,10 +62,18 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, 
 				Time:     time.Now(),
 			}
 
-			data, _ := json.Marshal(botReadyNotification)
+			data, err := json.Marshal(botReadyNotification)
+			if err != nil {
+				l.Sugar().Error("bot ready notification json marshal failed", err)
+				return
+			}
+
 			readyEvent := Event{Type: EventReadyGame, Payload: data}
+			m.Lock()
+			clients := m.clients[roomCode]
+			m.Unlock()
 			// Broadcast to all clients in the room
-			for client := range m.clients[roomCode] {
+			for client := range clients {
 				// if client.isBot {
 				// 	client.botEvents <- readyEvent
 				// 	continue
@@ -74,6 +81,9 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, wsconn *websocket.Conn, 
 				if !client.isBot {
 					client.egress <- readyEvent
 				}
+				// } else {
+				// 	client.botEvents <- readyEvent
+				// }
 			}
 
 			l.Sugar().Infof("Bot %s (type: %s) added to room %s", member.UserID.String(), botType, roomCode)
@@ -96,8 +106,8 @@ func (m *Manager) broadcastToBots(ctx context.Context, roomCode string, event Ev
 	m.RLock()
 	defer m.RUnlock()
 
-	if clients, exists := m.clients[roomCode]; exists {
-		for client := range clients {
+	if clients, exists := m.botClients[roomCode]; exists {
+		for _, client := range clients {
 			if client.isBot && client.botEvents != nil {
 				// Send the event to the bot's event channel
 				select {
