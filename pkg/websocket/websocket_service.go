@@ -432,11 +432,11 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 		c.manager.Unlock()
 	}
 	// Send the first question to all clients
-	return sendNextQuestion(ctx, c.manager, c.roomCode, c.ansHistory)
+	return sendNextQuestion(ctx, c.manager, c.roomCode)
 }
 
 // Send the next question to all clients in a room
-func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string, ansHistory map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq) error {
+func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) error {
 	l := logs.GetLoggerctx(ctx)
 
 	manager.Lock()
@@ -467,8 +467,11 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string, an
 		endGameData, _ := json.Marshal(endGamePayload)
 		endEvent := Event{Type: EventEndGame, Payload: endGameData}
 
+		manager.Lock()
+		clients := manager.clients[roomCode]
+		manager.Unlock()
 		// Broadcast to all clients
-		for client := range manager.clients[roomCode] {
+		for client := range clients {
 			if !client.isBot {
 				client.egress <- endEvent
 			}
@@ -510,9 +513,14 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string, an
 		//TODO: find a better way to update the database (like a queue kind of thingy to
 		// update db later and clear the memory as well after updating the pgsql db
 		// updating the answer history in answer table
-		err = updateAnswerHistory(ctx, ansHistory)
-		if err != nil {
-			return err
+		manager.Lock()
+		clients = manager.clients[roomCode]
+		manager.Unlock()
+		for client := range clients {
+			err = updateAnswerHistory(ctx, client.ansHistory)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -568,7 +576,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string, an
 			if gameState.CurrentQuestionIndex == currentIndex {
 				gameState.CurrentQuestionIndex++
 				manager.Unlock()
-				err = sendNextQuestion(ctx, manager, roomCode, ansHistory)
+				err = sendNextQuestion(ctx, manager, roomCode)
 				if err != nil {
 					l.Sugar().Error("send next question failed", err)
 				}
@@ -631,7 +639,8 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 	for i, participant := range gameState.Participants {
 		if participant.UserID == c.userID {
 			found = true
-			if gameState.Participants[i].LastChoosenOption == int(submission.AnswerOption) {
+			// check to make sure that no scores to be calculated when the same option is clicked again and again
+			if gameState.Participants[i].LastChoosenOption == int(submission.AnswerOption) && gameState.Participants[i].LastAnsweredQestion == currentQuestion.ID {
 				break
 			}
 			// if he has already answered the question we will -50 the points
@@ -772,7 +781,7 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 
 			gameState.CurrentQuestionIndex++
 			c.manager.Unlock()
-			return sendNextQuestion(ctx, c.manager, c.roomCode, c.ansHistory)
+			return sendNextQuestion(ctx, c.manager, c.roomCode)
 		} else {
 			c.manager.Unlock()
 		}
@@ -905,7 +914,6 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	c.manager.Lock()
 	clients := c.manager.clients[c.roomCode]
 	c.manager.Unlock()
-	// fmt.Println(clients)
 	for client := range clients {
 		if client.isBot {
 			continue
@@ -1014,7 +1022,7 @@ func (m *Manager) removeClient(client *Client) {
 	m.Lock()
 	if _, exists := m.clients[client.roomCode]; exists {
 		delete(m.clients[client.roomCode], client)
-		client.connection.Close()
+		// client.connection.Close()
 	}
 	m.Unlock()
 }
@@ -1041,36 +1049,36 @@ func (m *Manager) removeBot(bot *Client) {
 
 // Add this to your manager to periodically check clients
 func (m *Manager) startClientHealthCheck(ctx context.Context) {
-	l := logs.GetLoggerctx(ctx)
+	// l := logs.GetLoggerctx(ctx)
 
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
+	// ticker := time.NewTicker(30 * time.Second)
+	// defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			m.RLock()
-			for roomCode, clients := range m.clients {
-				log.Printf("Room %s has %d clients", roomCode, len(clients))
-				for client := range clients {
-					if client.isBot {
-						continue
-					}
-					startEvent := Event{Type: "test_event"}
-					se, err := json.Marshal(startEvent)
-					if err != nil {
-						l.Sugar().Error(err)
-					}
-					err = client.connection.WriteMessage(websocket.TextMessage, se)
-					if err != nil {
-						l.Sugar().Error("connection closed for the client(cannot write the user id)", client.userID)
-					}
-					log.Printf("Client %s in room %s is connected", client.userID, roomCode)
-				}
-			}
-			m.RUnlock()
-		}
-	}
+	// for {
+	// 	select {
+	// 	case <-ticker.C:
+	// 		m.RLock()
+	// 		for roomCode, clients := range m.clients {
+	// 			log.Printf("Room %s has %d clients", roomCode, len(clients))
+	// 			for client := range clients {
+	// 				if client.isBot {
+	// 					continue
+	// 				}
+	// 				startEvent := Event{Type: "test_event"}
+	// 				se, err := json.Marshal(startEvent)
+	// 				if err != nil {
+	// 					l.Sugar().Error(err)
+	// 				}
+	// 				err = client.connection.WriteMessage(websocket.TextMessage, se)
+	// 				if err != nil {
+	// 					l.Sugar().Error("connection closed for the client(cannot write the user id)", client.userID)
+	// 				}
+	// 				log.Printf("Client %s in room %s is connected", client.userID, roomCode)
+	// 			}
+	// 		}
+	// 		m.RUnlock()
+	// 	}
+	// }
 }
 
 func (m *Manager) readMessages(ctx context.Context, c *Client) {
@@ -1116,14 +1124,14 @@ func (m *Manager) readMessages(ctx context.Context, c *Client) {
 					l.Sugar().Errorf("read timeout: %v", err)
 				}
 
-				break
+				return
 			}
 			l.Sugar().Debugf("Raw message received from user %s: payload %s", c.userID, string(payload))
 
 			var request Event
 			if err := json.Unmarshal(payload, &request); err != nil {
 				l.Sugar().Error("error unmarshalling message:", err)
-				break
+				return
 			}
 
 			// Add additional logging here to debug the event routing

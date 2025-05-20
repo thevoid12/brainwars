@@ -191,6 +191,8 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 				if err != nil {
 					return
 				}
+				c.manager.botClients = nil // gc will take care
+
 				//TODO:reasource cleanup
 				// Close the bot's event channel
 			}
