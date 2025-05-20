@@ -555,7 +555,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 	// Get the current question
 	currentQuestion := gameState.Questions.QuestionData[gameState.CurrentQuestionIndex]
 	timeLimit := time.Duration(gameState.Questions.TimeLimit) * time.Minute
-
+	currentQuestion.Answer = -1 // making sure that the answer isnt shown in ws
 	// Store current question index for the goroutine
 	currentIndex := gameState.CurrentQuestionIndex
 
