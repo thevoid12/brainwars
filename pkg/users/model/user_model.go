@@ -25,6 +25,14 @@ const (
 	Bot  = "Bot"
 )
 
+// this is not the room's status its the status of the user in the room
+type UserStatus string
+
+const (
+	UserReady  UserStatus = "ready"
+	UserJoined UserStatus = "joined"
+)
+
 type UserInfo struct {
 	ID         uuid.UUID
 	Auth0SubID string

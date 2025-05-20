@@ -39,7 +39,7 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDet
 
 			botType := usermodel.BotType(member.UserDetails.BotType)
 			// Create a new bot client
-			botClient := NewClient(nil, m, roomCode, true, botType, member.UserID, roomDetails)
+			botClient := NewClient(nil, m, roomCode, true, botType, member.UserID, member.UserDetails.UserName, roomDetails)
 			// go botClient.writeBotMessages(ctx) // bot should write their messages as well to ui
 			// Initialize the bot with event channel and start its behavior handler
 			m.InitializeBot(ctx, botClient)
@@ -56,35 +56,36 @@ func (m *Manager) setupBotsForRoom(ctx context.Context, roomCode string, roomDet
 			// 	return
 			// }
 			// Notify all clients that this bot is ready
-			botReadyNotification := Payload{
-				UserName: member.UserDetails.UserName,
-				Data:     fmt.Sprintf("Bot %s is ready", member.UserDetails.UserName),
-				Time:     time.Now(),
-			}
+			// botReadyNotification := Payload{
+			// 	UserName: member.UserDetails.UserName,
+			// 	Data:     fmt.Sprintf("Bot %s is ready", member.UserDetails.UserName),
+			// 	Time:     time.Now(),
+			// }
 
-			data, err := json.Marshal(botReadyNotification)
-			if err != nil {
-				l.Sugar().Error("bot ready notification json marshal failed", err)
-				return
-			}
+			// data, err := json.Marshal(botReadyNotification)
+			// if err != nil {
+			// 	l.Sugar().Error("bot ready notification json marshal failed", err)
+			// 	return
+			// }
 
-			readyEvent := Event{Type: EventReadyGame, Payload: data}
-			m.Lock()
-			clients := m.clients[roomCode]
-			m.Unlock()
-			// Broadcast to all clients in the room
-			for client := range clients {
-				// if client.isBot {
-				// 	client.botEvents <- readyEvent
-				// 	continue
-				// }
-				if !client.isBot {
-					client.egress <- readyEvent
-				}
-				// } else {
-				// 	client.botEvents <- readyEvent
-				// }
-			}
+			// readyEvent := Event{Type: EventLobbyState, Payload: data}
+			// m.Lock()
+			// clients := m.clients[roomCode]
+			// m.Unlock()
+			// // Broadcast to all clients in the room
+			// for client := range clients {
+			// 	// if client.isBot {
+			// 	// 	client.botEvents <- readyEvent
+			// 	// 	continue
+			// 	// }
+			// 	if !client.isBot {
+			// 		client.egress <- readyEvent
+			// 	}
+			// 	// } else {
+			// 	// 	client.botEvents <- readyEvent
+			// 	// }
+			// }
+			m.sendRoomMemberState(ctx, roomCode, botClient, usermodel.UserReady)
 
 			l.Sugar().Infof("Bot %s (type: %s) added to room %s", member.UserID.String(), botType, roomCode)
 		}

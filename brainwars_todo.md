@@ -105,6 +105,7 @@ game
 - [ ] fix multiplayer bugsssss
 - [ ] fix game lobby
 - [ ] fix the timer running even after game ends
+- [ ] max 10 users in a room
 ## v2
 - [ ] move to redis
 - [ ] uploading pdf's to generate question

@@ -23,7 +23,14 @@ window.onload = function () {
       console.log(e.data);
       const data = JSON.parse(e.data);
       
-       if (data.type === "joined_game" && gameType === "MULTI_PLAYER") {
+      if (data.type === "lobby_state" && gameType === "MULTI_PLAYER") {
+        console.log("lobby part reached")
+          lobbyPlayers = {}; // reset
+            data.payload.forEach(player => {
+              lobbyPlayers[player.username] = player.data;
+            });
+          renderLobbyPlayers();
+      } else if (data.type === "joined_game" && gameType === "MULTI_PLAYER") {
         console.log("joined part reached")
         // TODO: show it on the player list in the left of the page that the player has joined whcich is at the same place where 
         // leaderboard will be after the start of the game

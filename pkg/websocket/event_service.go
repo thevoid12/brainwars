@@ -24,8 +24,8 @@ type EventHandler func(ctx context.Context, event Event, c *Client) error
 const (
 	// EventSendMessage is the event name for new chat messages sent
 	EventSendMessage = "send_message"
-
-	EventStartGame = "start_game" // (step3)
+	EventLobbyState  = "lobby_state"
+	EventStartGame   = "start_game" // (step3)
 	//EventReadyGame is that the user is ready to start the game
 	EventJoinedGame   = "joined_game" // Joined into the game (step1)
 	EventReadyGame    = "ready_game"  // ready to play the game (step2)
