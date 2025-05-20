@@ -121,6 +121,7 @@ type Participant struct {
 	IsReady             bool      `json:"isReady"`
 	LastAnsweredQestion uuid.UUID `json:"answerID"`
 	LastChoosenOption   int       `json:"chosenOption"`
+	IsExited            bool      `json:"exited"`
 }
 
 type QuizError struct {

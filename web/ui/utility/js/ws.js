@@ -6,7 +6,8 @@ window.onload = function () {
     let playerListEl = document.getElementById("player-list");
     let readyGameBtn = document.getElementById("ready-game-btn");
     let startGameBtn = document.getElementById("start-game-btn");
-    let leaveRoomBtn = document.getElementById("leave-room-btn");
+    let leaveRoomBtn = document.getElementById("leave-room-btn"); 
+
 
     console.log("WebSocket is supported");
     let protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -137,8 +138,9 @@ function renderLobbyPlayers() {
               <span class="text-sm text-gray-600 mr-2">Completion</span>
               <div class="w-48 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div class="h-full bg-primary-500 rounded-full" style="width: ${percentComplete}%"></div>
-              </div>
+                </div>
             </div>
+        <button id="leave-game-btn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors">End Game</button>
           </div>
         </div>
     
@@ -270,6 +272,21 @@ function renderLobbyPlayers() {
             }
           };
           conn.send(JSON.stringify(nextQuestionPayload));
+        });
+      }
+
+      // leave game inbetween
+      const leaveGameBtn = document.getElementById("leave-game-btn");
+      if (leaveGameBtn) {
+        leaveGameBtn.addEventListener("click", () => {
+          console.log("Leave game button clicked from renderQuestion");
+          openModal({
+            url: '/bw/home/',
+            method: 'ws',
+            body: JSON.stringify({ type: 'leave_room' }),
+            wsconnection: conn,
+            message: "Clicking Yes will Kick you out of the game and you can't join again. Are you sure?"
+          });
         });
       }
     }

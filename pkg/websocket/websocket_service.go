@@ -703,6 +703,7 @@ func SubmitAnswerHandler(ctx context.Context, event Event, c *Client) error {
 			IsReady:             true,
 			LastAnsweredQestion: currentQuestion.ID,
 			LastChoosenOption:   int(submission.AnswerOption),
+			IsExited:            false,
 		})
 		// Update the answer history
 		if _, exists := c.ansHistory[currentQuestion.ID]; !exists {
@@ -765,7 +766,7 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 	currentQuestion := gameState.Questions.QuestionData[gameState.CurrentQuestionIndex]
 
 	for _, participant := range gameState.Participants { // TODO: This logic is not the best logic here we are checking if all of them have answeredby checking if all have the same latest quest id
-		if !participant.IsBot && currentQuestion.ID != participant.LastAnsweredQestion {
+		if !participant.IsBot && !participant.IsExited && currentQuestion.ID != participant.LastAnsweredQestion {
 			isAllMembersSubmitted = false
 			break
 
@@ -979,12 +980,40 @@ func LeaveGameRoomHandler(ctx context.Context, event Event, c *Client) error {
 	eventPayload := Event{Type: EventLeaveRoom, Payload: startData}
 	// todo: remove that client from the manager
 
-	// Broadcast start notification to all clients
-	for client := range c.manager.clients[c.roomCode] {
-		if !client.isBot {
-			client.egress <- eventPayload
+	// Broadcast leave notification to that client
+
+	// for client := range clients {
+	// 	if !client.isBot {
+	// 		client.egress <- eventPayload
+	// 	}
+	// }
+	c.egress <- eventPayload
+
+	c.manager.Lock()
+	// clients := c.manager.clients[c.roomCode]
+	gamestate := c.manager.gameStates[c.roomCode]
+	c.manager.Unlock()
+	// newclientList := make(ClientList)
+	// for client := range clients {
+	// 	if client.userID == c.userID {
+	// 		continue
+	// 	}
+	// 	newclientList[client] = true
+	// }
+
+	newParticipants := []quizmodel.Participant{}
+
+	for _, p := range gamestate.Participants {
+		if p.UserID == c.userID {
+			p.IsExited = true
 		}
+		newParticipants = append(newParticipants, p)
 	}
+
+	c.manager.Lock()
+	// c.manager.clients[c.roomCode] = newclientList
+	c.manager.gameStates[c.roomCode].Participants = newParticipants
+	c.manager.Unlock()
 
 	return nil
 }
