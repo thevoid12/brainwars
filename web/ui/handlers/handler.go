@@ -146,7 +146,8 @@ func CreateRoomHandler(c *gin.Context) {
 	topic := c.PostForm("topic")
 	timelimit := c.PostForm("timelimit")
 	roomName := c.PostForm("roomName")
-
+	difficulty := c.PostForm("difficulty")
+	fmt.Println(difficulty)
 	tl, err := strconv.Atoi(timelimit)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "time limit is in wrong format", err)
