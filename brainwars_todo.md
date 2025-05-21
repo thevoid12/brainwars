@@ -72,20 +72,27 @@ game
 - [x] remove egress channel and change it into connection map so 
 - [x] if i do hard reload after game is over it again goes to the first question
 - [x] authentication and session
-- [ ] check for deadlock and race conditions
-- [ ] productionize tailwind remove tailwind.config from layout
-- [ ] validate and sanitize all models
-- [ ] tips to imporve using gpt in analysis
 - [x] there is some bug with updating state of the room fix it check all the logic and make sure we are updating the db
 - [x] disable refresh in game or atleast get a pop up. upon refreshjing he shouldf be kicked out of the ws and sent to home
-- [ ] close all open channels
-- [ ] confetti needs to come only for the winning user
 - [x] fix multiplayer
 - [x] multiplayer
+- [x] handle ui errors display appropriately especially inside ws
+- [x] abandon state if comes out of quiz room
+- [x] game error needs to be displayed
+- [x] fix multiplayer bugsssss
+- [x] fix game lobby
+- [ ] check for deadlock and race conditions
+- [ ] productionize tailwind remove tailwind.config from layout
+- [ ] validate and sanitize all models including ws results
+- [ ] tips to imporve using gpt in analysis
+
+- [ ] close all open channels
+- [ ] confetti needs to come only for the winning user
+
 - [ ] go through all fmt.println statements and remove unwanted stuff
 - [ ] use safehtml for all the backend data which we are sending to ui
 - [ ] xss protection
-- [ ] handle ui errors display appropriately especially inside ws
+
 - [ ] if a user leaves before starting a game we need to remove him( ie if his connection is not active or he leaves explicitly)
 - [ ] they shouldnt add a bot which takes more time than room each question time
 - [ ] there is another checklist shown with the status of others submitted the question or not
@@ -100,12 +107,10 @@ game
 - [ ] auth 0 production needs to come from the official oauth keys https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/devkeys https://community.auth0.com/t/how-to-move-from-development-key-to-production-key-for-tenant/62860/2 
 - [ ] add pagination to my quiz page
 - [ ] my quiz page should say the multiplayer quiz as expired if it is created half an hour before
-- [ ] abandon state if comes out of quiz room
-- [ ] game error needs to be displayed
-- [ ] fix multiplayer bugsssss
-- [ ] fix game lobby
+
 - [ ] fix the timer running even after game ends
 - [ ] max 10 users in a room
+- [ ] left state not there if i leave in the lobby
 ## v2
 - [ ] move to redis
 - [ ] uploading pdf's to generate question
