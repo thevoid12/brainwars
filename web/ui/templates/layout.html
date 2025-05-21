@@ -68,7 +68,7 @@
 </head>
 
 <body>
-  <div id="outer-page-content" class="bg-gray-50 h-screen flex overflow-hidden"
+  <div id="outer-page-content" class="bg-gray-50 h-screen flex overflow-auto"
     data-hx-headers='{"X-XSRF-TOKEN":"{{ .CsrfToken }}"}'>
     {{ template "content" . }}
   </div>

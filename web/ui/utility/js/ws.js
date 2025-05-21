@@ -19,86 +19,82 @@ window.onload = function () {
       let data = JSON.stringify({ type: "send_message", payload: payload });
       conn.send(data);
     };
-    conn.onmessage = function (e) {
-      console.log(e.data);
+
+      conn.onmessage = function (e) {
       const data = JSON.parse(e.data);
-      
+
       if (data.type === "lobby_state" && gameType === "MULTI_PLAYER") {
-        console.log("lobby part reached")
-          lobbyPlayers = {}; // reset
-            data.payload.forEach(player => {
-              lobbyPlayers[player.username] = player.data;
-            });
-          renderLobbyPlayers();
+        lobbyPlayers = {}; // reset
+        data.payload.forEach(player => {
+          lobbyPlayers[player.username] = player.data;
+        });
+        renderLobbyPlayers();
       } else if (data.type === "joined_game" && gameType === "MULTI_PLAYER") {
-        console.log("joined part reached")
-        // TODO: show it on the player list in the left of the page that the player has joined whcich is at the same place where 
-        // leaderboard will be after the start of the game
-         const username = data.payload.username;
-          lobbyPlayers[username] = "joined";
-          renderLobbyPlayers();
-      }else if (data.type === "ready_game" && gameType === "MULTI_PLAYER") {
-         console.log("ready part reached")
+        const username = data.payload.username;
+        lobbyPlayers[username] = "joined";
+        renderLobbyPlayers();
+      } else if (data.type === "ready_game" && gameType === "MULTI_PLAYER") {
         const username = data.payload.username;
         lobbyPlayers[username] = "ready";
         renderLobbyPlayers();
-        // now ,joined will become ready
-        // this is done so that game can only be started after every user clicks ready or the owner overrides it
-        // when everyone is ready (which backend will give you a startgame)
       } else if (data.type === "start_game") {
-       // backend will check if everyone is ready for the game to start. if true it will send a startgame event
-       // we will hit another end point
-         if (gameType === "MULTI_PLAYER") {
-        document.getElementById("lobby-container").classList.add("hidden");
-          }
+        if (gameType === "MULTI_PLAYER") {
+          document.getElementById("lobby-container").classList.add("hidden");
+        }
       } else if (data.type === "new_question") {
         renderQuestion(data.payload);
       } else if (data.type === "end_game") {
         renderEndGame(data.payload);
       } else if (data.type === "leaderboard") {
         renderLeaderboard(data.payload.scores);
-      }
-      else if (data.type === "game_error") {
-        // display the error which occours in between game
+      } else if (data.type === "game_error") {
         renderGameError(data.payload.errorMessage);
-      } else if (data.type=="leave_room") {
-        // leave room in middle of the game
-        // put the payload in the chat
-        conn.close()
-         console.log("Connection closed!");
-         window.location.href = "/bw/home/";
+      } else if (data.type === "leave_room") {
+        conn.close();
+        window.location.href = "/bw/home/";
         return;
-    }
-  };
-    conn.onclose = function (e) {
+      }
+    };
+
+    conn.onclose = function () {
       console.log("Connection closed!");
-      window.location.href = "/bw/home/"
+      window.location.href = "/bw/home/";
       return;
     };
 
-      if (gameType === "MULTI_PLAYER" && readyGameBtn) {
-    readyGameBtn.classList.remove("hidden");
-    readyGameBtn.onclick = () => {
-      console.log("ready button clicked")
-    conn.send(JSON.stringify({ type: "ready_game" }));
-  };
-}
+    // Debounce helpers
+    function debounceClick(callback, delay = 500) {
+      let lastClick = 0;
+      return () => {
+        const now = Date.now();
+        if (now - lastClick > delay) {
+          lastClick = now;
+          callback();
+        }
+      };
+    }
+
+
+    if (gameType === "MULTI_PLAYER" && readyGameBtn) {
+      readyGameBtn.classList.remove("hidden");
+      readyGameBtn.onclick = debounceClick(() => {
+        conn.send(JSON.stringify({ type: "ready_game" }));
+      });
+    }
 
     if (gameType === "MULTI_PLAYER" && startGameBtn) {
-    startGameBtn.classList.remove("hidden");
-    startGameBtn.onclick = () => {
-      console.log("start button clicked")
- openModal({ url: '/bw/home/', method: 'ws', body:JSON.stringify({ type: "start_game" }),wsconnection:conn, message: 'Clicking Yes will force start game Despite few players are not still ready. Are you sure?' })
-  };
-}
- if (gameType === "MULTI_PLAYER" && leaveRoomBtn) {
-    leaveRoomBtn.classList.remove("hidden");
-    leaveRoomBtn.onclick = () => {
-      // showing the modal upon clicking  the modal we will kick him out
-      openModal({ url: '/bw/home/', method: 'ws', body:JSON.stringify({ type: "leave_room" }),wsconnection:conn, message: 'Clicking Yes redirect you to homePage. Are you sure?' })
-      console.log("leave button clicked")
-  };
-}
+      startGameBtn.classList.remove("hidden");
+      startGameBtn.onclick = debounceClick(() => {
+        openModal({ url: '/bw/home/', method: 'ws', body: JSON.stringify({ type: "start_game" }), wsconnection: conn, message: 'Clicking Yes will force start game Despite few players are not still ready. Are you sure?' });
+      });
+    }
+
+    if (gameType === "MULTI_PLAYER" && leaveRoomBtn) {
+      leaveRoomBtn.classList.remove("hidden");
+      leaveRoomBtn.onclick = () => {
+        openModal({ url: '/bw/home/', method: 'ws', body: JSON.stringify({ type: "leave_room" }), wsconnection: conn, message: 'Clicking Yes redirect you to homePage. Are you sure?' });
+      };
+    }
 
    function renderGameError(errorMessage) {
       const popup = document.createElement('div');
