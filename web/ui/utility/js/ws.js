@@ -59,7 +59,8 @@ window.onload = function () {
         renderLeaderboard(data.payload.scores);
       }
       else if (data.type === "game_error") {
-        // display the error as pop up
+        // display the error which occours in between game
+        renderGameError(data.payload.errorMessage);
       } else if (data.type=="leave_room") {
         // leave room in middle of the game
         // put the payload in the chat
@@ -70,7 +71,6 @@ window.onload = function () {
     }
   };
     conn.onclose = function (e) {
-
       console.log("Connection closed!");
       window.location.href = "/bw/home/"
       return;
@@ -99,6 +99,32 @@ window.onload = function () {
       console.log("leave button clicked")
   };
 }
+
+   function renderGameError(errorMessage) {
+      const popup = document.createElement('div');
+      popup.id = 'errorPopup';
+      popup.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 bg-red-100 text-red-700 border border-red-300 rounded-md shadow-md p-4 max-w-md w-full z-50 flex justify-between items-start';
+      popup.innerHTML = `
+        <div class="flex items-start space-x-2">
+          <svg class="w-6 h-6 text-red-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="text-sm font-medium">${errorMessage}</span>
+        </div>
+        <button id="closeError" class="ml-4 text-sm text-gray-500 hover:text-gray-700">Dismiss</button>
+      `;
+
+      document.body.appendChild(popup);
+
+      const closeBtn = popup.querySelector('#closeError');
+      closeBtn.addEventListener('click', () => {
+        popup.remove();
+      });
+
+      setTimeout(() => {
+        popup.remove();
+      }, 10000);
+    }
 
 function renderLobbyPlayers() {
   if (!playerListEl) return;

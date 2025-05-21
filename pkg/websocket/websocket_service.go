@@ -429,6 +429,15 @@ func (m *Manager) sendRoomMemberState(ctx context.Context, roomCode string, c *C
 func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error {
 	l := logs.GetLoggerctx(ctx)
 
+	// em := quizmodel.QuizError{
+	// 	Message: "this is a test error",
+	// }
+	// errorData, _ := json.Marshal(em)
+	// ackEvent := Event{Type: EventGameError, Payload: errorData}
+
+	// // Send acknowledgment only to the client who submitted
+	// c.egress <- ackEvent
+
 	// Get the game state for this room
 	c.manager.Lock()
 	gameState, exists := c.manager.gameStates[c.roomCode]
