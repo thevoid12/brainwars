@@ -281,7 +281,9 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	if roomDetails.GameType == roommodel.SP {
 		err = m.sendRoomMemberState(ctx, roomCode, client, usermodel.UserReady)
 		if err != nil {
+
 			l.Sugar().Error("send single player user ready state failed ", err)
+			sendGameError("send single player user ready state failed ", client)
 			return
 		}
 		err = StartGameMessageHandler(ctx, Event{}, client)
@@ -351,7 +353,8 @@ func (m *Manager) sendRoomMemberState(ctx context.Context, roomCode string, c *C
 
 	data, err := json.Marshal(userStateNotification)
 	if err != nil {
-		l.Sugar().Error(" user state room notification json marshal failed", err)
+		sendGameError("send single player user ready state failed", c)
+		l.Sugar().Error("user state room notification json marshal failed", err)
 		return err
 	}
 
@@ -434,6 +437,7 @@ func StartGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 	gameState, exists := c.manager.gameStates[c.roomCode]
 	c.manager.Unlock()
 	if !exists {
+		sendGameError(fmt.Sprintf("game state not found for room %s", c.roomCode), c)
 		return fmt.Errorf("game state not found for room %s", c.roomCode)
 	}
 
@@ -827,6 +831,25 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 	}
 
 	return nil
+}
+
+func sendGameError(message string, c *Client) {
+	em := quizmodel.QuizError{
+		Message: message,
+	}
+	errorData, _ := json.Marshal(em)
+	ackEvent := Event{Type: EventGameError, Payload: errorData}
+
+	// Send acknowledgment only to the client who submitted
+	// if !allclients {
+	c.egress <- ackEvent
+	// } else {
+	// 	for _, client := range c {
+	// 		if !client.isBot && client.connection != nil {
+	// 			client.egress <- ackEvent
+	// 		}
+	// 	}
+	// }
 }
 
 func updateAnswerHistory(ctx context.Context, ansHistory map[uuid.UUID]map[uuid.UUID]*quizmodel.AnswerReq) error {

@@ -76,12 +76,12 @@ game
 - [ ] productionize tailwind remove tailwind.config from layout
 - [ ] validate and sanitize all models
 - [ ] tips to imporve using gpt in analysis
-- [ ] there is some bug with updating state of the room fix it check all the logic and make sure we are updating the db
-- [ ] disable refresh in game or atleast get a pop up. upon refreshjing he shouldf be kicked out of the ws and sent to home
+- [x] there is some bug with updating state of the room fix it check all the logic and make sure we are updating the db
+- [x] disable refresh in game or atleast get a pop up. upon refreshjing he shouldf be kicked out of the ws and sent to home
 - [ ] close all open channels
 - [ ] confetti needs to come only for the winning user
-- [ ] fix multiplayer
-- [ ] multiplayer
+- [x] fix multiplayer
+- [x] multiplayer
 - [ ] go through all fmt.println statements and remove unwanted stuff
 - [ ] use safehtml for all the backend data which we are sending to ui
 - [ ] xss protection
