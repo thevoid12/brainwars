@@ -38,6 +38,7 @@ const (
 	EventNextQuestion = "next_question" // user clicks next question
 	EventGameError    = "game_error"
 	EventLeaderBoard  = "leaderboard"
+	EventChatMessage  = "chat_message" // forward the message to every client
 )
 
 type Payload struct {
@@ -63,6 +64,7 @@ func (m *Manager) setupEventHandlers() {
 	m.handlers[EventSubmitAnswer] = SubmitAnswerHandler
 	m.handlers[EventNextQuestion] = NextQuestionHandler
 	m.handlers[EventLeaveRoom] = LeaveGameRoomHandler
+	m.handlers[EventChatMessage] = ChatGameRoomHandler
 }
 
 func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error {

@@ -6,8 +6,13 @@ window.onload = function () {
     let playerListEl = document.getElementById("player-list");
     let readyGameBtn = document.getElementById("ready-game-btn");
     let startGameBtn = document.getElementById("start-game-btn");
-    let leaveRoomBtn = document.getElementById("leave-room-btn"); 
+    let leaveRoomBtn = document.getElementById("leave-room-btn");
 
+    // Chat UI Elements
+    let chatMessagesEl = document.getElementById("chat-messages");
+    let chatInputEl = document.getElementById("chat-input");
+    let sendChatBtn = document.getElementById("send-chat-btn");
+    let chatErrorEl = document.getElementById("chat-error");
 
     console.log("WebSocket is supported");
     let protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -15,12 +20,16 @@ window.onload = function () {
 
     conn.onopen = function (e) {
       console.log("Connection established!");
-      var payload = { data: "welcome All!", time: new Date().toISOString() }
+      // This initial message might be displayed by the server as a system message in chat
+      var payload = { data: "Welcome All! The game is about to begin.", time: new Date().toISOString() }
+      // The server should decide if this "send_message" type is broadcasted as a chat message
+      // or if there's a specific system message type.
+      // For this example, we'll assume the server might convert this to a chat message.
       let data = JSON.stringify({ type: "send_message", payload: payload });
       conn.send(data);
     };
 
-      conn.onmessage = function (e) {
+    conn.onmessage = function (e) {
       const data = JSON.parse(e.data);
 
       if (data.type === "lobby_state" && gameType === "MULTI_PLAYER") {
@@ -39,7 +48,10 @@ window.onload = function () {
         renderLobbyPlayers();
       } else if (data.type === "start_game") {
         if (gameType === "MULTI_PLAYER") {
-          document.getElementById("lobby-container").classList.add("hidden");
+          const lobbyContainer = document.getElementById("lobby-container");
+          if (lobbyContainer) {
+            lobbyContainer.classList.add("hidden");
+          }
         }
       } else if (data.type === "new_question") {
         renderQuestion(data.payload);
@@ -53,12 +65,27 @@ window.onload = function () {
         conn.close();
         window.location.href = "/bw/home/";
         return;
+      } else if (data.type === "chat_message") { // Handle incoming chat messages
+        renderChatMessage(data.payload); // payload should be { username: "user", message: "text" }
+      } else if (data.type === "send_message") { 
+        // This handles the initial "welcome All!" if server broadcasts it as is,
+        // and treats it as a system message.
+        // Assumes payload is { data: "message text" }
+        if (data.payload && data.payload.data) {
+             renderChatMessage({ username: "System", message: data.payload.data });
+        }
       }
     };
 
     conn.onclose = function () {
       console.log("Connection closed!");
-      window.location.href = "/bw/home/";
+      // Avoid redirect if modal is handling it or if it's an unexpected close.
+      // For now, keeping the original behavior.
+      // Consider showing a message like "Connection lost. Redirecting..."
+      renderGameError("Connection to server lost. Redirecting to homepage.");
+      setTimeout(() => {
+        window.location.href = "/bw/home/";
+      }, 3000);
       return;
     };
 
@@ -74,7 +101,6 @@ window.onload = function () {
       };
     }
 
-
     if (gameType === "MULTI_PLAYER" && readyGameBtn) {
       readyGameBtn.classList.remove("hidden");
       readyGameBtn.onclick = debounceClick(() => {
@@ -85,16 +111,95 @@ window.onload = function () {
     if (gameType === "MULTI_PLAYER" && startGameBtn) {
       startGameBtn.classList.remove("hidden");
       startGameBtn.onclick = debounceClick(() => {
-        openModal({ url: '/bw/home/', method: 'ws', body: JSON.stringify({ type: "start_game" }), wsconnection: conn, message: 'Clicking Yes will force start game Despite few players are not still ready. Are you sure?' });
+        openModal({ url: '/bw/home/', method: 'ws', body: JSON.stringify({ type: "start_game" }), wsconnection: conn, message: 'Clicking Yes will force start game. Are you sure?' });
       });
     }
 
     if (gameType === "MULTI_PLAYER" && leaveRoomBtn) {
       leaveRoomBtn.classList.remove("hidden");
       leaveRoomBtn.onclick = () => {
-        openModal({ url: '/bw/home/', method: 'ws', body: JSON.stringify({ type: "leave_room" }), wsconnection: conn, message: 'Clicking Yes redirect you to homePage. Are you sure?' });
+        openModal({ url: '/bw/home/', method: 'ws', body: JSON.stringify({ type: "leave_room" }), wsconnection: conn, message: 'Clicking Yes will redirect you to the homepage. Are you sure?' });
       };
     }
+
+    // Chat Functionality
+    if (sendChatBtn && chatInputEl && chatMessagesEl && chatErrorEl) {
+      sendChatBtn.addEventListener("click", sendChatMessage);
+      chatInputEl.addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          sendChatMessage();
+        }
+      });
+    }
+
+    function sendChatMessage() {
+      const message = chatInputEl.value.trim();
+      chatErrorEl.classList.add("hidden");
+      chatErrorEl.textContent = "";
+
+      if (message.length === 0) {
+        return; // Don't send empty messages
+      }
+
+      if (message.length > 200) {
+        chatErrorEl.textContent = "Message is too long (max 200 characters).";
+        chatErrorEl.classList.remove("hidden");
+        return;
+      }
+
+      const chatPayload = {
+        type: "chat_message", // Client sends this type to the server
+        payload: {
+          message: message
+        }
+      };
+      conn.send(JSON.stringify(chatPayload));
+      chatInputEl.value = ""; // Clear input field
+    }
+
+    function renderChatMessage(payload) {
+      if (!chatMessagesEl || !payload || !payload.username || !payload.message) {
+        console.error("Invalid payload for renderChatMessage:", payload);
+        return;
+      }
+      const { username, message } = payload;
+
+      const messageWrapper = document.createElement('div');
+      messageWrapper.classList.add('flex', 'items-start'); // items-start for better alignment with multi-line messages
+
+      const avatar = document.createElement('div');
+      avatar.classList.add('h-7', 'w-7', 'rounded-full', 'bg-gray-300', 'flex', 'items-center', 'justify-center', 'text-xs', 'font-semibold', 'text-gray-700', 'mr-2', 'flex-shrink-0');
+      avatar.textContent = username.slice(0, 2).toUpperCase();
+
+      const messageContent = document.createElement('div');
+      messageContent.classList.add('bg-gray-100', 'rounded-md', 'p-2', 'max-w-xs', 'sm:max-w-sm', 'md:max-w-md'); // Responsive max width
+
+      const usernameSpan = document.createElement('span');
+      usernameSpan.classList.add('font-semibold', 'text-sm', 'block', 'mb-0.5');
+      // Differentiate user's own messages if username is available globally, e.g. myUsername
+      // if (username === myUsername) {
+      //  usernameSpan.classList.add('text-blue-600'); // Example for own messages
+      // } else {
+      usernameSpan.classList.add(username === "System" ? 'text-purple-600' : 'text-primary-600');
+      // }
+      usernameSpan.textContent = username;
+
+      const messageText = document.createElement('span');
+      messageText.classList.add('text-sm', 'text-gray-800', 'break-words'); // break-words for long messages
+      messageText.textContent = message;
+
+      messageContent.appendChild(usernameSpan);
+      messageContent.appendChild(messageText);
+
+      messageWrapper.appendChild(avatar);
+      messageWrapper.appendChild(messageContent);
+
+      chatMessagesEl.appendChild(messageWrapper);
+      // Scroll to the bottom of the chat messages
+      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    }
+
 
    function renderGameError(errorMessage) {
       const popup = document.createElement('div');
@@ -109,7 +214,7 @@ window.onload = function () {
         </div>
         <button id="closeError" class="ml-4 text-sm text-gray-500 hover:text-gray-700">Dismiss</button>
       `;
-
+      
       document.body.appendChild(popup);
 
       const closeBtn = popup.querySelector('#closeError');
@@ -118,77 +223,84 @@ window.onload = function () {
       });
 
       setTimeout(() => {
-        popup.remove();
+            popup.remove();
       }, 10000);
     }
 
-function renderLobbyPlayers() {
-  if (!playerListEl) return;
-  playerListEl.innerHTML = "";
+    function renderLobbyPlayers() {
+      if (!playerListEl) return;
+      playerListEl.innerHTML = ""; // Clear previous entries
 
-  Object.entries(lobbyPlayers).forEach(([username, status]) => {
-    const li = document.createElement("li");
-    li.className = "flex items-center justify-between bg-gray-100 px-4 py-2 rounded";
+      Object.entries(lobbyPlayers).forEach(([username, status]) => {
+        const li = document.createElement("li");
+        li.className = "flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md shadow-sm"; // Added shadow-sm
 
-    li.innerHTML = `
-      <div class="flex items-center">
-        <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 mr-2">
-          ${username.slice(0, 2).toUpperCase()}
-        </div>
-        <span>${username}</span>
-      </div>
-      <span class="text-sm ${status === 'ready' ? 'text-green-600' : 'text-yellow-600'} font-semibold">
-        ${status === 'ready' ? 'Ready' : 'Joined'}
-      </span>
-    `;
+        const playerInfoDiv = document.createElement("div");
+        playerInfoDiv.className = "flex items-center";
 
-    playerListEl.appendChild(li);
-  });
-}
+        const avatarDiv = document.createElement("div");
+        avatarDiv.className = "h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 mr-3 font-semibold"; // Added font-semibold
+        avatarDiv.textContent = username.slice(0, 2).toUpperCase();
+
+        const usernameSpan = document.createElement("span");
+        usernameSpan.className = "text-gray-800"; // Darker text for username
+        usernameSpan.textContent = username;
+
+        playerInfoDiv.appendChild(avatarDiv);
+        playerInfoDiv.appendChild(usernameSpan);
+
+        const statusSpan = document.createElement("span");
+        statusSpan.className = `text-sm font-semibold px-2 py-0.5 rounded-full ${status === 'ready' ? 'text-green-700 bg-green-100' : 'text-yellow-700 bg-yellow-100'}`; // Pill-like status
+        statusSpan.textContent = status === 'ready' ? 'Ready' : 'Joined';
+
+        li.appendChild(playerInfoDiv);
+        li.appendChild(statusSpan);
+        playerListEl.appendChild(li);
+      });
+    }
 
     function renderQuestion(payload) {
       const questionBlock = document.getElementById("question-block");
+      if (!questionBlock) return;
       const { questionIndex, totalQuestions, question, timeLimit } = payload;
       const { ID: questionID, Question: questionText, Options } = question;
 
-      // Store question ID in data attribute for later
       questionBlock.dataset.questionid = questionID;
 
       // Calculate completion percent
       const percentComplete = Math.round((questionIndex / totalQuestions) * 100);
 
-      // Build HTML
       let html = `
-      <div class="flex-1 flex flex-col overflow-hidden">
-        <div class="bg-white border-b border-gray-200 p-4">
-          <div class="flex justify-between items-center">
+        <div class="flex-1 flex flex-col overflow-hidden">
+          <div class="bg-white border-b border-gray-200 p-4">
+            <div class="flex justify-between items-center">
             <h1 class="text-xl font-bold text-gray-800">Quiz</h1>
-            <div class="flex items-center">
+              <div class="flex items-center">
               <span class="text-sm text-gray-600 mr-2">Completion</span>
               <div class="w-48 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div class="h-full bg-primary-500 rounded-full" style="width: ${percentComplete}%"></div>
                 </div>
-            </div>
+              </div>
         <button id="leave-game-btn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors">End Game</button>
+            </div>
           </div>
-        </div>
-    
+      
         <div class="flex-1 overflow-y-auto p-6">
-          <div class="max-w-3xl mx-auto">
+            <div class="max-w-3xl mx-auto">
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div class="flex items-start mb-4">
+                <div class="flex items-start mb-4">
                 <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white flex-shrink-0 mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
                   <h3 class="text-lg font-semibold text-gray-800">QuizMaster AI</h3>
                   <p class="text-gray-700 mt-1">${questionText}</p>
+                  </div>
                 </div>
-              </div>
-    
+      
               <div class="ml-11 space-y-3" id="options-container">
       `;
 
@@ -196,58 +308,55 @@ function renderLobbyPlayers() {
         const letter = ['A', 'B', 'C', 'D'][index] || '';
         html += `
           <div class="border rounded-md p-3 cursor-pointer transition-colors option-item"
-            data-optionid="${opt.ID}">
-            <div class="flex items-center">
+              data-optionid="${opt.ID}">
+              <div class="flex items-center">
               <div class="w-6 h-6 rounded-md border border-gray-300 flex items-center justify-center mr-3 text-xs font-medium option-box">
-                ${letter}
-              </div>
+                  ${letter}
+                </div>
               <span>${opt.Option}</span>
-            </div>
+              </div>
           </div>
         `;
       });
 
       html += `
+                </div>
               </div>
-            </div>
-    
+      
             <div class="bg-white rounded-lg shadow-md p-6 mb-6" id="user-response">
-              <div class="flex items-start">
+                <div class="flex items-start">
                 <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 flex-shrink-0 mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-800">You</h3>
-                  <div class="mt-2 flex items-center">
-                    <div class="text-2xl font-bold text-primary-600" id="timer-display">${timeLimit * 60}</div>
-                    <svg class="animate-spin ml-2 h-5 w-5 text-primary-500"
-                      xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                      </path>
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
-                  <div class="mt-4">
+                  <div>
+                  <h3 class="text-lg font-semibold text-gray-800">You</h3>
+                    <div class="mt-2 flex items-center">
+                    <div class="text-2xl font-bold text-primary-600" id="timer-display">${timeLimit * 60}</div>
+                    <svg class="animate-spin ml-2 h-5 w-5 text-primary-500"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                      </svg>
+                    </div>
+                    <div class="mt-4">
                     <button class="bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-md transition-colors" id="next-question-btn">
-                      Next Question
-                    </button>
+                        Next Question
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-    
           </div>
-        </div>
-      </div>`;
-
+        </div>`;
       questionBlock.innerHTML = html;
 
-      // Timer
       let timeLeft = timeLimit * 60;
       const timerDisplay = document.getElementById("timer-display");
       const timerInterval = setInterval(() => {
@@ -273,7 +382,7 @@ function renderLobbyPlayers() {
           });
           this.classList.add("border-primary-500", "bg-primary-50");
           this.querySelector(".option-box").classList.add("bg-primary-500", "text-white", "border-primary-500");
-
+          
           // Show user response area
           // document.getElementById("user-response").style.display = "block";
 
@@ -314,7 +423,7 @@ function renderLobbyPlayers() {
             method: 'ws',
             body: JSON.stringify({ type: 'leave_room' }),
             wsconnection: conn,
-            message: "Clicking Yes will Kick you out of the game and you can't join again. Are you sure?"
+            message: "Are you sure you want to leave the game? You won't be able to rejoin."
           });
         });
       }
@@ -340,22 +449,22 @@ function renderLobbyPlayers() {
               <tbody class="bg-white divide-y divide-gray-200">
       `;
 
-      scoreList.forEach((entry, index) => {
-        tableHTML += `
-          <tr>
+        scoreList.forEach((entry, index) => {
+          tableHTML += `
+            <tr>
             <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">${index + 1}</td>
             <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
-              <div class="flex items-center">
+                <div class="flex items-center">
                 <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 mr-2">
-                  <span>${entry.username.slice(0, 2).toUpperCase()}</span>
+                    <span>${entry.username.slice(0, 2).toUpperCase()}</span>
+                  </div>
+                  <span>${entry.username}</span>
                 </div>
-                <span>${entry.username}</span>
-              </div>
-            </td>
+              </td>
             <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">${entry.score}</td>
           </tr>
         `;
-      });
+        });
 
       tableHTML += `
               </tbody>
@@ -370,23 +479,16 @@ function renderLobbyPlayers() {
     // Add the canvas-confetti script
     const confettiScript = document.createElement('script');
     confettiScript.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js';
+    // confettiScript.async = true;
     document.head.appendChild(confettiScript);
 
-    // Load and wait for modal script
-    // const modalScript = document.createElement('script');
-    // modalScript.src = '/assets/js/modal.js';
-    // modalScript.onload = () => {
-    //     console.log('Modal script loaded');
-    // };
-    // document.head.appendChild(modalScript);
-
     function renderEndGame(payload) {
-
-   const questionBlock = document.getElementById("question-block");
-    const { message, scores, finishTime } = payload;
+      const questionBlock = document.getElementById("question-block");
+      if (!questionBlock) return;
+      const { message, scores, finishTime } = payload;
 
     // Start confetti
-    startConfetti();
+        startConfetti();
 
     let html = `
       <div class="flex-1 flex flex-col items-center justify-center p-8">
@@ -404,9 +506,9 @@ function renderLobbyPlayers() {
                   <div class="flex items-center p-4 ${index === 0 ? 'bg-yellow-50' : ''} rounded-lg mb-2">
                     <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mr-4">
                       <span class="text-2xl font-bold ${index === 0 ? 'text-yellow-500' : 'text-primary-600'}">
-                        ${index + 1}
-                      </span>
-                    </div>
+                  ${index + 1}
+                </span>
+              </div>
                     <div class="flex-1">
                       <h3 class="font-semibold text-lg">${score.username}</h3>
                       <p class="text-gray-600">Score: ${score.score}</p>
@@ -445,16 +547,16 @@ function renderLobbyPlayers() {
   <div id="modal-backdrop"
      class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
               <!-- Modal Box -->
-  <div class="bg-white p-6 rounded-2xl shadow-2xl text-center w-80">
-    <p id="modal-message" class="mb-4 text-lg font-semibold">Are you sure?</p>
-    <div class="flex justify-center gap-4">
-      <button onclick="confirmYes()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Yes</button>
-      <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400">Cancel</button>
-    </div>
-  </div>
+      <div class="bg-white p-6 rounded-2xl shadow-2xl text-center w-80">
+        <p id="modal-message" class="mb-4 text-lg font-semibold">Are you sure?</p>
+        <div class="flex justify-center gap-4">
+          <button onclick="confirmYes()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Yes</button>
+          <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400">Cancel</button>
+        </div>
+      </div>
 </div>`
     questionBlock.innerHTML = html;
-  }
+    }
 
   // Add this confetti function
     function startConfetti() {
@@ -483,6 +585,16 @@ function renderLobbyPlayers() {
       }());
     }
   } else {
-    alert("WebSockets are not supported in this browser.");
+    // Fallback for browsers that don't support WebSockets
+    const errorDiv = document.createElement('div');
+    errorDiv.style.padding = '20px';
+    errorDiv.style.backgroundColor = '#ffdddd';
+    errorDiv.style.border = '1px solid #ff0000';
+    errorDiv.style.textAlign = 'center';
+    errorDiv.style.fontSize = '16px';
+    errorDiv.textContent = "Sorry, your browser does not support WebSockets, which are required for this game to function. Please try a different browser.";
+    document.body.innerHTML = ''; // Clear the body
+    document.body.appendChild(errorDiv);
+    // alert("WebSockets are not supported in this browser."); // Avoid alert
   }
 }

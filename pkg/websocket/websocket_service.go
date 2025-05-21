@@ -802,8 +802,17 @@ func NextQuestionHandler(ctx context.Context, event Event, c *Client) error {
 
 		}
 	}
+	// non bot participants list
+	p := []quizmodel.Participant{}
+	for _, part := range gameState.Participants {
+		if part.IsBot {
+			continue
+		}
+		p = append(p, part)
+	}
+
 	// if yes
-	if isAllMembersSubmitted && len(gameState.Participants) > 0 {
+	if isAllMembersSubmitted && len(p) > 0 {
 		// move to next question
 		c.manager.Lock()
 		if gameState, exists := c.manager.gameStates[c.roomCode]; exists {
@@ -1063,6 +1072,56 @@ func LeaveGameRoomHandler(ctx context.Context, event Event, c *Client) error {
 	// c.manager.clients[c.roomCode] = newclientList
 	c.manager.gameStates[c.roomCode].Participants = newParticipants
 	c.manager.Unlock()
+
+	return nil
+}
+
+func ChatGameRoomHandler(ctx context.Context, event Event, c *Client) error {
+	l := logs.GetLoggerctx(ctx)
+	userDetails := util.GetUserInfoFromctx(ctx)
+
+	// the event send the user message
+	// type: "chat_message", // Client sends this type to the server
+	//     payload: {
+	//       message: message
+	//     }
+	//   };
+	type payload struct {
+		Message string `json:"message"`
+	}
+
+	p := &payload{}
+	err := json.Unmarshal(event.Payload, p)
+	if err != nil {
+		l.Sugar().Error("json unmarshall failed", err)
+		return err
+	}
+	// before leaving remove this client
+	chatGameNotfication := struct {
+		UserName string    `json:"username"`
+		Message  string    `json:"message"`
+		Time     time.Time `json:"time"`
+	}{
+		UserName: userDetails.UserName,
+		Message:  p.Message,
+		Time:     time.Now(),
+	}
+
+	startData, _ := json.Marshal(chatGameNotfication)
+	eventPayload := Event{Type: EventChatMessage, Payload: startData}
+	// todo: remove that client from the manager
+
+	// Broadcast leave notification to that client
+
+	c.manager.Lock()
+	clients := c.manager.clients[c.roomCode]
+	c.manager.Unlock()
+
+	for client := range clients {
+		if !client.isBot {
+			client.egress <- eventPayload
+		}
+	}
 
 	return nil
 }
