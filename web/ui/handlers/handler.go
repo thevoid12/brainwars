@@ -120,7 +120,6 @@ func GetNavbar(c *gin.Context) {
 }
 
 func LandingPageHandler(c *gin.Context) {
-	fmt.Println("hiiii")
 	RenderTemplate(c, "brainwars.html", gin.H{
 		"title": "brain war",
 	})
