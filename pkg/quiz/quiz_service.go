@@ -48,21 +48,53 @@ func SetupQuizQuestions(ctx context.Context, req *model.QuestionReq) error {
 // llm generates the questions based on the topic and count
 // and returns the questions in the form of QuestionData
 // which is a slice of QuestionData
+// func GenerateQuiz(ctx context.Context, req *model.QuizReq) (questData []*model.QuestionData, err error) {
+
+// 	// [{"ID": "d00295b7-7629-4e78-92f1-644dfc4efdc1", "Answer": 1, "Options": [{"ID": 1, "Option": "ans 1"}, {"ID": 2, "Option": "ans 2"}, {"ID": 3, "Option": "ans 3"}, {"ID": 4, "Option": "ans 4"}], "Question": "this is test question 1"}, {"ID": "18b34281-a5d3-45dc-9da2-030c4d272956", "Answer": 2, "Options": [{"ID": 1, "Option": "ans 1"}, {"ID": 2, "Option": "ans 2"}, {"ID": 3, "Option": "ans 3"}, {"ID": 4, "Option": "ans 4"}], "Question": "this is test question 2"}]
+
+// 	questData = []*model.QuestionData{}
+// 	// sample
+// 	questData = append(questData, &model.QuestionData{
+// 		ID:       uuid.New(),
+// 		Question: "this is test question 1",
+// 		Options:  []model.Options{{ID: 1, Option: "ans 1"}, {ID: 2, Option: "ans 2"}, {ID: 3, Option: "ans 3"}, {ID: 4, Option: "ans 4"}},
+// 		Answer:   1,
+// 	})
+// 	questData = append(questData, &model.QuestionData{
+// 		ID:       uuid.New(),
+// 		Question: "this is test question 2",
+// 		Options:  []model.Options{{ID: 1, Option: "ans 1"}, {ID: 2, Option: "ans 2"}, {ID: 3, Option: "ans 3"}, {ID: 4, Option: "ans 4"}},
+// 		Answer:   2,
+// 	})
+// 	return questData, nil
+// }
+
 func GenerateQuiz(ctx context.Context, req *model.QuizReq) (questData []*model.QuestionData, err error) {
+	l := logs.GetLoggerctx(ctx)
+
+	systemPrompt := getSystemPrompt(req)
+	llmResponse, err := callGemini(ctx, systemPrompt)
+	if err != nil {
+		l.Sugar().Error("get data from llm failed", err)
+		return nil, err
+	}
+	llmResponse, err = clearnllmOutput(llmResponse)
+	if err != nil {
+		l.Sugar().Error("clean llm output failed", err)
+		return nil, err
+	}
+
 	questData = []*model.QuestionData{}
 	// sample
-	questData = append(questData, &model.QuestionData{
-		ID:       uuid.New(),
-		Question: "this is test question 1",
-		Options:  []model.Options{{ID: 1, Option: "ans 1"}, {ID: 2, Option: "ans 2"}, {ID: 3, Option: "ans 3"}, {ID: 4, Option: "ans 4"}},
-		Answer:   1,
-	})
-	questData = append(questData, &model.QuestionData{
-		ID:       uuid.New(),
-		Question: "this is test question 2",
-		Options:  []model.Options{{ID: 1, Option: "ans 1"}, {ID: 2, Option: "ans 2"}, {ID: 3, Option: "ans 3"}, {ID: 4, Option: "ans 4"}},
-		Answer:   2,
-	})
+	err = json.Unmarshal([]byte(llmResponse), &questData)
+	if err != nil {
+		l.Sugar().Error("prompt unmarshell from llms failed", err)
+		return nil, err
+	}
+	for i := range questData {
+		questData[i].ID = uuid.New()
+	}
+
 	return questData, nil
 }
 

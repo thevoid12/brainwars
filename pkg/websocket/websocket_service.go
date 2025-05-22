@@ -222,6 +222,8 @@ func (m *Manager) ServeWS(c *gin.Context) {
 			return
 		}
 	} else {
+
+		// TODO: questions might not be ready... so put them in lobby if there is a error of no result
 		questions, err := quiz.ListQuestionsByRoomCode(ctx, roomCode)
 		if err != nil {
 			l.Sugar().Error("list questions by room code failed", err)

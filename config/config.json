@@ -16,5 +16,10 @@
   "cacheCleaner":{
     "intervalMinutes":10 ,
     "repeatIntervalMinutes":5
+  },
+  "llm":{
+    "gemini":{
+      "url":"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key="
+    }
   }
 }

@@ -110,6 +110,7 @@ game
 
 - [ ] fix the timer running even after game ends
 - [ ] max 10 users in a room
+- [ ] need to add ratelimiter max 3 games per user else need to pay for more credits
 - [ ] left state not there if i leave in the lobby
 ## v2
 - [ ] move to redis

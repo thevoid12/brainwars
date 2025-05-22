@@ -9,20 +9,29 @@ import (
 )
 
 type QuizReq struct {
-	Topic string
-	Count int
+	Topic      string
+	Count      int
+	Difficulty Difficulty
 }
 
+type Difficulty string
+
+const (
+	Easy   Difficulty = "easy"
+	Medium Difficulty = "medium"
+	Hard   Difficulty = "hard"
+)
+
 type Options struct {
-	ID     int
-	Option string
+	ID     int    `json:"id"`
+	Option string `json:"option"`
 }
 
 type QuestionData struct {
-	ID       uuid.UUID // unique id for each question
-	Question string
-	Options  []Options
-	Answer   int // option id: which option is correct
+	ID       uuid.UUID `json:"id"` // unique id for each question
+	Question string    `json:"question"`
+	Options  []Options `json:"options"`
+	Answer   int       `json:"answer"` // option id: which option is correct
 }
 
 // QuestionReq represents the request to create a question
