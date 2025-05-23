@@ -82,7 +82,7 @@ func (m *Manager) routeEvent(ctx context.Context, event Event, c *Client) error 
 type questionEvent struct {
 	QuestionIndex  int                     `json:"questionIndex"`
 	TotalQuestions int                     `json:"totalQuestions"`
-	Question       *quizmodel.QuestionData `json:"question"`
+	Question       *quizmodel.QuestionData `json:"qs"`
 	StartTime      time.Time               `json:"startTime"`
 	TimeLimit      int                     `json:"timeLimit"`
 }

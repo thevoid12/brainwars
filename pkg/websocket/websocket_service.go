@@ -222,11 +222,37 @@ func (m *Manager) ServeWS(c *gin.Context) {
 			return
 		}
 	} else {
+		// time.Sleep(10 * time.Second)
+		// // TODO: questions might not be ready... so put them in lobby if there is a error of no result
+		// questions, err := quiz.ListQuestionsByRoomCode(ctx, roomCode)
+		// if err != nil {
+		// 	l.Sugar().Error("list questions by room code failed", err)
+		// 	return
+		// }
 
-		// TODO: questions might not be ready... so put them in lobby if there is a error of no result
-		questions, err := quiz.ListQuestionsByRoomCode(ctx, roomCode)
-		if err != nil {
-			l.Sugar().Error("list questions by room code failed", err)
+		maxRetries := viper.GetInt("game.maxRetryCount")
+		retryDelay := viper.GetInt("game.waitRetrySecond")
+		var questions *quizmodel.Question
+		var err error
+		for attempt := 1; attempt <= maxRetries; attempt++ {
+			questions, err = quiz.ListQuestionsByRoomCode(ctx, roomCode)
+			if err == nil && questions.QuestionCount > 0 {
+				break
+			}
+
+			if err != nil {
+				l.Sugar().Warnw("Attempt to list questions failed", "attempt", attempt, "error", err)
+			} else if questions.QuestionCount == 0 {
+				l.Sugar().Infow("No questions found yet", "attempt", attempt)
+			}
+
+			time.Sleep(time.Duration(retryDelay) * time.Second)
+		}
+
+		if err != nil || questions.QuestionCount == 0 {
+			l.Sugar().Errorw("Failed to retrieve questions after retries", "roomCode", roomCode)
+			// TODO: Put users back in lobby or handle gracefully
+			handlers.RenderErrorTemplate(c, "home.html", "failed to retrive your questions try after some time", nil)
 			return
 		}
 
@@ -283,11 +309,11 @@ func (m *Manager) ServeWS(c *gin.Context) {
 	if roomDetails.GameType == roommodel.SP {
 		err = m.sendRoomMemberState(ctx, roomCode, client, usermodel.UserReady)
 		if err != nil {
-
 			l.Sugar().Error("send single player user ready state failed ", err)
 			sendGameError("send single player user ready state failed ", client)
 			return
 		}
+
 		err = StartGameMessageHandler(ctx, Event{}, client)
 		if err != nil {
 			return
@@ -324,7 +350,7 @@ func (m *Manager) sendRoomMemberState(ctx context.Context, roomCode string, c *C
 	}
 	botclient := m.botClients[roomCode][c.userID]
 	if botclient != nil {
-		m.botClients[roomCode][c.userID].UserStatus = state // always bot ready
+		m.botClients[roomCode][c.userID].UserStatus = usermodel.UserReady // always bot ready
 	}
 
 	userStateNotification := []Payload{}
@@ -561,7 +587,8 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 	// Get the current question
 	currentQuestion := gameState.Questions.QuestionData[gameState.CurrentQuestionIndex]
 	timeLimit := time.Duration(gameState.Questions.TimeLimit) * time.Minute
-	currentQuestion.Answer = -1 // making sure that the answer isnt shown in ws
+	cq := *currentQuestion
+	cq.Answer = -1 // making sure that the answer isnt shown in ws
 	// Store current question index for the goroutine
 	currentIndex := gameState.CurrentQuestionIndex
 
@@ -570,7 +597,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 	questEvent := questionEvent{
 		QuestionIndex:  currentIndex + 1,
 		TotalQuestions: len(gameState.Questions.QuestionData),
-		Question:       currentQuestion,
+		Question:       &cq,
 		StartTime:      time.Now(),
 		TimeLimit:      gameState.Questions.TimeLimit,
 	}

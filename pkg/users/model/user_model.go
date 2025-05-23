@@ -29,8 +29,9 @@ const (
 type UserStatus string
 
 const (
-	UserReady  UserStatus = "ready"
-	UserJoined UserStatus = "joined"
+	UserReady        UserStatus = "ready"
+	UserJoined       UserStatus = "joined"
+	UserQuestionWait UserStatus = "question_wait"
 )
 
 type UserInfo struct {

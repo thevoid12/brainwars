@@ -7,13 +7,11 @@ window.onload = function () {
     let readyGameBtn = document.getElementById("ready-game-btn");
     let startGameBtn = document.getElementById("start-game-btn");
     let leaveRoomBtn = document.getElementById("leave-room-btn");
-
     // Chat UI Elements
     let chatMessagesEl = document.getElementById("chat-messages");
     let chatInputEl = document.getElementById("chat-input");
     let sendChatBtn = document.getElementById("send-chat-btn");
     let chatErrorEl = document.getElementById("chat-error");
-
     console.log("WebSocket is supported");
     let protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
     let conn = new WebSocket(protocol + window.location.host + "/bw/ws?roomCode=" + encodeURIComponent(roomcode));
@@ -260,12 +258,21 @@ window.onload = function () {
     }
 
     function renderQuestion(payload) {
+      let loadingClass = document.getElementById("game-loading")
+      loadingClass.classList.add("hidden")
       const questionBlock = document.getElementById("question-block");
       if (!questionBlock) return;
-      const { questionIndex, totalQuestions, question, timeLimit } = payload;
-      const { ID: questionID, Question: questionText, Options } = question;
+      const { questionIndex, totalQuestions, qs, timeLimit } = payload;
+      console.log(qs)
+      // const { ID: id, Question: question, Options:options } = qs;
+      const ID =qs.id;
+      const Question = qs.question;
+      const Options = qs.options;
+      console.log(ID);
+      console.log(Question);
+      console.log(Options);
 
-      questionBlock.dataset.questionid = questionID;
+      questionBlock.dataset.questionid = ID;
 
       // Calculate completion percent
       const percentComplete = Math.round((questionIndex / totalQuestions) * 100);
@@ -297,7 +304,7 @@ window.onload = function () {
                   </div>
                   <div>
                   <h3 class="text-lg font-semibold text-gray-800">QuizMaster AI</h3>
-                  <p class="text-gray-700 mt-1">${questionText}</p>
+                  <p class="text-gray-700 mt-1">${Question}</p>
                   </div>
                 </div>
       
@@ -308,12 +315,12 @@ window.onload = function () {
         const letter = ['A', 'B', 'C', 'D'][index] || '';
         html += `
           <div class="border rounded-md p-3 cursor-pointer transition-colors option-item"
-              data-optionid="${opt.ID}">
+              data-optionid="${opt.id}">
               <div class="flex items-center">
               <div class="w-6 h-6 rounded-md border border-gray-300 flex items-center justify-center mr-3 text-xs font-medium option-box">
                   ${letter}
                 </div>
-              <span>${opt.Option}</span>
+              <span>${opt.option}</span>
               </div>
           </div>
         `;
@@ -389,7 +396,7 @@ window.onload = function () {
           const answerPayload = {
             type: "submit_answer",
             payload: {
-              questionDataID: questionID,
+              questionDataID: ID,
               answerOption: parseInt(selectedOptionID),
             }
           };

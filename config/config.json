@@ -11,15 +11,12 @@
     "maxReadSize": 4068
   },
   "game": {
-    "gamestartbuffer": 3
+    "gamestartbuffer": 3,
+    "maxRetryCount":5,
+    "waitRetrySecond":2
   },
   "cacheCleaner":{
     "intervalMinutes":10 ,
     "repeatIntervalMinutes":5
-  },
-  "llm":{
-    "gemini":{
-      "url":"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key="
-    }
   }
 }
