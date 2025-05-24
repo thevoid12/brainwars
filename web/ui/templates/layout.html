@@ -76,18 +76,21 @@
 
 
 <!-- Error Popup Component -->
-<div id="errorPopup" class="error-popup" data-error="{{ .ErrorMessage }}">
+<div id="errorPopup" class="error-popup rounded shadow-lg {{ if eq .Title "Error" }}bg-red-400{{ else if eq .Title "Success" }}bg-green-600{{ end }}" data-error="{{ if eq .Title "Error" }}{{ .ErrorMessage }}{{ else if eq .Title "Success" }}{{ .SuccessMessage }}{{ end }}">
     <div class="flex items-center">
-        <svg class="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-8 h-8 mr-2 {{ if eq .Title "Error" }}text-red-800{{ else if eq .Title "Success" }}text-green-700{{ end }}" fill="none" stroke="white" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <span id="errorMessage" class="font-semibold text-lg"></span>
+        <span id="errorMessage" class="text-lg font-semibold">
+            {{ if eq .Title "Error" }}{{ .ErrorMessage }}{{ else if eq .Title "Success" }}{{ .SuccessMessage }}{{ end }}
+        </span>
     </div>
-    <button id="closeError" class="close-btn">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <button id="closeError" class="close-btn ml-auto">
+        <svg class="w-5 h-5 {{ if eq .Title "Error" }}text-red-700{{ else if eq .Title "Success" }}text-green-700{{ end }}" fill="none" stroke="white" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
     </button>
 </div>
+
 
 </html>

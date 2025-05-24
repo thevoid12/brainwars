@@ -45,3 +45,31 @@ func RenderErrorTemplate(c *gin.Context, pageTemplate, errorMessage string, erro
 		return
 	}
 }
+
+func RenderSuccessTemplate(c *gin.Context, pageTemplate, successMessage string) {
+	// Define the paths to the layout and page templates
+	templatePaths := []string{
+		filepath.Join(viper.GetString("app.uiTemplates"), "layout.html"),
+		filepath.Join(viper.GetString("app.uiTemplates"), pageTemplate),
+	}
+
+	// Parse templates with error handling
+	tmpl, err := template.ParseFiles(templatePaths...)
+	if err != nil {
+		log.Printf("Template parsing error: %v", err)
+		c.String(http.StatusInternalServerError, "Template parsing failed")
+		return
+	}
+
+	data := map[string]interface{}{
+		"Title":          "Success",
+		"SuccessMessage": successMessage,
+	}
+
+	err = tmpl.Execute(c.Writer, data)
+	if err != nil {
+		log.Printf("Template execution error: %v", err)
+		c.String(http.StatusInternalServerError, "Template execution failed")
+		return
+	}
+}

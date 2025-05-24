@@ -13,9 +13,12 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 func LoginPageHandler(c *gin.Context) {
@@ -137,6 +140,8 @@ func HomeHandler(c *gin.Context) {
 func CreateRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
 
+	// RenderSuccessTemplate(c, "home.html", "success testing!")
+	// return
 	c.Request.ParseForm()
 
 	userInfo := util.GetUserInfoFromctx(ctx)
@@ -144,13 +149,21 @@ func CreateRoomHandler(c *gin.Context) {
 	gameType := c.PostForm("game-type")
 	bots := c.PostFormArray("bots")
 	topic := c.PostForm("topic")
+	topic = strings.TrimSpace(topic)
+	if len(topic) > 50 {
+		RenderErrorTemplate(c, "home.html", "length of the topic shouldnt be more than 50 characters", nil)
+	}
+	if topic == "" {
+		RenderErrorTemplate(c, "home.html", "topic cannot be empty", nil)
+
+	}
 	timelimit := c.PostForm("timelimit")
 	roomName := c.PostForm("roomName")
 	difficulty := c.PostForm("difficulty")
 	fmt.Println(difficulty)
 	tl, err := strconv.Atoi(timelimit)
 	if err != nil {
-		RenderErrorTemplate(c, "home.html", "time limit is in wrong format", err)
+		RenderErrorTemplate(c, "home.html", "time limit is a required field", nil)
 		return
 	}
 	questionCount := c.PostForm("questionCount")
@@ -172,15 +185,29 @@ func CreateRoomHandler(c *gin.Context) {
 		GameType:  gt,
 		TimeLimit: tl,
 	}
+	validate := validator.New(validator.WithRequiredStructEnabled())
 
+	// returns nil or ValidationErrors ( []FieldError )
+	err = validate.Struct(roomreq)
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "invalid user input", err)
+
+	}
 	botIDs := []roommodel.UserIDReq{}
 	for _, botsInput := range bots {
 		botIDs = append(botIDs, roommodel.UserIDReq{UserID: usermodel.BotMap[botsInput]})
 	}
 
 	questReq := &quizmodel.QuizReq{
-		Topic: topic,
-		Count: qc,
+		Topic:      topic,
+		Count:      qc,
+		Difficulty: quizmodel.Difficulty(difficulty),
+	}
+
+	err = validate.Struct(questReq)
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "invalid user input", err)
+
 	}
 
 	roomCode, err := room.SetupGame(ctx, roomreq, botIDs, questReq)
@@ -197,9 +224,9 @@ func CreateRoomHandler(c *gin.Context) {
 	}
 	// if he is a multiplayer mode then redirect to main page through which he can join the game with room code
 	// give a green popup and be in the same page
-	RenderErrorTemplate(c, "home.html", "Successfully room created. Go to My Quiz for your room code", nil)
+	RenderSuccessTemplate(c, "home.html", "Successfully room created. Go to My Quiz for your room code")
 	// c.Redirect(302, "/bw/home/")
-	return
+
 }
 
 // after the room is created, the user can join the room
@@ -208,14 +235,23 @@ func JoinRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
 	// check if there is a room that exists
 	roomCode := c.Param("code")
+	roomCode = strings.TrimSpace(roomCode)
+	_, err := uuid.Parse(roomCode) // checking if the room code is a valid uuid
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+
+	}
+	if roomCode != "" && len(roomCode) > 50 {
+		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+	}
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
 	roomDetail, err := room.GetRoomByRoomCode(ctx, roomCode)
 	if err != nil {
-		RenderErrorTemplate(c, "home.html", "unable to join room", err)
+		RenderErrorTemplate(c, "home.html", "unable to join room", nil)
 	}
 	if roomDetail == nil {
-		RenderErrorTemplate(c, "home.html", "there is no room", err)
+		RenderErrorTemplate(c, "home.html", "there is no room", nil)
 	}
 
 	// check if he has already joined the room if he has then redirect him to the room
@@ -250,6 +286,16 @@ func JoinRoomHandler(c *gin.Context) {
 func InGameHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	roomCode := c.Param("code")
+	roomCode = strings.TrimSpace(roomCode)
+	_, err := uuid.Parse(roomCode) // checking if the room code is a valid uuid
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+
+	}
+	if roomCode != "" && len(roomCode) > 50 {
+		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+	}
+
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
 
@@ -309,6 +355,15 @@ func CreateQuestionsHandler(c *gin.Context) {
 func AnalyticsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	roomCode := c.Param("code")
+	roomCode = strings.TrimSpace(roomCode)
+	_, err := uuid.Parse(roomCode) // checking if the room code is a valid uuid
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+
+	}
+	if roomCode != "" && len(roomCode) > 50 {
+		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+	}
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
 

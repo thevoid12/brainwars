@@ -9,9 +9,9 @@ import (
 )
 
 type QuizReq struct {
-	Topic      string
-	Count      int
-	Difficulty Difficulty
+	Topic      string     `validate:"required"`
+	Count      int        `validate:"required"`
+	Difficulty Difficulty `validate:"required"`
 }
 
 type Difficulty string
@@ -36,12 +36,12 @@ type QuestionData struct {
 
 // QuestionReq represents the request to create a question
 type QuestionReq struct {
-	RoomCode      string
-	Topic         string
-	QuestionCount int
-	QuestionData  []*QuestionData
-	CreatedBy     string
-	TimeLimit     int
+	RoomCode      string          `validate:"required"`
+	Topic         string          `validate:"required"`
+	QuestionCount int             `validate:"required"`
+	QuestionData  []*QuestionData `validate:"required"`
+	CreatedBy     string          `validate:"required"`
+	TimeLimit     int             `validate:"required"`
 }
 
 // EditQuestionReq represents the request to update a question

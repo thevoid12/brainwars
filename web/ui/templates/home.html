@@ -76,7 +76,7 @@
         </div>
 
         <div>
-          <label for="topic" class="block text-sm font-medium text-gray-700">Topic</label>
+          <label for="topic" class="block text-sm font-medium text-gray-700" required>Topic</label>
           <input type="text" id="topic" name="topic" placeholder="Enter topic" required
             class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-primary-500 focus:border-primary-500 text-gray-800 shadow-sm">
         </div>
@@ -91,7 +91,7 @@
           <div class="flex flex-col min-w-[120px]">
             <label for="timelimit" class="text-sm mb-1">Time Limit Per Qn (min)</label>
             <input type="number" id="timelimit" name="timelimit" min="1" max="5" value="2"
-              class="px-2 py-1 border rounded text-sm" />
+              class="px-2 py-1 border rounded text-sm" required/>
           </div>
         </div>
         <div class="grid sm:grid-cols-3 gap-2">

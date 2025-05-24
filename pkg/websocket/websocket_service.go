@@ -1125,6 +1125,11 @@ func ChatGameRoomHandler(ctx context.Context, event Event, c *Client) error {
 		l.Sugar().Error("json unmarshall failed", err)
 		return err
 	}
+
+	if len(p.Message) > 200 {
+		sendGameError("maximum 200 characters are allowed!", c)
+	}
+
 	// before leaving remove this client
 	chatGameNotfication := struct {
 		UserName string    `json:"username"`

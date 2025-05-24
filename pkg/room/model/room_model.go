@@ -33,12 +33,12 @@ const (
 
 // RoomReq is a struct that defines the request body for creating a room
 type RoomReq struct {
-	UserID    uuid.UUID
-	Username  string
-	UserMeta  string
-	RoomName  string
-	GameType  GT
-	TimeLimit int // max time allocated for each question
+	UserID    uuid.UUID `validate:"required"`
+	Username  string    `validate:"required"`
+	UserMeta  string    `validate:"required"`
+	RoomName  string    `validate:"required"`
+	GameType  GT        `validate:"required"`
+	TimeLimit int       `validate:"required"` // max time allocated for each question
 }
 
 type RoomMemberStatus string
