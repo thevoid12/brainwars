@@ -120,6 +120,17 @@ game
 - [ ] get google auth keys and set it up properly
 - [ ] secret vault
 - [ ] setup proper docker container which can access the secrets
+- [ ] ws secure
+- [ ] change config (xss)
+- [ ] nginx
+- [ ] https
+- [ ] container
+- [ ] how to use secret in container
+- [ ] grafana
+- [ ] loki
+- [ ] ci/cd
+- [ ] pgsql db backup
+
   
 auth0 docs:
 https://auth0.com/docs/quickstart/webapp/golang/interactive
