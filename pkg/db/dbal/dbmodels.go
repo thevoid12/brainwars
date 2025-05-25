@@ -48,6 +48,19 @@ type Question struct {
 	UpdatedBy     string
 }
 
+type RateLimit struct {
+	ID        string
+	UserID    string
+	Allowed   int32
+	Tries     int32
+	Premium   bool
+	IsDeleted bool
+	CreatedOn pgtype.Timestamp
+	UpdatedOn pgtype.Timestamp
+	CreatedBy string
+	UpdatedBy string
+}
+
 type Room struct {
 	ID         pgtype.UUID
 	RoomCode   string

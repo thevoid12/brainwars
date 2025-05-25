@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	rl "brainwars/pkg/rate_limit"
+	rlmodel "brainwars/pkg/rate_limit/model"
 	user "brainwars/pkg/users"
 	"brainwars/pkg/users/model"
 	"brainwars/pkg/util"
@@ -36,7 +38,6 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 		uinfo := session.Get("user_info")
 
 		var userInfo *model.UserInfo
-
 		if uinfo == nil { // session doesnt have the userinfo. we go to the database fecth the info,store it in the session as well as context and use it everywhere
 			userInfo, err = user.GetUserDetailsbyAuth0SubID(ctx, sub)
 			if err != nil {
@@ -49,6 +50,15 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 					UserName:   username,
 					UserType:   model.User,
 					IsPremium:  false,
+				})
+				if err != nil {
+					return // todo: return the error as http response
+				}
+				err = rl.CreateRateLimit(ctx, rlmodel.RlReq{
+					Tries:     0,
+					IsPremium: false,
+					UserID:    userInfo.ID,
+					UserName:  username,
 				})
 				if err != nil {
 					return

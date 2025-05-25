@@ -3,6 +3,7 @@ package handlers
 import (
 	"brainwars/pkg/auth"
 	quizmodel "brainwars/pkg/quiz/model"
+	rl "brainwars/pkg/rate_limit"
 	"brainwars/pkg/room"
 	"brainwars/pkg/room/model"
 	roommodel "brainwars/pkg/room/model"
@@ -19,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/spf13/viper"
 )
 
 func LoginPageHandler(c *gin.Context) {
@@ -152,6 +154,7 @@ func CreateRoomHandler(c *gin.Context) {
 	topic = strings.TrimSpace(topic)
 	if len(topic) > 50 {
 		RenderErrorTemplate(c, "home.html", "length of the topic shouldnt be more than 50 characters", nil)
+		return
 	}
 	if topic == "" {
 		RenderErrorTemplate(c, "home.html", "topic cannot be empty", nil)
@@ -189,7 +192,7 @@ func CreateRoomHandler(c *gin.Context) {
 	err = validate.Struct(roomreq)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "invalid user input", err)
-
+		return
 	}
 	botIDs := []roommodel.UserIDReq{}
 	for _, botsInput := range bots {
@@ -205,7 +208,17 @@ func CreateRoomHandler(c *gin.Context) {
 	err = validate.Struct(questReq)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "invalid user input", err)
+		return
 
+	}
+	rateLimit, err := rl.GetRateLimitByUserID(ctx)
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "ratelimit failed. try after some time!", err)
+		return
+	}
+	if !rateLimit.IsPremium && rateLimit.Tries >= viper.GetInt("rl.maxGamesAllowed") {
+		RenderErrorTemplate(c, "home.html", "You can at max play 3 times in this beta version!", err)
+		return
 	}
 
 	roomCode, err := room.SetupGame(ctx, roomreq, botIDs, questReq)
@@ -213,6 +226,12 @@ func CreateRoomHandler(c *gin.Context) {
 		RenderErrorTemplate(c, "home.html", "Failed to Setup game", err)
 		return
 	}
+	err = rl.UpdateRateLimitTries(ctx, rateLimit.Tries+1)
+	if err != nil {
+		RenderErrorTemplate(c, "home.html", "ratelimit failed. try after some time!", err)
+		return
+	}
+
 	if roomreq.GameType == model.SP {
 		// redirct to the game room
 		c.Redirect(302, fmt.Sprintf("/bw/ingame/%s", roomCode))

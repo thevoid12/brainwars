@@ -19,5 +19,8 @@
   "cacheCleaner":{
     "intervalMinutes":10 ,
     "repeatIntervalMinutes":5
+  },
+  "rl":{
+    "maxGamesAllowed":3
   }
 }

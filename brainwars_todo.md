@@ -85,6 +85,8 @@ game
 - [x] use safehtml for all the backend data which we are sending to ui
 - [x] success message should get green pop up
 - [x] max 10 users in a room
+- [x] my quiz page should say the multiplayer quiz as expired if it is created half an hour before
+- [x] need to add ratelimiter max 3 games per user else need to pay for more credits
 - [ ] check for deadlock and race conditions
 - [ ] productionize tailwind remove tailwind.config from layout
 - [ ] tips to imporve using gpt in analysis
@@ -101,10 +103,9 @@ game
 	[::1]:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
 	127.0.0.1:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
 - [ ] auth 0 production needs to come from the official oauth keys https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/devkeys https://community.auth0.com/t/how-to-move-from-development-key-to-production-key-for-tenant/62860/2 
-- [ ] my quiz page should say the multiplayer quiz as expired if it is created half an hour before
+
 - [ ] fix the timer running even after game ends
 
-- [ ] need to add ratelimiter max 3 games per user else need to pay for more credits
 - [ ] left state not there if i leave in the lobby
 ## v2
 - [ ] move to redis

@@ -5,10 +5,12 @@ sql:
       - "user/schema.sql"
       - "room/schema.sql"
       - "quiz/schema.sql"
+      - "rate_limit/schema.sql"
     queries:
       - "user/user_query.sql"
       - "room/room_query.sql"
       - "quiz/quiz_query.sql"
+      - "rate_limit/rate_limit_query.sql"
     gen:
       go:
         package: "dbal"

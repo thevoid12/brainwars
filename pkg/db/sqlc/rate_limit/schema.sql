@@ -1,0 +1,13 @@
+
+CREATE TABLE IF NOT EXISTS rate_limit(
+id TEXT NOT NULL,
+user_id TEXT NOT NULL,
+allowed INT NOT NULL,
+tries INT NOT NULL,
+premium BOOLEAN NOT NULL DEFAULT false,
+is_deleted BOOLEAN NOT NULL,
+created_on TIMESTAMP NOT NULL DEFAULT NOW(),
+updated_on TIMESTAMP NOT NULL DEFAULT NOW(),
+created_by TEXT NOT NULL,
+updated_by TEXT NOT NULL
+);
