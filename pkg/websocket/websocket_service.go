@@ -149,6 +149,8 @@ func (m *Manager) MemoryCleanup(ctx context.Context) {
 							}
 							// Remove the client from the list
 							delete(clients, client)
+							m.gameStates[roomCode] = nil
+
 							l.Sugar().Info("Client %s removed from room %s due to inactivity", client.userID.String(), roomCode)
 						}
 					}
@@ -156,6 +158,7 @@ func (m *Manager) MemoryCleanup(ctx context.Context) {
 					if len(clients) == 0 {
 						delete(m.clients, roomCode)
 					}
+
 				}
 
 				for roomCode, clients := range m.botClients {
