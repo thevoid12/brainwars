@@ -158,9 +158,8 @@ func CreateRoomHandler(c *gin.Context) {
 
 	}
 	timelimit := c.PostForm("timelimit")
-	roomName := c.PostForm("roomName")
 	difficulty := c.PostForm("difficulty")
-	fmt.Println(difficulty)
+
 	tl, err := strconv.Atoi(timelimit)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "time limit is a required field", nil)
@@ -181,7 +180,6 @@ func CreateRoomHandler(c *gin.Context) {
 		UserID:    userID,
 		Username:  userInfo.UserName,
 		UserMeta:  "[{}]",
-		RoomName:  roomName,
 		GameType:  gt,
 		TimeLimit: tl,
 	}

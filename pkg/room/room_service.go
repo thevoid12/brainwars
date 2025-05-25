@@ -10,6 +10,7 @@ import (
 	user "brainwars/pkg/users"
 	usermodel "brainwars/pkg/users/model"
 	"brainwars/pkg/util"
+	"time"
 
 	"context"
 	"database/sql"
@@ -20,6 +21,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/spf13/viper"
 )
 
 // SetupGame is a function that sets up a game from room creation,member addition,question generation
@@ -102,8 +104,8 @@ func CreateRoom(ctx context.Context, req model.RoomReq) (roomDetails *model.Room
 			Valid: true,
 		},
 		RoomName: pgtype.Text{
-			String: req.RoomName,
-			Valid:  req.RoomName != "",
+			String: "",
+			Valid:  false,
 		},
 		GameType:   string(req.GameType),
 		RoomStatus: string(roomStatus),
@@ -369,6 +371,14 @@ func ListRoom(ctx context.Context, req model.UserIDReq) (roomDetails []*model.Ro
 		return nil, err
 	}
 	for _, room := range rooms {
+		roomState := room.RoomStatus
+		if room.RoomStatus == string(model.Started) || room.RoomStatus == string(model.Waiting) {
+			interval := time.Minute * time.Duration(viper.GetInt("cacheCleaner.intervalMinutes"))
+
+			if time.Now().After(room.CreatedOn.Time.Add(interval)) {
+				roomState = string(model.Expired)
+			}
+		}
 		roomDetails = append(roomDetails, &model.Room{
 			ID:            room.ID.Bytes,
 			RoomName:      room.RoomName.String,
@@ -381,7 +391,7 @@ func ListRoom(ctx context.Context, req model.UserIDReq) (roomDetails []*model.Ro
 			RoomCode:      room.RoomCode,
 			RoomMeta:      string(room.RoomMeta),
 			RoomChat:      string(room.RoomChat),
-			Roomstatus:    model.RoomStatus(room.RoomStatus),
+			Roomstatus:    model.RoomStatus(roomState),
 			CreatedBy:     room.CreatedBy,
 			UpdatedBy:     room.UpdatedBy,
 			QuestionTopic: room.Topic.String,

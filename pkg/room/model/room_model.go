@@ -29,6 +29,7 @@ const (
 	Ended   RoomStatus = "ENDED"
 	Waiting RoomStatus = "WAITING" // room is created but the game has not started so people can join in ie waiting for players
 	Deleted RoomStatus = "DELETED"
+	Expired RoomStatus = "EXPIRED"
 )
 
 // RoomReq is a struct that defines the request body for creating a room
@@ -36,7 +37,6 @@ type RoomReq struct {
 	UserID    uuid.UUID `validate:"required"`
 	Username  string    `validate:"required"`
 	UserMeta  string    `validate:"required"`
-	RoomName  string    `validate:"required"`
 	GameType  GT        `validate:"required"`
 	TimeLimit int       `validate:"required"` // max time allocated for each question
 }
