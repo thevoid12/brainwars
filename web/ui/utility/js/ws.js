@@ -228,7 +228,8 @@ window.onload = function () {
     function renderLobbyPlayers() {
       if (!playerListEl) return;
       playerListEl.innerHTML = ""; // Clear previous entries
-
+      let loadingClass = document.getElementById("game-loading")
+      loadingClass.classList.add("hidden")
       Object.entries(lobbyPlayers).forEach(([username, status]) => {
         const li = document.createElement("li");
         li.className = "flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md shadow-sm"; // Added shadow-sm
