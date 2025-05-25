@@ -568,6 +568,55 @@ func ListGameAnalytics(ctx context.Context, req model.RoomCodeReq) (meta *quizmo
 	return meta, answers, nil
 }
 
+func ListActiveRoomMembersByRoomCode(ctx context.Context, req model.RoomCodeReq) (roomMembers []*model.RoomMember, err error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+	dbRecord, err := dBal.ListActiveRoomMembersByRoomCode(ctx, req.RoomCode)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		l.Sugar().Error("Could not list active room members by room ID in database", err)
+		return nil, err
+	}
+
+	for _, member := range dbRecord {
+		roomMembers = append(roomMembers, &model.RoomMember{
+			ID:               member.ID.Bytes,
+			UserID:           member.UserID.Bytes,
+			IsBot:            member.IsBot,
+			RoomMemberStatus: model.RoomMemberStatus(member.RoomMemberStatus),
+			IsActive:         member.IsActive,
+			IsDeleted:        member.IsDeleted,
+			CreatedBy:        member.CreatedBy,
+			UpdatedBy:        member.UpdatedBy,
+			UserDetails: usermodel.UserInfo{
+				ID:         member.ID_2.Bytes,
+				UserName:   member.Username,
+				UserType:   usermodel.UserType(member.UserType),
+				IsPremium:  member.Premium,
+				IsActive:   member.IsActive,
+				IsDeleted:  member.IsDeleted_2,
+				BotType:    usermodel.BotType(member.BotType.String),
+				Auth0SubID: member.Auth0Sub.String,
+			},
+			RoomCode:  member.RoomCode,
+			JoinedOn:  member.JoinedOn.Time,
+			CreatedOn: member.CreatedOn.Time,
+			UpdatedOn: member.UpdatedOn.Time,
+			RoomID:    member.RoomID.Bytes,
+		})
+	}
+	return roomMembers, nil
+}
+
 func ListRoomMembersByRoomCode(ctx context.Context, req model.RoomCodeReq) (roomMembers []*model.RoomMember, err error) {
 	l := logs.GetLoggerctx(ctx)
 	dbConn, err := dbpkg.InitDB()
@@ -583,6 +632,7 @@ func ListRoomMembersByRoomCode(ctx context.Context, req model.RoomCodeReq) (room
 		l.Sugar().Error("Could not list room members by room ID in database", err)
 		return nil, err
 	}
+
 	for _, member := range dbRecord {
 		roomMembers = append(roomMembers, &model.RoomMember{
 			ID:               member.ID.Bytes,

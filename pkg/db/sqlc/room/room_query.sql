@@ -88,6 +88,10 @@ RETURNING *;
 SELECT * FROM room_member INNER JOIN users ON room_member.user_id = users.id
 WHERE room_code = $1 AND room_member.is_deleted = false;
 
+-- name: ListActiveRoomMembersByRoomCode :many
+SELECT * FROM room_member INNER JOIN users ON room_member.user_id = users.id
+WHERE room_code = $1 AND room_member.is_deleted = false AND (room_member.room_member_status!= 'LEAVE_QUIZ' OR  room_member.room_member_status!= 'KICKED_QUIZ');
+
 -- name: GetRoomMemberByRoomCodeAndUserID :many
 SELECT * FROM room_member INNER JOIN users ON room_member.user_id = users.id
 WHERE room_code = $1 AND user_id = $2 AND room_member.is_deleted = false;

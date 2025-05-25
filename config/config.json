@@ -13,7 +13,8 @@
   "game": {
     "gamestartbuffer": 3,
     "maxRetryCount":5,
-    "waitRetrySecond":3
+    "waitRetrySecond":3,
+    "maxUserInRoom":10
   },
   "cacheCleaner":{
     "intervalMinutes":10 ,

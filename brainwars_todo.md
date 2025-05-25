@@ -81,28 +81,29 @@ game
 - [x] game error needs to be displayed
 - [x] fix multiplayer bugsssss
 - [x] fix game lobby
+- [x] validate and sanitize all models including ws results
+- [x] use safehtml for all the backend data which we are sending to ui
+- [x] success message should get green pop up
+- [x] max 10 users in a room
 - [ ] check for deadlock and race conditions
 - [ ] productionize tailwind remove tailwind.config from layout
-- [ ] validate and sanitize all models including ws results
 - [ ] tips to imporve using gpt in analysis
 - [ ] close all open channels
 - [ ] go through all fmt.println statements and remove unwanted stuff
-- [ ] use safehtml for all the backend data which we are sending to ui
 - [ ] xss protection
 - [ ] if a user leaves before starting a game we need to remove him( ie if his connection is not active or he leaves explicitly)
 - [ ] they shouldnt add a bot which takes more time than room each question time
 - [ ] go through all app todos
 - [ ] go through all ui resize it and see if it needs some fixes like auto scrolling
 - [ ] cleanup of roomstatus and gamestatus in the manager (we are already cleaning client in the timer)
-- [ ] success message should get green pop up
+
 - [ ] navigation bugs fix (using back button) 2025-05-14T10:46:07.350+0530	error	users/user_service.go:19	Could not initialize databasefailed to connect to PostgreSQL: failed to connect to `user=postgres database=postgres`:
 	[::1]:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
 	127.0.0.1:15432 (localhost): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)
 - [ ] auth 0 production needs to come from the official oauth keys https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/devkeys https://community.auth0.com/t/how-to-move-from-development-key-to-production-key-for-tenant/62860/2 
 - [ ] my quiz page should say the multiplayer quiz as expired if it is created half an hour before
-
 - [ ] fix the timer running even after game ends
-- [ ] max 10 users in a room
+
 - [ ] need to add ratelimiter max 3 games per user else need to pay for more credits
 - [ ] left state not there if i leave in the lobby
 ## v2
@@ -112,6 +113,7 @@ game
 - [ ] completely gamify the ui
 - [ ] there is another checklist shown with the status of others submitted the question or not
 - [ ] add pagination to my quiz page
+- [ ] payment gateway
 ## prod todo check
 - [ ] tailwind
 - [ ] get google auth keys and set it up properly

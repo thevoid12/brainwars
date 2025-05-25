@@ -1049,7 +1049,7 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 
 // leave the game room between game
 func LeaveGameRoomHandler(ctx context.Context, event Event, c *Client) error {
-	// l := logs.GetLoggerctx(ctx)
+	l := logs.GetLoggerctx(ctx)
 	userDetails := util.GetUserInfoFromctx(ctx)
 
 	// before leaving remove this client
@@ -1101,6 +1101,10 @@ func LeaveGameRoomHandler(ctx context.Context, event Event, c *Client) error {
 	// c.manager.clients[c.roomCode] = newclientList
 	c.manager.gameStates[c.roomCode].Participants = newParticipants
 	c.manager.Unlock()
+	err := room.UpdateRoomMemberStatusByRoomCodeAndUserID(ctx, &roommodel.RoomCodeReq{}, roommodel.LeaveQuiz)
+	if err != nil {
+		l.Sugar().Error("update room member status by room code and user id failed", err)
+	}
 
 	return nil
 }

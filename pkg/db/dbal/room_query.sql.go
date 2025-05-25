@@ -477,6 +477,87 @@ func (q *Queries) GetRoomMemberByRoomCodeAndUserID(ctx context.Context, arg GetR
 	return items, nil
 }
 
+const listActiveRoomMembersByRoomCode = `-- name: ListActiveRoomMembersByRoomCode :many
+SELECT room_member.id, room_code, room_id, user_id, is_bot, joined_on, room_member_status, room_member.is_active, room_member.is_deleted, room_member.created_on, room_member.updated_on, room_member.created_by, room_member.updated_by, users.id, auth0_sub, username, user_type, bot_type, user_meta, premium, users.is_active, users.is_deleted, users.created_on, users.updated_on, users.created_by, users.updated_by FROM room_member INNER JOIN users ON room_member.user_id = users.id
+WHERE room_code = $1 AND room_member.is_deleted = false AND (room_member.room_member_status!= 'LEAVE_QUIZ' OR  room_member.room_member_status!= 'KICKED_QUIZ')
+`
+
+type ListActiveRoomMembersByRoomCodeRow struct {
+	ID               pgtype.UUID
+	RoomCode         string
+	RoomID           pgtype.UUID
+	UserID           pgtype.UUID
+	IsBot            bool
+	JoinedOn         pgtype.Timestamp
+	RoomMemberStatus string
+	IsActive         bool
+	IsDeleted        bool
+	CreatedOn        pgtype.Timestamp
+	UpdatedOn        pgtype.Timestamp
+	CreatedBy        string
+	UpdatedBy        string
+	ID_2             pgtype.UUID
+	Auth0Sub         pgtype.Text
+	Username         string
+	UserType         string
+	BotType          pgtype.Text
+	UserMeta         []byte
+	Premium          bool
+	IsActive_2       bool
+	IsDeleted_2      bool
+	CreatedOn_2      pgtype.Timestamp
+	UpdatedOn_2      pgtype.Timestamp
+	CreatedBy_2      string
+	UpdatedBy_2      string
+}
+
+func (q *Queries) ListActiveRoomMembersByRoomCode(ctx context.Context, roomCode string) ([]ListActiveRoomMembersByRoomCodeRow, error) {
+	rows, err := q.db.Query(ctx, listActiveRoomMembersByRoomCode, roomCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListActiveRoomMembersByRoomCodeRow
+	for rows.Next() {
+		var i ListActiveRoomMembersByRoomCodeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomCode,
+			&i.RoomID,
+			&i.UserID,
+			&i.IsBot,
+			&i.JoinedOn,
+			&i.RoomMemberStatus,
+			&i.IsActive,
+			&i.IsDeleted,
+			&i.CreatedOn,
+			&i.UpdatedOn,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+			&i.ID_2,
+			&i.Auth0Sub,
+			&i.Username,
+			&i.UserType,
+			&i.BotType,
+			&i.UserMeta,
+			&i.Premium,
+			&i.IsActive_2,
+			&i.IsDeleted_2,
+			&i.CreatedOn_2,
+			&i.UpdatedOn_2,
+			&i.CreatedBy_2,
+			&i.UpdatedBy_2,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLeaderBoardByRoomCode = `-- name: ListLeaderBoardByRoomCode :many
 SELECT id, room_code, user_id, score, created_on, updated_on, created_by, updated_by, is_deleted FROM leaderboard
 WHERE room_code = $1 AND is_deleted = false 

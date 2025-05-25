@@ -263,7 +263,20 @@ func JoinRoomHandler(c *gin.Context) {
 		RenderErrorTemplate(c, "home.html", "Failed to join room", err)
 	}
 	if roomMember == nil {
-		_, err := room.JoinRoomWithRoomCode(ctx, roommodel.RoomMemberReq{
+		members, err := room.ListActiveRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
+			UserID:   userID,
+			RoomCode: roomCode,
+		})
+		if err != nil {
+			RenderErrorTemplate(c, "home.html", "Failed to join room", nil)
+			return
+		}
+		if len(members) > 10 {
+			RenderErrorTemplate(c, "home.html", "max room members are 10 including bots!", nil)
+			return
+		}
+
+		_, err = room.JoinRoomWithRoomCode(ctx, roommodel.RoomMemberReq{
 			UserID:   userID,
 			RoomCode: roomCode,
 		})
