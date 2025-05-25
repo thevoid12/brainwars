@@ -1077,16 +1077,28 @@ func LeaveGameRoomHandler(ctx context.Context, event Event, c *Client) error {
 	c.egress <- eventPayload
 
 	c.manager.Lock()
-	// clients := c.manager.clients[c.roomCode]
+	clients := c.manager.clients[c.roomCode]
 	gamestate := c.manager.gameStates[c.roomCode]
 	c.manager.Unlock()
 	// newclientList := make(ClientList)
-	// for client := range clients {
-	// 	if client.userID == c.userID {
-	// 		continue
-	// 	}
-	// 	newclientList[client] = true
-	// }
+	chatGameNotfication := struct {
+		UserName string    `json:"username"`
+		Message  string    `json:"message"`
+		Time     time.Time `json:"time"`
+	}{
+		UserName: "System",
+		Message:  "user" + " " + userDetails.UserName + " left the room!",
+		Time:     time.Now(),
+	}
+	chatjson, _ := json.Marshal(chatGameNotfication)
+	for client := range clients {
+		if client.userID == c.userID {
+			continue
+		}
+		if client.connection != nil {
+			client.egress <- Event{Type: EventChatMessage, Payload: chatjson}
+		}
+	}
 
 	newParticipants := []quizmodel.Participant{}
 
