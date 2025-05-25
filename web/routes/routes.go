@@ -43,7 +43,7 @@ func Initialize(ctx context.Context, l *zap.Logger, auth *auth.Authenticator) (r
 	rSecure.Use(middleware.ContextMiddleware(ctx))
 	rSecure.Use(middleware.AuthMiddleware)
 	rSecure.Use(middleware.CustomProfileMiddleware())
-	rSecure.Use(middleware.SessionMiddleware())
+	rSecure.Use(middleware.CSRFMiddleware())
 
 	// login and auth
 	//auth group sets the context and calls auth middleware

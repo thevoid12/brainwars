@@ -131,10 +131,18 @@ func LandingPageHandler(c *gin.Context) {
 }
 
 func HomeHandler(c *gin.Context) {
+
+	session := sessions.Default(c)
+	token := uuid.New()
+	session.Set("XSRF-TOKEN", token)
+	c.SetCookie("XSRF-TOKEN", token.String(), 0, "", "", false, true)
+
 	// get the user credentials
 	RenderTemplate(c, "home.html", gin.H{
-		"title": "home Page",
+		"title":     "home Page",
+		"CsrfToken": token,
 	})
+
 }
 
 // Room
