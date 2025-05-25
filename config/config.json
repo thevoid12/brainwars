@@ -8,7 +8,8 @@
     "uiTemplates": "web/ui/templates/"
   },
   "ws": {
-    "maxReadSize": 4068
+    "maxReadSize": 4068,
+    "checkOrigin": "http://localhost:8080" 
   },
   "game": {
     "gamestartbuffer": 3,

@@ -36,7 +36,7 @@ import (
 )
 
 var websocketUpgrader = websocket.Upgrader{
-	// 	CheckOrigin:     checkOrigin, TODO: SETUP ORIGIN CHECK
+	CheckOrigin:     checkOrigin,
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
 }
@@ -44,7 +44,7 @@ var websocketUpgrader = websocket.Upgrader{
 var ErrEventNotSupported = errors.New("this event type is not supported")
 
 func checkOrigin(r *http.Request) bool {
-	return r.Header.Get("Origin") == "https://localhost:8080" // TODO: move it to viper config
+	return r.Header.Get("Origin") == viper.GetString("ws.checkOrigin")
 }
 
 type Manager struct {
