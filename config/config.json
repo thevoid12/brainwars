@@ -5,7 +5,9 @@
   },
   "app": {
     "port": "8080",
-    "uiTemplates": "web/ui/templates/"
+    "uiTemplates": "web/ui/templates/",
+    "env":".env.production",
+    "cookieStoreTimeout": 1200
   },
   "ws": {
     "maxReadSize": 4068,

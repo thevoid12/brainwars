@@ -21,9 +21,10 @@ func CreateNewUser(ctx context.Context, req *model.NewUserReq) (userDetails *mod
 	}
 	defer dbConn.Db.Close()
 	dBal := dbal.New(dbConn.Db)
+	id := uuid.New()
 	err = dBal.CreateNewUser(ctx, dbal.CreateNewUserParams{
 		ID: pgtype.UUID{
-			Bytes: uuid.New(),
+			Bytes: id,
 			Valid: true,
 		},
 		Auth0Sub: pgtype.Text{
@@ -45,7 +46,18 @@ func CreateNewUser(ctx context.Context, req *model.NewUserReq) (userDetails *mod
 		return nil, err
 	}
 
-	return nil, nil
+	userDetails = &model.UserInfo{
+		ID:         id,
+		Auth0SubID: req.Auth0SubID,
+		UserName:   req.UserName,
+		UserType:   req.UserType,
+		BotType:    "",
+		IsPremium:  false,
+		IsActive:   true,
+		IsDeleted:  false,
+	}
+	return userDetails, nil
+
 }
 
 func GetUserDetailsbyID(ctx context.Context, userID uuid.UUID) (userDetails *model.UserInfo, err error) {

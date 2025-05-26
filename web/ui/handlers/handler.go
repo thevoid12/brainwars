@@ -166,6 +166,7 @@ func CreateRoomHandler(c *gin.Context) {
 	}
 	if topic == "" {
 		RenderErrorTemplate(c, "home.html", "topic cannot be empty", nil)
+		return
 
 	}
 	timelimit := c.PostForm("timelimit")
@@ -264,19 +265,24 @@ func JoinRoomHandler(c *gin.Context) {
 	_, err := uuid.Parse(roomCode) // checking if the room code is a valid uuid
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+		return
 
 	}
 	if roomCode != "" && len(roomCode) > 50 {
 		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+		return
 	}
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
+	fmt.Println(userID.String())
 	roomDetail, err := room.GetRoomByRoomCode(ctx, roomCode)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "unable to join room", nil)
+		return
 	}
 	if roomDetail == nil {
 		RenderErrorTemplate(c, "home.html", "there is no room", nil)
+		return
 	}
 
 	// check if he has already joined the room if he has then redirect him to the room
@@ -286,6 +292,7 @@ func JoinRoomHandler(c *gin.Context) {
 	})
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Failed to join room", err)
+		return
 	}
 	if roomMember == nil {
 		members, err := room.ListActiveRoomMembersByRoomCode(ctx, roommodel.RoomCodeReq{
@@ -307,6 +314,7 @@ func JoinRoomHandler(c *gin.Context) {
 		})
 		if err != nil {
 			RenderErrorTemplate(c, "home.html", "Failed to join room", err)
+			return
 		}
 		err = room.CreateLeaderBoard(ctx, &model.EditLeaderBoardReq{
 			UserID:   userID,
@@ -315,6 +323,7 @@ func JoinRoomHandler(c *gin.Context) {
 		})
 		if err != nil {
 			RenderErrorTemplate(c, "home.html", "Failed to setup leaderboard", err)
+			return
 		}
 	}
 
@@ -328,18 +337,21 @@ func InGameHandler(c *gin.Context) {
 	_, err := uuid.Parse(roomCode) // checking if the room code is a valid uuid
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+		return
 
 	}
 	if roomCode != "" && len(roomCode) > 50 {
 		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+		return
 	}
 
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
-
+	fmt.Println(userID.String())
 	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Room Does not exists", nil)
+		return
 	}
 
 	// check if the user is already in the room
@@ -349,9 +361,11 @@ func InGameHandler(c *gin.Context) {
 	})
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Failed to join room", err)
+		return
 	}
 	if roomMember == nil {
 		RenderErrorTemplate(c, "home.html", "you are not in the room", err)
+		return
 	}
 
 	RenderTemplate(c, "game.html", gin.H{
@@ -397,10 +411,12 @@ func AnalyticsHandler(c *gin.Context) {
 	_, err := uuid.Parse(roomCode) // checking if the room code is a valid uuid
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+		return
 
 	}
 	if roomCode != "" && len(roomCode) > 50 {
 		RenderErrorTemplate(c, "home.html", "Not a valid room code", nil)
+		return
 	}
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID

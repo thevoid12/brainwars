@@ -5,11 +5,8 @@ services:
   db:
     image: postgres:15
     container_name: brainwars_pgsql
-    environment:
-      # todo all these value should come from secret vault
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: brainwars
+    env_file:
+      - ../.env.production # loading environment variables when the container is started, not during image build. the image wont have the credentials
     volumes:
       - pg_data:/var/lib/postgresql/data # Mount the named volume pg_data into the container at /var/lib/postgresql/data, which is where PostgreSQL stores all of its database files.
     ports:
@@ -18,3 +15,4 @@ services:
 
 volumes:
   pg_data:
+    # name: brainwars_pg_data1 # named volume to persist data across container restarts and recreations

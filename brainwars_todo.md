@@ -107,6 +107,7 @@ game
 - [ ] fix the timer running even after game ends
 
 - [ ] left state not there if i leave in the lobby
+- [ ] if i am in lobby for long enough without doing anything and try to close the app and open, app crashes.
 ## v2
 - [ ] move to redis
 - [ ] uploading pdf's to generate question

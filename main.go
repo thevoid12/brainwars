@@ -15,16 +15,12 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("there is a error loading environment variables", err)
-		return
-	}
+
 	viper.SetConfigName("config")
 	viper.SetConfigType("json")
 	viper.AddConfigPath("config/") // path to look for the config file in
 
-	err = viper.ReadInConfig()
+	err := viper.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			// Config file not found; ignore error if desired
@@ -35,6 +31,11 @@ func main() {
 		}
 	}
 
+	err = godotenv.Load(viper.GetString("app.env"))
+	if err != nil {
+		log.Println("there is a error loading environment variables", err)
+		return
+	}
 	l, err := logs.InitializeLogger()
 	if err != nil {
 		log.Println("error initializing logger", err)

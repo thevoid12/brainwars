@@ -13,6 +13,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -29,6 +30,11 @@ func Initialize(ctx context.Context, l *zap.Logger, auth *auth.Authenticator) (r
 
 	store := cookie.NewStore([]byte("secret"))
 	router.Use(sessions.Sessions("auth-session", store))
+	store.Options(sessions.Options{
+		Path:     "/",
+		MaxAge:   viper.GetInt("app.cookieStoreTimeout"), // in seconds
+		HttpOnly: true,
+	})
 
 	//Assests and Tailwind
 	router.StaticFS("/assets", http.FS(assests.AssestFS)) // Serve embedded files (e.g. JS, CSS, images) under the /assets URL prefix using the embedded filesystem assests.AssestFS.

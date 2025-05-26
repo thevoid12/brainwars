@@ -1,6 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-insert into users (id,auth0_sub, username,  user_type,bot_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by) values ('00000000-0000-0000-0000-000000000001',NULL,'admin', 'HUMAN',null, '{}', true, true, false, now(), now(), 'admin', 'admin');
 insert into users (id, auth0_sub, username,  user_type,bot_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by) values ('00000000-0000-0000-0000-000000000002', NULL,'Sec10', 'BOT','10 sec', '{}', true, true, false, now(), now(), 'admin', 'admin');
 insert into users (id, auth0_sub, username,  user_type,bot_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by) values ('00000000-0000-0000-0000-000000000003', NULL, 'Sec15', 'BOT','15 sec', '{}', true, true, false, now(), now(), 'admin', 'admin');
 insert into users (id, auth0_sub, username,  user_type,bot_type, user_meta, premium, is_active, is_deleted, created_on, updated_on, created_by, updated_by) values ('00000000-0000-0000-0000-000000000004', NULL, 'Sec20', 'BOT','20 sec', '{}', true, true, false, now(), now(), 'admin', 'admin');
@@ -14,7 +13,6 @@ insert into users (id, auth0_sub, username,  user_type,bot_type, user_meta, prem
 
 -- +goose Down
 -- +goose StatementBegin
-DELETE FROM users WHERE id = '00000000-0000-0000-0000-000000000001';
 DELETE FROM users WHERE id = '00000000-0000-0000-0000-000000000002';
 DELETE FROM users WHERE id = '00000000-0000-0000-0000-000000000003';
 DELETE FROM users WHERE id = '00000000-0000-0000-0000-000000000004';

@@ -7,6 +7,7 @@ import (
 	"brainwars/pkg/users/model"
 	"brainwars/pkg/util"
 	"errors"
+	"net/http"
 
 	"log"
 
@@ -26,12 +27,27 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 		claim := profile.(map[string]interface{})
 		sub, err := extractSubFromToken(claim)
 		if err != nil {
-			log.Fatalln("extract sub from token failed", err)
+			log.Print("extract sub from token failed", err)
+			session.Clear()
+			err = session.Save()
+			if err != nil {
+				log.Fatalln("saving session after clearing it failed", err)
+				return
+			}
+			//expire the cookie
+			c.SetCookie("auth-session", "", -1, "/", "", false, true) // expire the cookie
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "extract sub from token failed"})
 			return
 		}
 		username, err := extractNameFromToken(claim)
 		if err != nil {
-			log.Fatalln("extract name from token failed", err)
+			session.Clear()
+			session.Save()
+
+			//expire the cookie
+			c.SetCookie("auth-session", "", -1, "/", "", false, true) // expire the cookie
+			log.Print("extract name from token failed", err)
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "extract name from token failed"})
 			return
 		}
 
@@ -41,7 +57,14 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 		if uinfo == nil { // session doesnt have the userinfo. we go to the database fecth the info,store it in the session as well as context and use it everywhere
 			userInfo, err = user.GetUserDetailsbyAuth0SubID(ctx, sub)
 			if err != nil {
-				log.Fatalln("get user details by id failed", err)
+				session.Clear()
+				session.Save()
+
+				//expire the cookie
+				c.SetCookie("auth-session", "", -1, "/", "", false, true) // expire the cookie
+				log.Println("get user details by id failed", err)
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "get user details by id failed"})
+
 				return
 			}
 			if userInfo == nil {
@@ -52,7 +75,17 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 					IsPremium:  false,
 				})
 				if err != nil {
-					return // todo: return the error as http response
+
+					session.Clear()
+					err = session.Save()
+					if err != nil {
+						log.Fatalln("saving session after clearing it failed", err)
+						return
+					}
+					//expire the cookie
+					c.SetCookie("auth-session", "", -1, "/", "", false, true) // expire the cookie
+					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "create new user failed"})
+					return
 				}
 				err = rl.CreateRateLimit(ctx, rlmodel.RlReq{
 					Tries:     0,
@@ -61,6 +94,11 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 					UserName:  username,
 				})
 				if err != nil {
+					session.Clear()
+					session.Save()
+					c.SetCookie("auth-session", "", -1, "/", "", false, true) // expire the cookie
+
+					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "setup of rate limiter failed:" + err.Error()})
 					return
 				}
 			}
@@ -68,7 +106,9 @@ func CustomProfileMiddleware() gin.HandlerFunc {
 			session.Set("user_info", userInfo) // gob register in main,go because to set custom go types we need to register the gob beforehand
 			err = session.Save()
 			if err != nil {
-				log.Fatalln("saving userinfo in the session failed", err)
+				log.Print("saving userinfo in the session failed", err)
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "saving userinfo in the session failed:" + err.Error()})
+
 				return
 			}
 

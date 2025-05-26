@@ -746,8 +746,12 @@ func JoinRoomWithRoomCode(ctx context.Context, req model.RoomMemberReq) (roomDet
 	}
 
 	roomDetails, err = JoinRoom(ctx, model.RoomMemberReq{
-		UserID: req.UserID,
-		RoomID: dbRoom[0].ID.Bytes,
+		UserID:           req.UserID,
+		RoomID:           dbRoom[0].ID.Bytes,
+		ID:               uuid.UUID{},
+		RoomMemberStatus: model.JoinQuiz,
+		RoomCode:         req.RoomCode,
+		IsBot:            false,
 	})
 	if err != nil {
 		l.Sugar().Error("Could not join room", err)
