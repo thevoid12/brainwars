@@ -119,13 +119,13 @@ game
 ## prod todo check
 - [ ] tailwind
 - [ ] get google auth keys and set it up properly
-- [ ] secret vault
-- [ ] setup proper docker container which can access the secrets
+- [x] secret vault
+- [x] setup proper docker container which can access the secrets
 - [ ] ws secure
-- [ ] change config (xss)
-- [ ] nginx
+- [x] change config (xss)
+- [x] nginx
 - [ ] https
-- [ ] container
+- [x] container
 - [ ] how to use secret in container
 - [ ] grafana
 - [ ] loki

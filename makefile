@@ -51,6 +51,7 @@ sqlc:
 	@echo "******************************************************************************"
 
 dev:
+	@cp ./config/configlist/config-dev.json ./config/config.json
 	go build brainwars
 
 DEV_COMPOSE_FILE=./docker/docker-compose-dev.yml
@@ -71,3 +72,9 @@ compose-up-debug:
 .PHONY: compose-up-debug-build
 compose-up-debug-build: # using multiple docker compose file and building together will stack up the compose.
 	docker compose -f $(DEV_COMPOSE_FILE) -f $(DEBUG_COMPOSE_FILE) up --build
+
+.PHONY: build-prod
+
+build-prod:
+	chmod +x ./deployment/bootstrap.sh
+	./deployment/bootstrap.sh

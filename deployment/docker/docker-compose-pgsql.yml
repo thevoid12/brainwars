@@ -6,7 +6,7 @@ services:
     image: postgres:15
     container_name: brainwars_pgsql
     env_file:
-      - ../.env.production # loading environment variables when the container is started, not during image build. the image wont have the credentials
+      - ../../.env.production # loading environment variables when the container is started, not during image build. the image wont have the credentials
     volumes:
       - pg_data:/var/lib/postgresql/data # Mount the named volume pg_data into the container at /var/lib/postgresql/data, which is where PostgreSQL stores all of its database files.
     ports:
