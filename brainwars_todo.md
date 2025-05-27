@@ -126,11 +126,12 @@ game
 - [x] nginx
 - [ ] https
 - [x] container
-- [ ] how to use secret in container
+- [x] how to use secret in container
 - [ ] grafana
 - [ ] loki
 - [ ] ci/cd
 - [ ] pgsql db backup
+- [ ] if ctrl+c is pressed or the process is killed in our app we need to exit properly (graceful shutdown)
 
   
 auth0 docs:

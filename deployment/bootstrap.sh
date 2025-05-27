@@ -126,6 +126,15 @@ else
     sudo nginx
 fi
 
+# Find the PID of any existing brainwars process
+PID=$(pgrep -f "./brainwars")
+
+if [ -n "$PID" ]; then
+    echo "brainwars is already running with PID $PID. Stopping..."
+    kill "$PID"
+    sleep 1  # give it a moment to shut down
+fi
+
 # start the backend server
 echo "Starting the backend go server..."
 go build brainwars
