@@ -51,6 +51,19 @@ else
 fi
 
 # install tailwind css and minify for production
+if ! command -v tailwind >/dev/null 2>&1; then 
+    echo "installing tailwind css.........."
+else 
+    echo "tailwind css already exists"
+fi
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
+mv tailwindcss-linux-x64 tailwindcss 
+chmod +x tailwindcss
+./tailwindcss -i web/ui/utility/css/input.css -o web/ui/utility/css/output.css --config web/ui/tailwind.config.js --minify 
+# ./tailwindcss init
+# rm tailwindcss
+echo "successful"
+exit 1
 
 # Install nginx if not present
 if ! command -v nginx >/dev/null 2>&1; then

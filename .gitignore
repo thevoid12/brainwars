@@ -3,4 +3,5 @@
 *.logs
 *.exe
 brainwars
+tailwindcss
 __*

@@ -1,5 +1,7 @@
-/* ./client/ui/assets/css/input.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+/* 
+.test {
+  @apply bg-red-500 text-white p-4 rounded;
+} */

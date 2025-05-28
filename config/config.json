@@ -4,15 +4,15 @@
     "level": "debug"
   },
   "app": {
-    "type": "production",
-    "port": "3000",
+    "type": "dev",
+    "port": "8080",
     "uiTemplates": "web/ui/templates/",
-    "env":".env.production",
+    "env":".env",
     "cookieStoreTimeout": 1200
   },
   "ws": {
     "maxReadSize": 4068,
-    "checkOrigin": "http://localhost:3000" 
+    "checkOrigin": "http://localhost:8080" 
   },
   "game": {
     "gamestartbuffer": 3,
