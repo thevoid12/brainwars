@@ -20,13 +20,13 @@ DB_NETWORK_NAME=$(docker inspect "$CONTAINER" \
 
 # Timestamp for backup file
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-OUTPUT_FILE="backup_POSTGRES_DB_$TIMESTAMP.sql"
+OUTPUT_FILE="./dbbackup/backup_POSTGRES_DB_$TIMESTAMP.sql"
 
 echo "Starting backup of database '$PG_DB' from container 'brainwars_pgsql'..."
 
-docker run --network "$DB_NETWORK_NAME" \
+docker run -rm --network "$DB_NETWORK_NAME" \
   -e PGPASSWORD="$PG_PASSWORD" \
   postgres \
   pg_dump -h "brainwars_pgsql" -U "$PG_USER" "$PG_DB" > "$OUTPUT_FILE"
 
-echo "Backup complete: $OUTPUT_FILE"`
+echo "Backup complete: $OUTPUT_FILE"

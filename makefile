@@ -88,6 +88,8 @@ build-prod:
 db-backup:
 	chmod +x ./deployment/dbbackup.sh
 	./deployment/dbbackup.sh
+
+
 db-restore:
-	chmod +x ./deployment/restore.sh
-	./deployment/restore.sh path/to/your/backup_file.sql
+	chmod +x ./deployment/dbrestore.sh
+	./deployment/dbrestore.sh ./dbbackup/backup_POSTGRES_DB_20250529_211207.sql

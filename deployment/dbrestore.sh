@@ -9,7 +9,8 @@ set +a
 set -euo pipefail
 
 # Required env vars in .env.production:
-# POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, DB_CONTAINER_NAME
+# PG_USER, PG_PASSWORD, PG_DB, DB_CONTAINER_NAME
+DB_CONTAINER_NAME='brainwars_pgsql'
 
 # Validate input
 if [ $# -ne 1 ]; then
@@ -28,21 +29,22 @@ DB_NETWORK_NAME=$(docker inspect "$DB_CONTAINER_NAME" \
   | jq -r '.[0].NetworkSettings.Networks | keys[0]')
 
 echo "Detected Docker network: $DB_NETWORK_NAME"
-echo "Restoring database '$POSTGRES_DB' into container '$DB_CONTAINER_NAME' from '$DUMP_FILE'..."
+echo "Restoring database '$PG_DB' into container '$DB_CONTAINER_NAME' from '$DUMP_FILE'..."
 
 # Optionally drop and recreate the database (optional safety step)
-echo "Dropping and recreating the database '$POSTGRES_DB'..."
-docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$DB_CONTAINER_NAME" \
-  psql -U "$POSTGRES_USER" -c "DROP DATABASE IF EXISTS $POSTGRES_DB;"
-docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$DB_CONTAINER_NAME" \
-  psql -U "$POSTGRES_USER" -c "CREATE DATABASE $POSTGRES_DB;"
+echo "Dropping and recreating the database '$PG_DB'..."
+docker exec -e PGPASSWORD="$PG_PASSWORD" "$DB_CONTAINER_NAME" \
+  psql -U "$PG_USER" -c "DROP DATABASE IF EXISTS $PG_DB;"
+docker exec -e PGPASSWORD="$PG_PASSWORD" "$DB_CONTAINER_NAME" \
+  psql -U "$PG_USER" -c "CREATE DATABASE $PG_DB;"
 
 # Restore using temporary postgres container
 docker run --rm \
   --network "$DB_NETWORK_NAME" \
-  -v "$(pwd):/backup" \
-  -e PGPASSWORD="$POSTGRES_PASSWORD" \
+  -v "$DUMP_FILE:/dbbackup/$(basename "$DUMP_FILE")" \
+  -e PGPASSWORD="$PG_PASSWORD" \
   postgres \
-  psql -h "$DB_CONTAINER_NAME" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f "/backup/$(basename "$DUMP_FILE")"
+  psql -h "$DB_CONTAINER_NAME" -U "$PG_USER" -d "$PG_DB" -f "/dbbackup/$(basename "$DUMP_FILE")"
+
 
 echo "✅ Restore complete."
