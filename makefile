@@ -88,3 +88,6 @@ build-prod:
 db-backup:
 	chmod +x ./deployment/dbbackup.sh
 	./deployment/dbbackup.sh
+db-restore:
+	chmod +x ./deployment/restore.sh
+	./deployment/restore.sh path/to/your/backup_file.sql
