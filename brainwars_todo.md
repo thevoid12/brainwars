@@ -110,6 +110,7 @@ game
 - [ ] if i am in lobby for long enough without doing anything and try to close the app and open, app crashes.
 ## v2
 - [ ] move to redis
+- [ ] 64 bit game style
 - [ ] uploading pdf's to generate question
 - [ ] confetti needs to come only for the winning user
 - [ ] completely gamify the ui
@@ -117,7 +118,7 @@ game
 - [ ] add pagination to my quiz page
 - [ ] payment gateway
 ## prod todo check
-- [ ] tailwind
+- [x] tailwind
 - [ ] get google auth keys and set it up properly
 - [x] secret vault
 - [x] setup proper docker container which can access the secrets
@@ -132,6 +133,7 @@ game
 - [ ] ci/cd
 - [ ] pgsql db backup
 - [ ] if ctrl+c is pressed or the process is killed in our app we need to exit properly (graceful shutdown)
+- [ ] need to add systemctl which will run the bootstrap script
 
   
 auth0 docs:

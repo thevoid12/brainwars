@@ -84,3 +84,7 @@ compose-up-debug-build: # using multiple docker compose file and building togeth
 build-prod:
 	chmod +x ./deployment/bootstrap.sh
 	./deployment/bootstrap.sh
+
+db-backup:
+	chmod +x ./deployment/dbbackup.sh
+	./deployment/dbbackup.sh
