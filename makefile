@@ -52,6 +52,12 @@ sqlc:
 
 dev:
 	@cp ./config/configlist/config-dev.json ./config/config.json
+	if [ -f .env.production ]; then \
+		curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 \
+		mv tailwindcss-linux-x64 tailwindcss \
+		chmod +x tailwindcss \
+	fi
+	./tailwindcss -i web/ui/utility/css/input.css   -o web/ui/utility/css/output.css   --config web/ui/tailwind.config.js
 	go build brainwars
 
 DEV_COMPOSE_FILE=./docker/docker-compose-dev.yml
