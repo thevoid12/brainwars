@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showError(message) {
         errorMessage.textContent = message;
         errorPopup.classList.add('show');
-        setTimeout(hideError, 10000);
+       // setTimeout(hideError, 10000);
     }
 
     function hideError() {
