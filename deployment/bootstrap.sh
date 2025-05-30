@@ -207,7 +207,7 @@ fi
 echo "Stated nginx successfully"
 # Find the PID of any existing brainwars process
 if [ -f "brainwars" ]; then
-    PID=$(pgrep -f "./brainwars")
+    PID=$(pgrep -x brainwars)
     if [ -n "$PID" ]; then
         echo "brainwars is already running with PID $PID. Stopping..."
         kill "$PID"

@@ -108,6 +108,8 @@ game
 
 - [ ] left state not there if i leave in the lobby
 - [ ] if i am in lobby for long enough without doing anything and try to close the app and open, app crashes.
+- [ ] favicon
+- [ ] backup timer should upload the script somewhere 
 ## v2
 - [ ] move to redis
 - [ ] 64 bit game style
