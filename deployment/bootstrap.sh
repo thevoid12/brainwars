@@ -194,6 +194,8 @@ echo "Setting permissions for SSL certs..."
 sudo chmod 755 /etc/letsencrypt/{live,archive}
 sudo chmod 644 /etc/letsencrypt/live/$DOMAIN/*.pem
 
+sudo cp ./deployment/nginx.conf /etc/nginx/nginx.conf
+
 if pgrep nginx > /dev/null; then
     echo "Nginx is running. Reloading..."
     sudo nginx -s reload
