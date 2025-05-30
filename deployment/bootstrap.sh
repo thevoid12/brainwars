@@ -12,16 +12,18 @@ pwd
 cp ./config/configlist/config-prod.json ./config/config.json
 
 # Install Go if not present
-if ! command -v go >/dev/null 2>&1; then
+if ! command -v go &> /dev/null; then
     echo "Go not found. Installing..."
     curl -OL https://go.dev/dl/go1.24.3.linux-amd64.tar.gz
     sudo rm -rf /usr/local/go
     sudo tar -C /usr/local -xzf go1.24.3.linux-amd64.tar.gz
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-    source ~/.bashrc
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.profile
+    source ~/.profile
+    rm go1.24.3.linux-amd64.tar.gz
 else
-    echo "Go is already installed."
+    echo "Go is already installed: $(go version)"
 fi
+
 
 # Initialize Go module if not already initialized
 if [ ! -f go.mod ]; then
@@ -38,6 +40,8 @@ go mod tidy
 if ! command -v goose >/dev/null 2>&1; then
     echo "Installing goose..."
     go install github.com/pressly/goose/v3/cmd/goose@latest
+   echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.profile
+   source ~/.profile
 else
     echo "goose already installed."
 fi
@@ -45,7 +49,8 @@ fi
 # Install sqlc if not present
 if ! command -v sqlc >/dev/null 2>&1; then
     echo "Installing sqlc..."
-    go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+   sudo snap install sqlc 
+#    go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 else
     echo "sqlc already installed."
 fi
@@ -53,17 +58,16 @@ fi
 # install tailwind css and minify for production
 if ! command -v tailwind >/dev/null 2>&1; then 
     echo "installing tailwind css.........."
+    curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
+    mv tailwindcss-linux-x64 tailwindcss 
+    chmod +x tailwindcss
 else 
     echo "tailwind css already exists"
 fi
-curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
-mv tailwindcss-linux-x64 tailwindcss 
-chmod +x tailwindcss
 ./tailwindcss -i web/ui/utility/css/input.css -o web/ui/utility/css/output.css --config web/ui/tailwind.config.js --minify 
 # ./tailwindcss init
 # rm tailwindcss
 echo "successful"
-exit 1
 
 # Install nginx if not present
 if ! command -v nginx >/dev/null 2>&1; then
@@ -121,7 +125,7 @@ else
 exit 1;
 fi
 # run docker compose to start the postgres database
-docker compose -f ./deployment/docker/docker-compose-pgsql.yml up -d
+sudo docker compose -f ./deployment/docker/docker-compose-pgsql.yml up -d
 
 
 # run goose to apply migrations
