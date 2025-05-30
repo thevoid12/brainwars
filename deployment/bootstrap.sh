@@ -217,4 +217,7 @@ fi
 echo "Starting the backend go server..."
 go build brainwars
 # run in background
-./brainwars    
+if ! ./brainwars 2>&1 | tee server.log; then
+    echo "brainwars crashed. Check server.log for details."
+    exit 1
+fi
