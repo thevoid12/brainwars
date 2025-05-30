@@ -59,7 +59,7 @@ else
 fi
 
 # install tailwind css and minify for production
-if [ ! -f tailwindcss]; then 
+if [ ! -f tailwindcss ]; then 
     echo "installing tailwind css.........."
     curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
     mv tailwindcss-linux-x64 tailwindcss 
