@@ -138,7 +138,7 @@ game
 - [ ] pgsql db backup
 - [ ] if ctrl+c is pressed or the process is killed in our app we need to exit properly (graceful shutdown)
 - [ ] need to add systemctl which will run the bootstrap script
-
+- [ ] Log in to dev-k6hetzilbsr3oc5p to continue to brainwars. need to remove dev-k....
   
 auth0 docs:
 https://auth0.com/docs/quickstart/webapp/golang/interactive

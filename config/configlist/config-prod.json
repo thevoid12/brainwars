@@ -12,7 +12,7 @@
   },
   "ws": {
     "maxReadSize": 4068,
-    "checkOrigin":"https://brainwars.thisisvoid.in/3000" 
+    "checkOrigin":"https://brainwars.thisisvoid.in" 
   },
   "game": {
     "gamestartbuffer": 3,
