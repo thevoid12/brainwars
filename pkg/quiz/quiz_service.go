@@ -87,6 +87,9 @@ func GenerateQuiz(ctx context.Context, req *model.QuizReq) (questData []*model.Q
 			l.Sugar().Error(fmt.Sprintf("get data from llm failed: attempt %d", attempt), err)
 			return nil, err
 		}
+		if llmResponse != "" {
+			break
+		}
 		time.Sleep(time.Duration(retryDelay) * time.Second)
 	}
 
