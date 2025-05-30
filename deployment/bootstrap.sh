@@ -8,6 +8,9 @@ export PATH=$PATH:/usr/sbin
 
 pwd
 
+EMAILID=thisisvoiddd1@gmail.com
+DOMAIN="brainwars.thisisvoid.in" 
+
 # moving the prod config to config
 cp ./config/configlist/config-prod.json ./config/config.json
 
@@ -132,16 +135,70 @@ sudo docker compose -f ./deployment/docker/docker-compose-pgsql.yml up -d
 echo "Applying goose database migrations on our postgres container..."
 goose -dir migrations postgres "host=${PG_HOST} port=${PG_PORT} user=${PG_USER} password=${PG_PASSWORD} dbname=${PG_DB} sslmode=${PG_SSLMODE}" up
 
-# setting up nginx
-echo "Setting up nginx..."
-sudo cp ./deployment/nginx.conf /etc/nginx/nginx.conf
-if pidof nginx >/dev/null; then
-    echo "Nginx is running. Restarting..."
+# setting up nginx and certbot for certficate
+#installing certbot
+if ! command -v certbot &> /dev/null; then
+    sudo snap install --classic certbot
+    sudo ln -s /snap/bin/certbot /usr/bin/certbot
+    echo "Certbot installed...."
+else
+    echo "Certbot already installed..."
+fi
+
+echo "Getting Let's Encrypt certificate..."
+echo "Make sure $DOMAIN points to this server's public IP!"
+
+
+# Create temporary basic config for certbot
+sudo tee /etc/nginx/nginx.conf > /dev/null << EOF
+worker_processes auto;
+events { worker_connections 1024; }
+http {
+    include mime.types;
+    server {
+        listen 80;
+        server_name $DOMAIN;
+        location / {
+            return 200 "OK";
+            add_header Content-Type text/plain;
+        }
+    }
+}
+EOF
+
+# Test and reload nginx
+sudo nginx -t
+if pgrep nginx > /dev/null; then
     sudo nginx -s reload
 else
-    echo "Starting Nginx.."
     sudo nginx
 fi
+
+# Get certificate (skip if already exists)
+if [[ ! -d "/etc/letsencrypt/live/$DOMAIN" ]]; then
+    echo "Getting new certificate..."    
+    if [[ -z "$EMAILID" ]]; then
+        echo "Email is required for production use!"
+        exit 1
+    fi
+    
+    sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email "$EMAILID"
+else
+    echo "Certificate already exists..."
+fi
+
+echo "Testing nginx configuration..."
+sudo nginx -t
+
+if pgrep nginx > /dev/null; then
+    echo "Nginx is running. Reloading..."
+    sudo nginx -s reload
+else
+    echo "Starting nginx..."
+    sudo nginx
+fi
+
+
 
 # Find the PID of any existing brainwars process
 PID=$(pgrep -f "./brainwars")
