@@ -110,6 +110,8 @@ game
 - [ ] if i am in lobby for long enough without doing anything and try to close the app and open, app crashes.
 - [ ] favicon
 - [ ] backup timer should upload the script somewhere 
+- [ ] backup logs
+- [ ] enable the llm
 ## v2
 - [ ] move to redis
 - [ ] 64 bit game style

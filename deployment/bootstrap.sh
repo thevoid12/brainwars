@@ -206,14 +206,14 @@ fi
 
 echo "Stated nginx successfully"
 # Find the PID of any existing brainwars process
-if [ -f "brainwars" ]; then
-    PID=$(pgrep -x brainwars)
-    if [ -n "$PID" ]; then
-        echo "brainwars is already running with PID $PID. Stopping..."
-        kill "$PID"
-        sleep 1  # give it a moment to shut down
-    fi
-fi
+# if [ -f "brainwars" ]; then
+#     PID=$(pgrep -x brainwars)
+#     if [ -n "$PID" ]; then
+#         echo "brainwars is already running with PID $PID. Stopping..."
+#         kill "$PID"
+#         sleep 1  # give it a moment to shut down
+#     fi
+# fi
 
 # start the backend server
 echo "Starting the backend go server..."
