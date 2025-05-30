@@ -119,7 +119,7 @@ game
 - [ ] payment gateway
 ## prod todo check
 - [x] tailwind
-- [ ] get google auth keys and set it up properly
+- [x] get google auth keys and set it up properly
 - [x] secret vault
 - [x] setup proper docker container which can access the secrets
 - [ ] ws secure
