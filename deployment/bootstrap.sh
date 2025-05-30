@@ -187,8 +187,12 @@ else
     echo "Certificate already exists..."
 fi
 
-echo "Testing nginx configuration..."
+echo "Testing nginx configuration syntax..."
 sudo nginx -t
+
+echo "Setting permissions for SSL certs..."
+sudo chmod 755 /etc/letsencrypt/{live,archive}
+sudo chmod 644 /etc/letsencrypt/live/$DOMAIN/*.pem
 
 if pgrep nginx > /dev/null; then
     echo "Nginx is running. Reloading..."
