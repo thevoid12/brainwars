@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/viper"
 	"google.golang.org/genai"
 )
 
@@ -63,10 +64,10 @@ func callGemini(ctx context.Context, prompt string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	model := viper.GetString("llm.model")
 	result, err := client.Models.GenerateContent(
 		ctx,
-		"gemini-2.0-flash-lite",
+		model,
 		genai.Text(prompt),
 		nil,
 	)

@@ -8,9 +8,12 @@ import (
 	roommodel "brainwars/pkg/room/model"
 	"context"
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/spf13/viper"
 )
 
 // this is run in a goroutine
@@ -72,13 +75,21 @@ func SetupQuizQuestions(ctx context.Context, req *model.QuestionReq) error {
 
 func GenerateQuiz(ctx context.Context, req *model.QuizReq) (questData []*model.QuestionData, err error) {
 	l := logs.GetLoggerctx(ctx)
+	maxRetries := viper.GetInt("llm.maxRetryCount")
+	retryDelay := viper.GetInt("llm.waitRetrySecond")
 
+	llmResponse := ""
 	systemPrompt := getSystemPrompt(req)
-	llmResponse, err := callGemini(ctx, systemPrompt)
-	if err != nil {
-		l.Sugar().Error("get data from llm failed", err)
-		return nil, err
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		llmResponse, err = callGemini(ctx, systemPrompt)
+		if err != nil {
+			l.Sugar().Error(fmt.Sprintf("get data from llm failed: attempt %d", attempt), err)
+			return nil, err
+		}
+		time.Sleep(time.Duration(retryDelay) * time.Second)
 	}
+
 	llmResponse, err = clearnllmOutput(llmResponse)
 	if err != nil {
 		l.Sugar().Error("clean llm output failed", err)
