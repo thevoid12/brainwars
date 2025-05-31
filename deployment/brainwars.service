@@ -1,0 +1,15 @@
+[Unit]
+Description=Brainwars Go Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/ubuntu/brainwars/brainwars
+WorkingDirectory=/home/ubuntu/brainwars/
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/var/log/brainwars.log
+StandardError=append:/var/log/brainwars.err
+
+[Install]
+WantedBy=multi-user.target

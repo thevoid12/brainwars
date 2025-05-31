@@ -10,6 +10,9 @@ pwd
 
 EMAILID=thisisvoiddd1@gmail.com
 DOMAIN="brainwars.thisisvoid.in" 
+SERVICE_NAME="brainwars.service"
+LOCAL_SERVICE_PATH="./brainwars.service"
+SYSTEMD_PATH="/etc/systemd/system/$SERVICE_NAME"
 
 # moving the prod config to config
 cp ./config/configlist/config-prod.json ./config/config.json
@@ -205,21 +208,38 @@ else
 fi
 
 echo "Stated nginx successfully"
-# Find the PID of any existing brainwars process
-# if [ -f "brainwars" ]; then
-#     PID=$(pgrep -x brainwars)
-#     if [ -n "$PID" ]; then
-#         echo "brainwars is already running with PID $PID. Stopping..."
-#         kill "$PID"
-#         sleep 1  # give it a moment to shut down
-#     fi
-# fi
 
 # start the backend server
-echo "Starting the backend go server..."
-go build brainwars
-# run in background
-if ! ./brainwars 2>&1 | tee server.log; then
-    echo "brainwars crashed. Check server.log for details."
-    exit 1
+echo "Starting the backend go server through a systemd timer..."
+# Check if local service file exists
+if [ ! -f "$LOCAL_SERVICE_PATH" ]; then
+  echo "ERROR: $LOCAL_SERVICE_PATH does not exist."
+  exit 1
 fi
+
+# Copy service file to systemd directory
+echo "Copying $SERVICE_NAME to $SYSTEMD_PATH"
+sudo cp "$LOCAL_SERVICE_PATH" "$SYSTEMD_PATH"
+
+# Reload systemd to recognize changes
+echo "Reloading systemd daemon..."
+sudo systemctl daemon-reload
+
+# Enable service to start on boot
+echo "Enabling $SERVICE_NAME..."
+sudo systemctl enable "$SERVICE_NAME"
+
+# Check current status
+STATUS=$(systemctl is-active "$SERVICE_NAME" || echo "inactive")
+
+if [ "$STATUS" == "active" ]; then
+  echo  "Service is already running. Restarting..."
+  sudo systemctl restart "$SERVICE_NAME"
+else
+  echo "Service is not running. Starting..."
+  sudo systemctl start "$SERVICE_NAME"
+fi
+
+# Show final status
+echo "Current status:"
+systemctl status "$SERVICE_NAME" --no-pager
