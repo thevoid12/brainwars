@@ -11,7 +11,7 @@ pwd
 EMAILID=thisisvoiddd1@gmail.com
 DOMAIN="brainwars.thisisvoid.in" 
 SERVICE_NAME="brainwars.service"
-LOCAL_SERVICE_PATH="./brainwars.service"
+LOCAL_SERVICE_PATH="./deployment/brainwars.service"
 SYSTEMD_PATH="/etc/systemd/system/$SERVICE_NAME"
 
 # moving the prod config to config
