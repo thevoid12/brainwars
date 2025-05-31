@@ -142,3 +142,11 @@ type EndGamePayload struct {
 	Participants []Participant `json:"scores"`
 	FinishTime   time.Time     `json:"finishTime"`
 }
+
+type OpenRouterChatResponse struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
+}

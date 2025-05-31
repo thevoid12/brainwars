@@ -82,26 +82,44 @@ func GenerateQuiz(ctx context.Context, req *model.QuizReq) (questData []*model.Q
 	systemPrompt := getSystemPrompt(req)
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		llmResponse, err = callGemini(ctx, systemPrompt)
+		// llmResponse, err = callGemini(ctx, systemPrompt, viper.GetString("llm.GeminiflashLitemodel"))
+		// if err != nil {
+		// 	l.Sugar().Error(fmt.Sprintf("get data from gemini flash lite llm model failed: attempt %d", attempt), err)
+		// 	return nil, err
+		// }
+		// if llmResponse != "" {
+		// 	break
+		// }
+		// llmResponse, err = callGemini(ctx, systemPrompt, viper.GetString("llm.Geminiflashmodel"))
+		// if err != nil {
+		// 	l.Sugar().Error(fmt.Sprintf("get data from gemini flash llm model failed: attempt %d", attempt), err)
+		// 	return nil, err
+		// }
+		// if llmResponse != "" {
+		// 	break
+		// }
+		llmResponse, err = callOpenRouter(ctx, systemPrompt, req)
 		if err != nil {
-			l.Sugar().Error(fmt.Sprintf("get data from llm failed: attempt %d", attempt), err)
+			l.Sugar().Error(fmt.Sprintf("get data from openrouter failed: attempt %d ", attempt), err)
 			return nil, err
 		}
 		if llmResponse != "" {
 			break
 		}
+
 		time.Sleep(time.Duration(retryDelay) * time.Second)
 	}
-
-	llmResponse, err = clearnllmOutput(llmResponse)
-	if err != nil {
-		l.Sugar().Error("clean llm output failed", err)
+	resp := model.OpenRouterChatResponse{}
+	if err := json.Unmarshal([]byte(llmResponse), &resp); err != nil {
+		l.Sugar().Error("prompt unmarshell into openrouter chat response from llms failed", err)
 		return nil, err
 	}
 
+	fmt.Println(resp.Choices[0].Message.Content)
+	finalQuestion := resp.Choices[0].Message.Content
+
 	questData = []*model.QuestionData{}
-	// sample
-	err = json.Unmarshal([]byte(llmResponse), &questData)
+	err = json.Unmarshal([]byte(finalQuestion), &questData)
 	if err != nil {
 		l.Sugar().Error("prompt unmarshell from llms failed", err)
 		return nil, err

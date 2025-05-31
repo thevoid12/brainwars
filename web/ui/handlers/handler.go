@@ -235,12 +235,6 @@ func CreateRoomHandler(c *gin.Context) {
 		RenderErrorTemplate(c, "home.html", "Failed to Setup game", err)
 		return
 	}
-	err = rl.UpdateRateLimitTries(ctx, rateLimit.Tries+1)
-	if err != nil {
-		RenderErrorTemplate(c, "home.html", "ratelimit failed. try after some time!", err)
-		return
-	}
-
 	if roomreq.GameType == model.SP {
 		// redirct to the game room
 		c.Redirect(302, fmt.Sprintf("/bw/ingame/%s", roomCode))

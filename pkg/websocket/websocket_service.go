@@ -11,6 +11,8 @@ import (
 	logs "brainwars/pkg/logger"
 	"brainwars/pkg/quiz"
 	quizmodel "brainwars/pkg/quiz/model"
+	rl "brainwars/pkg/rate_limit"
+
 	"brainwars/pkg/room"
 	"brainwars/pkg/room/model"
 	roommodel "brainwars/pkg/room/model"
@@ -547,6 +549,16 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 
 		// manager.broadcastToBots(ctx, roomCode, endEvent) TODO: somehow notify bots to exit the routine clear the client memory
 		//	quiz.HandleLastQuestion(ctx,roomCode,)
+		rateLimit, err := rl.GetRateLimitByUserID(ctx)
+		if err != nil {
+			l.Sugar().Errorf("get rate limit by user id while leave game room handler failed", err)
+			return err
+		}
+		err = rl.UpdateRateLimitTries(ctx, rateLimit.Tries+1)
+		if err != nil {
+			l.Sugar().Errorf("update ratelimit tries while leave game room handler failed", err)
+			return err
+		}
 		events := []Event{endEvent}
 		eventjson, err := json.Marshal(events)
 		if err != nil {
@@ -1054,6 +1066,16 @@ func ReadyGameMessageHandler(ctx context.Context, event Event, c *Client) error 
 func LeaveGameRoomHandler(ctx context.Context, event Event, c *Client) error {
 	l := logs.GetLoggerctx(ctx)
 	userDetails := util.GetUserInfoFromctx(ctx)
+	rateLimit, err := rl.GetRateLimitByUserID(ctx)
+	if err != nil {
+		l.Sugar().Errorf("get rate limit by user id while leave game room handler failed", err)
+		return err
+	}
+	err = rl.UpdateRateLimitTries(ctx, rateLimit.Tries+1)
+	if err != nil {
+		l.Sugar().Errorf("update ratelimit tries while leave game room handler failed", err)
+		return err
+	}
 
 	// before leaving remove this client
 	leaveGameNotfication := struct {
@@ -1116,7 +1138,7 @@ func LeaveGameRoomHandler(ctx context.Context, event Event, c *Client) error {
 	// c.manager.clients[c.roomCode] = newclientList
 	c.manager.gameStates[c.roomCode].Participants = newParticipants
 	c.manager.Unlock()
-	err := room.UpdateRoomMemberStatusByRoomCodeAndUserID(ctx, &roommodel.RoomCodeReq{}, roommodel.LeaveQuiz)
+	err = room.UpdateRoomMemberStatusByRoomCodeAndUserID(ctx, &roommodel.RoomCodeReq{}, roommodel.LeaveQuiz)
 	if err != nil {
 		l.Sugar().Error("update room member status by room code and user id failed", err)
 	}

@@ -2,14 +2,17 @@ package quiz
 
 import (
 	"brainwars/pkg/quiz/model"
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/spf13/viper"
 	"google.golang.org/genai"
 )
 
@@ -53,8 +56,7 @@ Tone & Style:
 	return prompt
 }
 
-func callGemini(ctx context.Context, prompt string) (string, error) {
-	// url := viper.GetString("llm.gemini.url")
+func callGemini(ctx context.Context, prompt string, model string) (string, error) {
 	apiKey := os.Getenv("GEMINI_API_KEY")
 
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
@@ -64,7 +66,6 @@ func callGemini(ctx context.Context, prompt string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	model := viper.GetString("llm.model")
 	result, err := client.Models.GenerateContent(
 		ctx,
 		model,
@@ -76,6 +77,101 @@ func callGemini(ctx context.Context, prompt string) (string, error) {
 	}
 
 	return result.Text(), nil
+}
+
+func callOpenRouter(ctx context.Context, prompt string, quizreq *model.QuizReq) (string, error) {
+	apiKey := os.Getenv("OPEN_ROUTER_API_KEY")
+	if apiKey == "" {
+		return "", errors.New("OPENROUTER_API_KEY not set")
+	}
+
+	url := "https://openrouter.ai/api/v1/chat/completions"
+	payload := map[string]interface{}{
+		"model":  "deepseek/deepseek-r1-0528-qwen3-8b:free",
+		"models": "['deepseek/deepseek-r1-0528:free','sarvamai/sarvam-m:free','google/gemma-3n-e4b-it:free','mistralai/devstral-small:free']",
+
+		"messages": []map[string]string{
+			{
+				"role":    "user",
+				"content": prompt, // You should set prompt to a string asking for the quiz
+			},
+		},
+		"response_format": map[string]interface{}{
+			"type": "json_schema",
+			"json_schema": map[string]interface{}{
+				"name":   "quiz_questions",
+				"strict": true,
+				"schema": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type":   "object",
+						"strict": true,
+						"properties": map[string]interface{}{
+							"question": map[string]interface{}{
+								"type":        "string",
+								"description": "The quiz question",
+							},
+							"answer": map[string]interface{}{
+								"type":        "integer",
+								"description": "The ID of the correct option (1-4)",
+							},
+							"options": map[string]interface{}{
+								"type": "array",
+								"items": map[string]interface{}{
+									"type": "object",
+									"properties": map[string]interface{}{
+										"id": map[string]interface{}{
+											"type":        "integer",
+											"description": "Option ID (1-4)",
+										},
+										"option": map[string]interface{}{
+											"type":        "string",
+											"description": "Text of the option",
+										},
+									},
+									"required":             []string{"id", "option"},
+									"additionalProperties": false,
+								},
+								"minItems": 4,
+								"maxItems": 4,
+							},
+						},
+						"required":             []string{"question", "answer", "options"},
+						"additionalProperties": false,
+					},
+					"minItems": quizreq.Count,
+					"maxItems": quizreq.Count,
+				},
+			},
+		},
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
 }
 
 func clearnllmOutput(s string) (string, error) {
