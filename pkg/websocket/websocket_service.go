@@ -266,6 +266,20 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		m.initializeRoomGameState(ctx, roomCode, totalQuestions)
 	}
 
+	m.Lock()
+	m.gameStates[roomCode].Participants = append(m.gameStates[roomCode].Participants, quizmodel.Participant{
+		UserID:              userID,
+		Username:            userInfo.UserName,
+		IsBot:               false,
+		Score:               0,
+		Position:            0,
+		IsReady:             false,
+		LastAnsweredQestion: uuid.UUID{},
+		LastChoosenOption:   -1,
+		IsExited:            false,
+	})
+	m.Unlock()
+
 	conn, err := websocketUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		l.Sugar().Error("websocket upgrade error:", err)
@@ -1427,8 +1441,9 @@ func SendMessageHandler(ctx context.Context, event Event, c *Client) error {
 	data, _ := json.Marshal(broadMessage)
 	outgoing := Event{Type: "send_message", Payload: data}
 
-	for client := range c.manager.clients[c.roomCode] {
-		client.egress <- outgoing
-	}
+	// for client := range c.manager.clients[c.roomCode] {
+	// 	client.egress <- outgoing
+	// }
+	c.egress <- outgoing // send
 	return nil
 }

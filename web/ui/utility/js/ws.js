@@ -19,7 +19,7 @@ window.onload = function () {
     conn.onopen = function (e) {
       console.log("Connection established!");
       // This initial message might be displayed by the server as a system message in chat
-      var payload = { data: "Welcome All! The game is about to begin.", time: new Date().toISOString() }
+      var payload = { data: "Welcome! The game is about to begin. Click 'Ready' to let others know you're set. If you're the only player, the game will start automatically once you're ready. Otherwise, the game will begin when all players have clicked 'Ready' so be sure to do so after everyone has joined.", time: new Date().toISOString() }
       // The server should decide if this "send_message" type is broadcasted as a chat message
       // or if there's a specific system message type.
       // For this example, we'll assume the server might convert this to a chat message.
@@ -553,7 +553,7 @@ window.onload = function () {
 
     html+=`<!-- Modal Backdrop -->
   <div id="modal-backdrop"
-     class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+     class="fixed inset-0 bg-black bg-black/50 hidden z-50 flex items-center justify-center">
               <!-- Modal Box -->
       <div class="bg-white p-6 rounded-2xl shadow-2xl text-center w-80">
         <p id="modal-message" class="mb-4 text-lg font-semibold">Are you sure?</p>

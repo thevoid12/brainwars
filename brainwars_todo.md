@@ -140,6 +140,7 @@ game
 - [ ] need to add systemctl which will run the bootstrap script
 - [ ] Log in to dev-k6hetzilbsr3oc5p to continue to brainwars. need to remove dev-k....
 - [ ] write a systemd to start the server as part of bootstrap
+- [ ] if someone is on for a long time automatically logout the user
   
 auth0 docs:
 https://auth0.com/docs/quickstart/webapp/golang/interactive

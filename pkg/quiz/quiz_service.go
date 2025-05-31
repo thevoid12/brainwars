@@ -115,7 +115,6 @@ func GenerateQuiz(ctx context.Context, req *model.QuizReq) (questData []*model.Q
 		return nil, err
 	}
 
-	fmt.Println(resp.Choices[0].Message.Content)
 	finalQuestion := resp.Choices[0].Message.Content
 
 	questData = []*model.QuestionData{}
