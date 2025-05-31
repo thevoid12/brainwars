@@ -24,7 +24,7 @@ RETURNING *;
 SELECT r.*,q.topic,q.time_limit
 FROM room r
 INNER JOIN room_member rm ON rm.room_id = r.id
-inner join question q on r.room_code = q.room_code
+LEFT JOIN question q ON r.room_code = q.room_code
 WHERE rm.user_id = $1
   AND r.is_deleted = false
   AND rm.is_deleted = false

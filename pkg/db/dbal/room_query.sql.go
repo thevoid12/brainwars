@@ -679,7 +679,7 @@ const listRoomsByUserID = `-- name: ListRoomsByUserID :many
 SELECT r.id, r.room_code, r.room_name, r.room_owner, r.room_chat, r.room_meta, r.room_lock, r.game_type, r.room_status, r.is_active, r.is_deleted, r.created_on, r.updated_on, r.created_by, r.updated_by,q.topic,q.time_limit
 FROM room r
 INNER JOIN room_member rm ON rm.room_id = r.id
-inner join question q on r.room_code = q.room_code
+LEFT JOIN question q ON r.room_code = q.room_code
 WHERE rm.user_id = $1
   AND r.is_deleted = false
   AND rm.is_deleted = false
@@ -703,7 +703,7 @@ type ListRoomsByUserIDRow struct {
 	CreatedBy  string
 	UpdatedBy  string
 	Topic      pgtype.Text
-	TimeLimit  int32
+	TimeLimit  pgtype.Int4
 }
 
 func (q *Queries) ListRoomsByUserID(ctx context.Context, userID pgtype.UUID) ([]ListRoomsByUserIDRow, error) {

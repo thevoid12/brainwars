@@ -149,7 +149,8 @@ func HomeHandler(c *gin.Context) {
 
 func CreateRoomHandler(c *gin.Context) {
 	ctx := c.Request.Context() // this context has logger in it
-
+	// RenderErrorTemplate(c, "home.html", "length of the topic shouldnt be more than 50 characters", nil)
+	// return
 	// RenderSuccessTemplate(c, "home.html", "success testing!")
 	// return
 	c.Request.ParseForm()

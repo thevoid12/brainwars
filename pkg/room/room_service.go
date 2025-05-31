@@ -395,7 +395,7 @@ func ListRoom(ctx context.Context, req model.UserIDReq) (roomDetails []*model.Ro
 			CreatedBy:     room.CreatedBy,
 			UpdatedBy:     room.UpdatedBy,
 			QuestionTopic: room.Topic.String,
-			TimeLimit:     int(room.TimeLimit),
+			TimeLimit:     int(room.TimeLimit.Int32),
 		})
 	}
 	return roomDetails, nil

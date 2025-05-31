@@ -17,7 +17,7 @@
   "game": {
     "gamestartbuffer": 3,
     "maxRetryCount":10,
-    "waitRetrySecond":10,
+    "waitRetrySecond":15,
     "maxUserInRoom":10
   },
   "cacheCleaner":{
@@ -28,8 +28,9 @@
     "maxGamesAllowed":3
   },
     "llm":{
-     "model":"gemini-2.0-flash-lite",
+     "GeminiflashLitemodel":"gemini-2.0-flash-lite",
+     "Geminiflashmodel":"gemini-2.0-flash",
         "maxRetryCount":10,
-        "waitRetrySecond":3 
+        "waitRetrySecond":2
   }
 }

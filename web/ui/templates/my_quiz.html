@@ -31,15 +31,18 @@
                   <span class="capitalize ml-1">{{.GameType}}</span>
                 </div>
         
+              {{if ne .QuestionTopic ""}}
                 <div>
                   <span class="font-semibold">Topic:</span>
                   <span class="ml-1">{{.QuestionTopic}}</span>
                 </div>
-        
+              {{end}}
+              {{if ne .TimeLimit 0}}
                 <div>
                   <span class="font-semibold">Time Limit:</span>
                   <span class="ml-1">{{.TimeLimit}} seconds</span>
                 </div>
+              {{end}}
         
                 <!-- Room Code -->
                 {{if and (eq .GameType "MULTI_PLAYER") (eq .Roomstatus "WAITING")}}

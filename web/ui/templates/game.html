@@ -5,8 +5,10 @@
 <div class="flex overflow-auto w-full">
   <!-- Left section: Quiz -->
    <div class="game-loading" id="game-loading">
+    {{if eq .gameType "SINGLE_PLAYER"}}
    Setting up the questions for you 
    the game is loading please wait......
+   {{ end }}
    </div>
 
   <div class="flex-1 p-4">
