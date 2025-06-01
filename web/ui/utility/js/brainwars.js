@@ -35,3 +35,21 @@ function handleQuizStart(event, mode) {
     quizSetupSection.style.display = 'block';
 }
 
+  document.addEventListener("DOMContentLoaded", function () {
+    const checkbox = document.getElementById("random-topic");
+    const topicInput = document.getElementById("topic").closest("div");
+
+    function toggleTopicInput() {
+      if (checkbox.checked) {
+        topicInput.style.display = "none";
+      } else {
+        topicInput.style.display = "block";
+      }
+    }
+
+    // Initialize on page load
+    toggleTopicInput();
+
+    // Listen to changes
+    checkbox.addEventListener("change", toggleTopicInput);
+  });
