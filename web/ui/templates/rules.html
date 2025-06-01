@@ -1,0 +1,92 @@
+{{ define "content" }}
+
+<div class="navbar" data-hx-get="/bw/navbar" hx-trigger="load" hx-swap="innerHTML"></div>
+<body>
+    <main class="p-5 w-full">
+        <h1 class="text-3xl text-center text-primary-600">
+            BrainWars: How to Play
+        </h1>
+
+        <section class="">
+            <h2 class="text-xl sm:text-2xl  text-primary-700 section-title border-primary-300 ">
+                What is BrainWars?
+            </h2>
+            <p class="text-gray-700 leading-relaxed">
+                BrainWars is a fun quiz game where you test your knowledge to earn points. Play in <strong class="text-primary-500">Single Player</strong> mode or compete with others in <strong class="text-primary-500">Multiplayer</strong> mode.
+            </p>
+        </section>
+
+        <section class="">
+            <h2 class="text-xl sm:text-2xl   text-primary-700 section-title border-primary-300 ">
+                Getting Started
+            </h2>
+            <ul class="list-disc list-inside text-gray-700  leading-relaxed">
+                <li><strong class="text-primary-600">Single Player:</strong> Jump right into a game.</li>
+                <li><strong class="text-primary-600">Multiplayer:</strong>
+                    <ul class="list-disc list-inside ml-5 mt-1 space-y-1">
+                        <li><strong class="text-primary-500">Create a Room:</strong> Host and set up the game.</li>
+                        <li><strong class="text-primary-500">Join a Room:</strong> Play with others in an existing room.</li>
+                    </ul>
+                </li>
+            </ul>
+        </section>
+
+        <section class="">
+            <h2 class="text-xl sm:text-2xl text-primary-700 section-title border-primary-300 ">
+                Creating a Multiplayer Game
+            </h2>
+            <p class="text-gray-700 leading-relaxed">
+                As the host, you can customize:
+            </p>
+            <div class="space-y-4">
+                <div class="bg-primary-50 p-4 rounded-lg border border-primary-200">
+                    <h3 class="text-lg  text-primary-600 mb-2">Game Settings:</h3>
+                    <ul class="list-disc list-inside text-gray-700 space-y-1 pl-2">
+                        <li><strong class="text-primary-500">Number of Questions:</strong> Up to 10.</li>
+                        <li><strong class="text-primary-500">Time per Question:</strong> Set the duration.</li>
+                        <li><strong class="text-primary-500">Quiz Topic:</strong> Choose your own or pick a random one.</li>
+                    </ul>
+                </div>
+                <div class="bg-primary-50 p-4 rounded-lg border border-primary-200">
+                    <h3 class="text-lg  text-primary-600 mb-2">Adding Bots:</h3>
+                    <ul class="list-disc list-inside text-gray-700 space-y-1 pl-2">
+                        <li><strong class="text-primary-500">Bot Companions:</strong> Add computer-controlled players.</li>
+                        <li><strong class="text-primary-500">Bot Behavior:</strong> Bots answer at different programmed speeds.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="">
+            <h2 class="text-xl sm:text-2xl   text-primary-700 section-title border-primary-300 ">
+                In the Multiplayer Lobby
+            </h2>
+            <ul class="list-disc list-inside text-gray-700  leading-relaxed">
+                <li><strong class="text-primary-600">Chat:</strong> Talk with other players.</li>
+                <li><strong class="text-primary-600">Ready Up:</strong> Click "Ready" to start.</li>
+                <li><strong class="text-primary-600">Game Start:</strong>
+                    <ul class="list-disc list-inside ml-5 mt-1 space-y-1">
+                        <li>Automatically starts when all players are ready.</li>
+                        <li><strong class="text-primary-500">Force Start:</strong> The host can start the game even if some players aren't ready.</li>
+                    </ul>
+                </li>
+            </ul>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl   text-primary-700 section-title border-primary-300 ">
+                After the Game
+            </h2>
+            <p class="text-gray-700 leading-relaxed">
+                Once the quiz is over:
+            </p>
+            <ul class="list-disc list-inside text-gray-700  mt-2 leading-relaxed">
+                <li><strong class="text-primary-600">View Results:</strong> Check your score.</li>
+                <li><strong class="text-primary-600">Analyze Answers:</strong> See all players' answers (correct and incorrect).</li>
+            </ul>
+        </section>
+    </main>
+
+</body>
+
+{{ end }}

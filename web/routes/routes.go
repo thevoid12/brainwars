@@ -93,6 +93,8 @@ func Initialize(ctx context.Context, l *zap.Logger, auth *auth.Authenticator) (r
 	rSecure.GET("/analyze/:code", handlers.AnalyticsHandler)
 	rSecure.GET("/my-quiz", handlers.MyQuizHistoryHandler)
 
+	// rules
+	rSecure.GET("/rules", handlers.RulesHandler)
 	for _, route := range router.Routes() {
 		l.Sugar().Infof("Route: %s %s", route.Method, route.Path)
 	}

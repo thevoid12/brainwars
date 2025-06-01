@@ -456,3 +456,7 @@ func MyQuizHistoryHandler(c *gin.Context) {
 		"roomDetails": roomDetails,
 	})
 }
+
+func RulesHandler(c *gin.Context) {
+	RenderTemplate(c, "rules.html", gin.H{})
+}
