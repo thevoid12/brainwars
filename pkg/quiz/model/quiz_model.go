@@ -9,7 +9,7 @@ import (
 )
 
 type QuizReq struct {
-	Topic         string     `validate:"required"`
+	Topic         string     `validate:"omitempty"`
 	Count         int        `validate:"required"`
 	Difficulty    Difficulty `validate:"required"`
 	IsRandomTopic bool       `validate:"omitempty"`

@@ -35,21 +35,19 @@ function handleQuizStart(event, mode) {
     quizSetupSection.style.display = 'block';
 }
 
-  document.addEventListener("DOMContentLoaded", function () {
+ document.addEventListener("DOMContentLoaded", function () {
+    const topicInput = document.getElementById("topic");
+    if (!topicInput) return; // Defensive: exit if input not found
     const checkbox = document.getElementById("random-topic");
-    const topicInput = document.getElementById("topic").closest("div");
+
+    const topicInputWrapper = document.getElementById("topic").closest("div");
 
     function toggleTopicInput() {
-      if (checkbox.checked) {
-        topicInput.style.display = "none";
-      } else {
-        topicInput.style.display = "block";
-      }
+      const shouldHide = checkbox.checked;
+      topicInputWrapper.style.display = shouldHide ? "none" : "block";
+      topicInput.disabled = shouldHide; // Prevent submission errors
     }
 
-    // Initialize on page load
-    toggleTopicInput();
-
-    // Listen to changes
+    toggleTopicInput(); // Initial toggle on load
     checkbox.addEventListener("change", toggleTopicInput);
   });
