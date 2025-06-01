@@ -39,6 +39,7 @@ type UserInfo struct {
 	Auth0SubID string
 	UserName   string
 	UserType   UserType
+	Meta       *UserMeta
 	BotType
 	IsPremium bool
 	IsActive  bool
@@ -50,6 +51,10 @@ type NewUserReq struct {
 	UserName   string
 	UserType
 	IsPremium bool
+}
+
+type UserMeta struct {
+	QuestionBankIDs []uuid.UUID `json:"question_bank_ids"`
 }
 
 var BotTypeMap = map[BotType]time.Duration{

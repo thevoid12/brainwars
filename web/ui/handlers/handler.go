@@ -165,11 +165,17 @@ func CreateRoomHandler(c *gin.Context) {
 		RenderErrorTemplate(c, "home.html", "length of the topic shouldnt be more than 50 characters", nil)
 		return
 	}
-	if topic == "" {
+	rt := c.PostForm("random-topic")
+	randomTopic := false
+	if rt == "on" {
+		randomTopic = true
+	}
+
+	if topic == "" && !randomTopic {
 		RenderErrorTemplate(c, "home.html", "topic cannot be empty", nil)
 		return
-
 	}
+
 	timelimit := c.PostForm("timelimit")
 	difficulty := c.PostForm("difficulty")
 
@@ -210,9 +216,10 @@ func CreateRoomHandler(c *gin.Context) {
 	}
 
 	questReq := &quizmodel.QuizReq{
-		Topic:      topic,
-		Count:      qc,
-		Difficulty: quizmodel.Difficulty(difficulty),
+		Topic:         topic,
+		Count:         qc,
+		Difficulty:    quizmodel.Difficulty(difficulty),
+		IsRandomTopic: randomTopic,
 	}
 
 	err = validate.Struct(questReq)

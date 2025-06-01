@@ -69,6 +69,7 @@ func SetupGame(ctx context.Context, req model.RoomReq, botIDs []model.UserIDReq,
 		QuestionData:  []*quizmodel.QuestionData{},
 		CreatedBy:     roomDetails.CreatedBy,
 		TimeLimit:     req.TimeLimit,
+		IsRandomTopic: questReq.IsRandomTopic,
 	})
 
 	return roomDetails.RoomCode, nil

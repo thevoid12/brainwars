@@ -168,6 +168,39 @@ func (q *Queries) GetQuestionsByRoomCode(ctx context.Context, roomCode string) (
 	return i, err
 }
 
+const getRandomQuestionFromBank = `-- name: GetRandomQuestionFromBank :one
+
+SELECT id, topic, question_count, question_data, is_deleted, created_on, updated_on, created_by, updated_by
+FROM question_bank q
+WHERE q.id NOT IN (
+    SELECT (jsonb_array_elements_text(user_meta->'question_bank_ids'))::uuid
+    FROM users
+    WHERE user_meta->'question_bank_ids' IS NOT NULL
+      AND users.is_deleted = FALSE
+      AND users.id = $1
+)
+ORDER BY RANDOM()
+LIMIT 1
+`
+
+// -------------------------- question bank --------------------------------------
+func (q *Queries) GetRandomQuestionFromBank(ctx context.Context, id pgtype.UUID) (QuestionBank, error) {
+	row := q.db.QueryRow(ctx, getRandomQuestionFromBank, id)
+	var i QuestionBank
+	err := row.Scan(
+		&i.ID,
+		&i.Topic,
+		&i.QuestionCount,
+		&i.QuestionData,
+		&i.IsDeleted,
+		&i.CreatedOn,
+		&i.UpdatedOn,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+	)
+	return i, err
+}
+
 const listAnswersByRoomCode = `-- name: ListAnswersByRoomCode :many
 SELECT id, room_code, user_id, question_id, question_data_id, answer_option, is_correct, answer_time, created_on, updated_on, created_by, updated_by
 FROM answer

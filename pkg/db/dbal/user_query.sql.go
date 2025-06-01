@@ -137,3 +137,23 @@ func (q *Queries) GetUserDetailsByID(ctx context.Context, id pgtype.UUID) ([]Use
 	}
 	return items, nil
 }
+
+const updateUserMeta = `-- name: UpdateUserMeta :exec
+UPDATE users
+SET 
+  user_meta = $2,
+  updated_on = NOW(),
+  updated_by = $3
+WHERE id = $1
+`
+
+type UpdateUserMetaParams struct {
+	ID        pgtype.UUID
+	UserMeta  []byte
+	UpdatedBy string
+}
+
+func (q *Queries) UpdateUserMeta(ctx context.Context, arg UpdateUserMetaParams) error {
+	_, err := q.db.Exec(ctx, updateUserMeta, arg.ID, arg.UserMeta, arg.UpdatedBy)
+	return err
+}

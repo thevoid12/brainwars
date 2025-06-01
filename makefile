@@ -12,7 +12,7 @@ export $(shell sed 's/=.*//' .env.production)
 
 migration-create:
 	@echo "**************************** migration create ***************************************"
-	goose -dir migrations create $(NAME) -ext sql
+	goose -dir migrations create $(NAME) sql
 	@echo "******************************************************************************"
 
 migrate-up:

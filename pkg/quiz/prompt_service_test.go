@@ -53,3 +53,15 @@ func TestOpenrouter(t *testing.T) {
 	}
 	fmt.Println(finalresult)
 }
+
+func TestGetQuestionData(t *testing.T) {
+	question, err := GenerateQuiz(context.TODO(), nil)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	qm, err := json.Marshal(question)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	fmt.Println(string(qm))
+}

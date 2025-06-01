@@ -9,9 +9,10 @@ import (
 )
 
 type QuizReq struct {
-	Topic      string     `validate:"required"`
-	Count      int        `validate:"required"`
-	Difficulty Difficulty `validate:"required"`
+	Topic         string     `validate:"required"`
+	Count         int        `validate:"required"`
+	Difficulty    Difficulty `validate:"required"`
+	IsRandomTopic bool       `validate:"omitempty"`
 }
 
 type Difficulty string
@@ -37,7 +38,8 @@ type QuestionData struct {
 // QuestionReq represents the request to create a question
 type QuestionReq struct {
 	RoomCode      string          `validate:"required"`
-	Topic         string          `validate:"required"`
+	Topic         string          `validate:"omitempty"`
+	IsRandomTopic bool            `validate:"omitempty"`
 	QuestionCount int             `validate:"required"`
 	QuestionData  []*QuestionData `validate:"required"`
 	CreatedBy     string          `validate:"required"`
@@ -149,4 +151,11 @@ type OpenRouterChatResponse struct {
 			Content string `json:"content"`
 		} `json:"message"`
 	} `json:"choices"`
+}
+
+type QuestionBank struct {
+	ID            uuid.UUID
+	Topic         string
+	QuestionCount int
+	QuestionData  []*QuestionData
 }

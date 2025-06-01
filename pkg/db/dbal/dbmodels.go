@@ -48,6 +48,18 @@ type Question struct {
 	UpdatedBy     string
 }
 
+type QuestionBank struct {
+	ID            pgtype.UUID
+	Topic         pgtype.Text
+	QuestionCount int32
+	QuestionData  []byte
+	IsDeleted     bool
+	CreatedOn     pgtype.Timestamp
+	UpdatedOn     pgtype.Timestamp
+	CreatedBy     string
+	UpdatedBy     string
+}
+
 type RateLimit struct {
 	ID        string
 	UserID    string

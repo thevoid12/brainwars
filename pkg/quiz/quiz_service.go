@@ -6,6 +6,8 @@ import (
 	logs "brainwars/pkg/logger"
 	"brainwars/pkg/quiz/model"
 	roommodel "brainwars/pkg/room/model"
+	user "brainwars/pkg/users"
+	"brainwars/pkg/util"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,16 +22,31 @@ import (
 func SetupQuizQuestions(ctx context.Context, req *model.QuestionReq) error {
 	l := logs.GetLoggerctx(ctx)
 
-	questionData, err := GenerateQuiz(ctx, &model.QuizReq{
-		Topic: req.Topic,
-		Count: req.QuestionCount,
-	})
-	if err != nil {
-		l.Sugar().Error("Could not generate quiz", err)
-		return err
+	var questionData []*model.QuestionData
+	var err error
+	questionBankID := uuid.UUID{}
+	if req.IsRandomTopic {
+		// Get random question from bank
+		questionBank, err := GetRandomQuestionfromBank(ctx)
+		if err != nil {
+			l.Sugar().Error("Could not get random question from bank", err)
+			return err
+		}
+		questionBankID = questionBank.ID
+		req.Topic = questionBank.Topic
+		req.QuestionData = questionBank.QuestionData
+		questionData = questionBank.QuestionData[:req.QuestionCount]
+	} else {
+		questionData, err = GenerateQuiz(ctx, &model.QuizReq{
+			Topic: req.Topic,
+			Count: req.QuestionCount,
+		})
+		if err != nil {
+			l.Sugar().Error("Could not generate quiz", err)
+			return err
+		}
 	}
 	// Create question request
-
 	questionReq := model.QuestionReq{
 		RoomCode:      req.RoomCode,
 		Topic:         req.Topic,
@@ -44,6 +61,25 @@ func SetupQuizQuestions(ctx context.Context, req *model.QuestionReq) error {
 	if err != nil {
 		l.Sugar().Error("Could not create question", err)
 		return err
+	}
+
+	if req.IsRandomTopic {
+		// we update the userMeta to make sure that the same random question bunch is not asked again
+		userDetails := util.GetUserInfoFromctx(ctx)
+		userDetails, err := user.GetUserDetailsbyID(ctx, userDetails.ID) // this will update the user meta with the question bank id
+		if err != nil {
+			l.Sugar().Error("Could not get user details by id", err)
+			return err
+		}
+
+		meta := userDetails.Meta
+		meta.QuestionBankIDs = append(meta.QuestionBankIDs, questionBankID)
+		err = user.UpdateUserMeta(ctx, userDetails.ID, meta)
+		if err != nil {
+			l.Sugar().Error("Could not update user meta", err)
+			return err
+		}
+
 	}
 
 	return nil
@@ -381,4 +417,40 @@ func ListAnswersByRoomCode(ctx context.Context, roomCode string) ([]*model.Answe
 	}
 
 	return answerDetails, nil
+}
+
+func GetRandomQuestionfromBank(ctx context.Context) (*model.QuestionBank, error) {
+	l := logs.GetLoggerctx(ctx)
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return nil, err
+	}
+	defer dbConn.Db.Close()
+
+	dBal := dbal.New(dbConn.Db)
+	userDetails := util.GetUserInfoFromctx(ctx)
+
+	dbQuestion, err := dBal.GetRandomQuestionFromBank(ctx, pgtype.UUID{Bytes: userDetails.ID, Valid: true})
+	if err != nil {
+		l.Sugar().Error("Could not get random question from bank", err)
+		return nil, err
+	}
+	qData := []*model.QuestionData{}
+	err = json.Unmarshal(dbQuestion.QuestionData, &qData)
+	if err != nil {
+		l.Sugar().Error("Could not unmarshal question data from bank", err)
+		return nil, err
+	}
+
+	for _, q := range qData {
+		q.ID = uuid.New()
+	}
+
+	return &model.QuestionBank{
+		ID:            userDetails.ID,
+		Topic:         dbQuestion.Topic.String,
+		QuestionCount: int(dbQuestion.QuestionCount),
+		QuestionData:  qData,
+	}, nil
 }

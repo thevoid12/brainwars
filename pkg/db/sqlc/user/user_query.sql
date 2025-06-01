@@ -23,5 +23,11 @@ INSERT INTO users (
   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 );
 
-
+-- name: UpdateUserMeta :exec
+UPDATE users
+SET 
+  user_meta = $2,
+  updated_on = NOW(),
+  updated_by = $3
+WHERE id = $1;
 

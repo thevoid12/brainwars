@@ -67,3 +67,18 @@ SELECT *
 FROM answer
 WHERE room_code = $1
 ORDER BY created_on ASC;
+
+---------------------------- question bank --------------------------------------
+
+-- name: GetRandomQuestionFromBank :one
+SELECT *
+FROM question_bank q
+WHERE q.id NOT IN (
+    SELECT (jsonb_array_elements_text(user_meta->'question_bank_ids'))::uuid
+    FROM users
+    WHERE user_meta->'question_bank_ids' IS NOT NULL
+      AND users.is_deleted = FALSE
+      AND users.id = $1
+)
+ORDER BY RANDOM()
+LIMIT 1;

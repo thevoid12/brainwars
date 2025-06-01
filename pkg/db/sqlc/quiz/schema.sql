@@ -26,3 +26,15 @@ CREATE TABLE IF NOT EXISTS answer (
   created_by TEXT NOT NULL,
   updated_by TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS question_bank(
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  topic TEXT,
+  question_count INT NOT NULL,
+  question_data JSONB NOT NULL,
+  is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+  created_on TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_on TIMESTAMP NOT NULL DEFAULT NOW(),
+  created_by TEXT NOT NULL,
+  updated_by TEXT NOT NULL
+); 

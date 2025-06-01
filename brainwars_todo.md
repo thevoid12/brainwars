@@ -143,7 +143,8 @@ game
 - [ ] if someone is on for a long time automatically logout the user
 - [ ] the user should directly see homepage even before login
 - [ ] question bank (pick a random topic)
-  
+- [ ] for the existing customer in prod convert usermeta to {}
+- [x] not all answer comes
 auth0 docs:
 https://auth0.com/docs/quickstart/webapp/golang/interactive
 

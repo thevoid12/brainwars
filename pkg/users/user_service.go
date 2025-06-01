@@ -6,6 +6,7 @@ import (
 	logs "brainwars/pkg/logger"
 	"brainwars/pkg/users/model"
 	"context"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -34,7 +35,7 @@ func CreateNewUser(ctx context.Context, req *model.NewUserReq) (userDetails *mod
 		Username:  req.UserName,
 		UserType:  string(req.UserType),
 		BotType:   pgtype.Text{},
-		UserMeta:  []byte("[{}]"),
+		UserMeta:  []byte("{}"),
 		Premium:   false,
 		IsActive:  true,
 		IsDeleted: false,
@@ -55,11 +56,11 @@ func CreateNewUser(ctx context.Context, req *model.NewUserReq) (userDetails *mod
 		IsPremium:  false,
 		IsActive:   true,
 		IsDeleted:  false,
+		Meta:       &model.UserMeta{},
 	}
+
 	return userDetails, nil
-
 }
-
 func GetUserDetailsbyID(ctx context.Context, userID uuid.UUID) (userDetails *model.UserInfo, err error) {
 	l := logs.GetLoggerctx(ctx)
 	dbConn, err := dbpkg.InitDB()
@@ -83,6 +84,13 @@ func GetUserDetailsbyID(ctx context.Context, userID uuid.UUID) (userDetails *mod
 		return nil, err
 	}
 
+	meta := &model.UserMeta{}
+	err = json.Unmarshal(dbrecord[0].UserMeta, meta)
+	if err != nil {
+		l.Sugar().Error("Could not unmarshal user meta", err)
+		return nil, err
+	}
+
 	userDetails = &model.UserInfo{
 		ID:         dbrecord[0].ID.Bytes,
 		Auth0SubID: dbrecord[0].Auth0Sub.String,
@@ -91,6 +99,8 @@ func GetUserDetailsbyID(ctx context.Context, userID uuid.UUID) (userDetails *mod
 		IsPremium:  dbrecord[0].Premium,
 		IsActive:   dbrecord[0].IsActive,
 		IsDeleted:  dbrecord[0].IsDeleted,
+		Meta:       meta,
+		BotType:    model.BotType(dbrecord[0].BotType.String),
 	}
 
 	return userDetails, nil
@@ -130,4 +140,28 @@ func GetUserDetailsbyAuth0SubID(ctx context.Context, sub string) (userDetails *m
 	}
 
 	return userDetails, nil
+}
+
+func UpdateUserMeta(ctx context.Context, userID uuid.UUID, meta *model.UserMeta) error {
+	l := logs.GetLoggerctx(ctx)
+
+	dbConn, err := dbpkg.InitDB()
+	if err != nil {
+		l.Sugar().Error("Could not initialize database", err)
+		return err
+	}
+	defer dbConn.Db.Close()
+	dBal := dbal.New(dbConn.Db)
+
+	m, err := json.Marshal(meta)
+	if err != nil {
+		l.Sugar().Error("Could not marshal user meta", err)
+	}
+	err = dBal.UpdateUserMeta(ctx, dbal.UpdateUserMetaParams{
+		ID:        pgtype.UUID{Bytes: [16]byte(userID), Valid: true},
+		UserMeta:  m,
+		UpdatedBy: userID.String(),
+	})
+
+	return err
 }
