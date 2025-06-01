@@ -37,8 +37,9 @@ func Initialize(ctx context.Context, l *zap.Logger, auth *auth.Authenticator) (r
 	})
 
 	//Assests and Tailwind
-	router.StaticFS("/assets", http.FS(assests.AssestFS))                      // Serve embedded files (e.g. JS, CSS, images) under the /assets URL prefix using the embedded filesystem assests.AssestFS.
-	router.StaticFile("/favicon.ico", "web/ui/utility/favicon_io/favicon.ico") // Serve favicon
+	router.StaticFS("/assets", http.FS(assests.AssestFS)) // Serve embedded files (e.g. JS, CSS, images) under the /assets URL prefix using the embedded filesystem assests.AssestFS.
+	// // router.StaticFile("/favicon.ico", "web/ui/utility/favicon_io/favicon.ico") // Serve favicon
+	// router.StaticFile("/favicon.ico", "/assets/favicon_io/favicon.ico")
 	router.LoadHTMLGlob("web/ui/templates/*")
 
 	manager := websocket.NewManager(ctx)

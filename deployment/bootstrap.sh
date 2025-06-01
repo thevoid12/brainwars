@@ -133,6 +133,8 @@ fi
 # run docker compose to start the postgres database
 sudo docker compose -f ./deployment/docker/docker-compose-pgsql.yml up -d
 
+echo "sleeping for 5 seconds to let the postgres container start up..."
+sleep 5
 
 # run goose to apply migrations
 echo "Applying goose database migrations on our postgres container..."
