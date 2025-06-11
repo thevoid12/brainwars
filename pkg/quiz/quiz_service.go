@@ -192,7 +192,6 @@ func CreateQuestion(ctx context.Context, req model.QuestionReq) error {
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	err = dBal.CreateQuestion(ctx, params)
@@ -228,7 +227,6 @@ func UpdateQuestionByID(ctx context.Context, req model.EditQuestionReq) error {
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	err = dBal.UpdateQuestionByID(ctx, params)
@@ -248,7 +246,6 @@ func ListQuestionsByRoomCode(ctx context.Context, roomCode string) (questionDeta
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	question, err := dBal.GetQuestionsByRoomCode(ctx, roomCode)
@@ -305,7 +302,6 @@ func CreateAnswer(ctx context.Context, req *model.AnswerReq) error {
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	err = dBal.CreateAnswer(ctx, params)
@@ -333,7 +329,6 @@ func UpdateAnswer(ctx context.Context, req model.EditAnswerReq) error {
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	err = dBal.UpdateAnswer(ctx, params)
@@ -353,7 +348,6 @@ func GetAnswerByRoomCodeAndUserID(ctx context.Context, req roommodel.RoomCodeReq
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	answers, err := dBal.GetAnswerByRoomCodeAndUserID(ctx, dbal.GetAnswerByRoomCodeAndUserIDParams{
@@ -391,7 +385,6 @@ func ListAnswersByRoomCode(ctx context.Context, roomCode string) ([]*model.Answe
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	answers, err := dBal.ListAnswersByRoomCode(ctx, roomCode)
@@ -426,7 +419,6 @@ func GetRandomQuestionfromBank(ctx context.Context) (*model.QuestionBank, error)
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	userDetails := util.GetUserInfoFromctx(ctx)

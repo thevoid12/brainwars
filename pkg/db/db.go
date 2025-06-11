@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -28,6 +29,12 @@ type Dbconn struct {
 	Config DBConfig
 }
 
+var (
+	dbOnce sync.Once
+	dbConn *Dbconn
+	dbErr  error
+)
+
 // loadEnv loads environment variables from the .env file
 func loadEnv() DBConfig {
 	_ = godotenv.Load()
@@ -43,57 +50,67 @@ func loadEnv() DBConfig {
 
 }
 
-// InitDB initializes the database connection
+// InitDB initializes the database connection. using sync.Once to ensure it is only called once every other call will return the same instance
+// and will not reinitialize the connection.
 func InitDB() (*Dbconn, error) {
-	config := loadEnv()
+	dbOnce.Do(func() {
+		config := loadEnv()
 
-	defaultDSN := fmt.Sprintf("postgres://%s:%s@%s:%s/postgres?sslmode=%s",
-		config.User, config.Password, config.Host, config.Port, config.SSLMode)
-	targetDSN := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		config.User, config.Password, config.Host, config.Port, config.Name, config.SSLMode)
+		defaultDSN := fmt.Sprintf("postgres://%s:%s@%s:%s/postgres?sslmode=%s",
+			config.User, config.Password, config.Host, config.Port, config.SSLMode)
+		targetDSN := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+			config.User, config.Password, config.Host, config.Port, config.Name, config.SSLMode)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	// Check if database exists
-	conn, err := pgx.Connect(ctx, defaultDSN)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to PostgreSQL: %v", err)
-	}
-	defer conn.Close(ctx)
-
-	exists, err := databaseExists(ctx, conn, config.Name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check database existence: %v", err)
-	}
-
-	if !exists {
-		log.Printf("Database %s does not exist. Creating it...", config.Name)
-		if err := createDatabase(ctx, conn, config.Name); err != nil {
-			return nil, fmt.Errorf("failed to create database: %v", err)
+		// Check if database exists
+		conn, err := pgx.Connect(ctx, defaultDSN)
+		if err != nil {
+			dbErr = fmt.Errorf("failed to connect to PostgreSQL: %v", err)
+			return
 		}
-		log.Println("Database created successfully!")
-	}
+		defer conn.Close(ctx)
 
-	// Setup connection pool
-	poolConfig, err := pgxpool.ParseConfig(targetDSN)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse database config: %v", err)
-	}
+		exists, err := databaseExists(ctx, conn, config.Name)
+		if err != nil {
+			dbErr = fmt.Errorf("failed to check database existence: %v", err)
+			return
+		}
 
-	poolConfig.MaxConns = 20
-	poolConfig.MinConns = 5
-	poolConfig.HealthCheckPeriod = 30 * time.Second
-	poolConfig.MaxConnLifetime = 30 * time.Minute
-	poolConfig.MaxConnIdleTime = 5 * time.Minute
+		if !exists {
+			log.Printf("Database %s does not exist. Creating it...", config.Name)
+			if err := createDatabase(ctx, conn, config.Name); err != nil {
+				dbErr = fmt.Errorf("failed to create database: %v", err)
+				return
+			}
+			log.Println("Database created successfully!")
+		}
 
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to target database: %v", err)
-	}
+		// Setup connection pool
+		poolConfig, err := pgxpool.ParseConfig(targetDSN)
+		if err != nil {
+			dbErr = fmt.Errorf("failed to parse database config: %v", err)
+			return
+		}
 
-	log.Println("Connected to PostgreSQL database successfully.")
-	return &Dbconn{Db: pool, Config: config}, nil
+		poolConfig.MaxConns = 20
+		poolConfig.MinConns = 5
+		poolConfig.HealthCheckPeriod = 30 * time.Second
+		poolConfig.MaxConnLifetime = 30 * time.Minute
+		poolConfig.MaxConnIdleTime = 5 * time.Minute
+
+		pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+		if err != nil {
+			dbErr = fmt.Errorf("failed to connect to target database: %v", err)
+			return
+		}
+
+		log.Println("Connected to PostgreSQL database successfully.")
+		dbConn = &Dbconn{Db: pool, Config: config}
+	})
+
+	return dbConn, dbErr
 }
 
 func databaseExists(ctx context.Context, conn *pgx.Conn, name string) (bool, error) {

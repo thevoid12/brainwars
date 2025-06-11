@@ -20,7 +20,7 @@ func CreateNewUser(ctx context.Context, req *model.NewUserReq) (userDetails *mod
 		return nil, err
 
 	}
-	defer dbConn.Db.Close()
+
 	dBal := dbal.New(dbConn.Db)
 	id := uuid.New()
 	err = dBal.CreateNewUser(ctx, dbal.CreateNewUserParams{
@@ -69,7 +69,6 @@ func GetUserDetailsbyID(ctx context.Context, userID uuid.UUID) (userDetails *mod
 		return nil, err
 
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	dbrecord, err := dBal.GetUserDetailsByID(ctx, pgtype.UUID{
@@ -114,7 +113,6 @@ func GetUserDetailsbyAuth0SubID(ctx context.Context, sub string) (userDetails *m
 		return nil, err
 
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	dbrecord, err := dBal.GetUserDetailsByAuth0SubID(ctx, pgtype.Text{
@@ -150,7 +148,7 @@ func UpdateUserMeta(ctx context.Context, userID uuid.UUID, meta *model.UserMeta)
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
+
 	dBal := dbal.New(dbConn.Db)
 
 	m, err := json.Marshal(meta)

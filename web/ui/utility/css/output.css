@@ -976,9 +976,6 @@
   .py-20 {
     padding-block: calc(var(--spacing) * 20);
   }
-  .pb-2 {
-    padding-bottom: calc(var(--spacing) * 2);
-  }
   .pl-2 {
     padding-left: calc(var(--spacing) * 2);
   }
@@ -1428,12 +1425,6 @@
     @media (width >= 40rem) {
       font-size: var(--text-2xl);
       line-height: var(--tw-leading, var(--text-2xl--line-height));
-    }
-  }
-  .sm\:text-4xl {
-    @media (width >= 40rem) {
-      font-size: var(--text-4xl);
-      line-height: var(--tw-leading, var(--text-4xl--line-height));
     }
   }
   .md\:col-span-2 {

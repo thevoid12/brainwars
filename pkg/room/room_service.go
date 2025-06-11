@@ -221,7 +221,6 @@ func UpdateRoom(ctx context.Context, req model.EditRoomReq) (err error) {
 		return err
 
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	err = dBal.UpdateRoomByID(ctx, dbal.UpdateRoomByIDParams{
@@ -256,7 +255,7 @@ func UpdateRoomMetaAndStatus(ctx context.Context, req model.RoomMetaReq) (err er
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
+
 	dBal := dbal.New(dbConn.Db)
 	room, err := dBal.GetRoomByRoomCode(ctx, req.RoomCode)
 	if err != nil || len(room) == 0 {
@@ -285,7 +284,6 @@ func GetRoomByID(ctx context.Context, roomID uuid.UUID) (roomDetails *model.Room
 		return nil, err
 
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	dbrecord, err := dBal.GetRoomByID(ctx, pgtype.UUID{
@@ -324,7 +322,6 @@ func GetRoomByRoomCode(ctx context.Context, roomCode string) (roomDetails *model
 		return nil, err
 
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	dbrecord, err := dBal.GetRoomByRoomCode(ctx, roomCode)
@@ -360,7 +357,6 @@ func ListRoom(ctx context.Context, req model.UserIDReq) (roomDetails []*model.Ro
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	rooms, err := dBal.ListRoomsByUserID(ctx, pgtype.UUID{
@@ -409,7 +405,6 @@ func JoinRoom(ctx context.Context, req model.RoomMemberReq) (roomDetails *model.
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	// Start Transaction
 	tx, err := dbConn.Db.BeginTx(ctx, pgx.TxOptions{})
@@ -501,7 +496,7 @@ func ListGameAnalytics(ctx context.Context, req model.RoomCodeReq) (meta *quizmo
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, nil, err
 	}
-	defer dbConn.Db.Close()
+
 	dBal := dbal.New(dbConn.Db)
 	room, err := dBal.GetRoomByRoomCode(ctx, req.RoomCode)
 	if err != nil {
@@ -586,7 +581,6 @@ func ListActiveRoomMembersByRoomCode(ctx context.Context, req model.RoomCodeReq)
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	dbRecord, err := dBal.ListActiveRoomMembersByRoomCode(ctx, req.RoomCode)
@@ -635,7 +629,6 @@ func ListRoomMembersByRoomCode(ctx context.Context, req model.RoomCodeReq) (room
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	dbRecord, err := dBal.ListRoomMembersByRoomCode(ctx, req.RoomCode)
@@ -681,7 +674,6 @@ func GetRoomMemberByRoomCodeAndUserID(ctx context.Context, req model.RoomMemberR
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	dbRecord, err := dBal.GetRoomMemberByRoomCodeAndUserID(ctx, dbal.GetRoomMemberByRoomCodeAndUserIDParams{
@@ -736,7 +728,6 @@ func JoinRoomWithRoomCode(ctx context.Context, req model.RoomMemberReq) (roomDet
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 
@@ -769,7 +760,6 @@ func UpdateRoomMemberStatusByRoomCodeAndUserID(ctx context.Context, roomCodeReq 
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 
@@ -801,7 +791,6 @@ func UpdateRoomMemberStatusByID(ctx context.Context, req model.RoomMemberReq) (e
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 
@@ -833,7 +822,6 @@ func LeaveRoom(ctx context.Context, req model.RoomMemberReq) (err error) {
 		return err
 
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	room, err := dBal.GetRoomByID(ctx, pgtype.UUID{

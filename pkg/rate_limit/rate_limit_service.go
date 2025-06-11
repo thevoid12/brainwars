@@ -44,7 +44,6 @@ func CreateRateLimit(ctx context.Context, req model.RlReq) error {
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	err = dBal.CreateRateLimit(ctx, params)
@@ -73,7 +72,6 @@ func UpdateRateLimit(ctx context.Context, req model.EditRlReq) error {
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	err = dBal.UpdateRateLimitByUserID(ctx, params)
@@ -100,7 +98,6 @@ func UpdateRateLimitTries(ctx context.Context, tries int) error {
 		l.Sugar().Error("Could not initialize database", err)
 		return err
 	}
-	defer dbConn.Db.Close()
 
 	dBal := dbal.New(dbConn.Db)
 	err = dBal.UpdateRateLimitTriesByUserID(ctx, params)
@@ -119,7 +116,6 @@ func GetRateLimitByUserID(ctx context.Context) (rl *model.Rl, err error) {
 		l.Sugar().Error("Could not initialize database", err)
 		return nil, err
 	}
-	defer dbConn.Db.Close()
 
 	userDetails := util.GetUserInfoFromctx(ctx)
 	dBal := dbal.New(dbConn.Db)

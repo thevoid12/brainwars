@@ -70,7 +70,7 @@ func LoginCallbackHandler(authenticator *auth.Authenticator) gin.HandlerFunc {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-		fmt.Println(profile)
+		//fmt.Println(profile)
 		session.Set("access_token", token.AccessToken)
 		session.Set("profile", profile)
 		if err := session.Save(); err != nil {
@@ -276,7 +276,7 @@ func JoinRoomHandler(c *gin.Context) {
 	}
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
-	fmt.Println(userID.String())
+	// fmt.Println(userID.String())
 	roomDetail, err := room.GetRoomByRoomCode(ctx, roomCode)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "unable to join room", nil)
@@ -349,7 +349,7 @@ func InGameHandler(c *gin.Context) {
 
 	userInfo := util.GetUserInfoFromctx(ctx)
 	userID := userInfo.ID
-	fmt.Println(userID.String())
+	// fmt.Println(userID.String())
 	roomDetails, err := room.GetRoomByRoomCode(ctx, roomCode)
 	if err != nil {
 		RenderErrorTemplate(c, "home.html", "Room Does not exists", nil)

@@ -50,13 +50,13 @@ func main() {
 
 	dbConn, err := dbpkg.InitDB()
 	if err != nil {
-		log.Fatalf("Could not initialize database: %v", err)
+		l.Sugar().Error("Could not initialize database: %v", err)
 	}
 	defer dbConn.Db.Close()
 
 	authenticator, err := auth.New()
 	if err != nil {
-		log.Fatalf("Failed to initialize the authenticator: %v", err)
+		l.Sugar().Error("Failed to initialize the authenticator: %v", err)
 	}
 
 	route := routes.Initialize(ctx, l, authenticator)
