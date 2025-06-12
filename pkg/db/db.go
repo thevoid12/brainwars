@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+
 	"os"
 	"sync"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 // DBConfig holds database configuration values
@@ -94,7 +96,7 @@ func InitDB() (*Dbconn, error) {
 			return
 		}
 
-		poolConfig.MaxConns = 20
+		poolConfig.MaxConns = 50
 		poolConfig.MinConns = 5
 		poolConfig.HealthCheckPeriod = 30 * time.Second
 		poolConfig.MaxConnLifetime = 30 * time.Minute
@@ -134,4 +136,16 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func LogPoolStats(l *zap.Logger) {
+	db, err := InitDB()
+	if err != nil {
+		l.Sugar().Errorf("Failed to initialize database: %v", err)
+		return
+	}
+
+	stats := db.GetDB().Stat()
+	l.Sugar().Infof("PG Pool - Total: %d, Acquired: %d, Idle: %d, In Use: %d, Max: %d",
+		stats.TotalConns(), stats.AcquiredConns(), stats.IdleConns(), stats.TotalConns()-stats.IdleConns(), stats.MaxConns())
 }

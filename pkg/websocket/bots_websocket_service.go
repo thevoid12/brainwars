@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	dbpkg "brainwars/pkg/db"
 	logs "brainwars/pkg/logger"
 	quizmodel "brainwars/pkg/quiz/model"
 	"brainwars/pkg/room"
@@ -190,10 +191,13 @@ func (c *Client) handleBotBehavior(ctx context.Context) {
 				//Update bot answer history in db
 				err := updateAnswerHistory(ctx, c.ansHistory)
 				if err != nil {
+					l.Sugar().Errorf("Failed to update answer history for bot %s: %v", c.userID, err)
 					return
 				}
+				dbpkg.LogPoolStats(l)
 				c.manager.botClients = nil // gc will take care
-
+				// close(c.botEvents)         // ensure channel gets closed
+				c.manager.removeClient(c) // remove bot client from manager
 				//TODO:reasource cleanup
 				// Close the bot's event channel
 			}

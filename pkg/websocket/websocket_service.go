@@ -32,6 +32,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	dbpkg "brainwars/pkg/db"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
@@ -322,6 +324,7 @@ func (m *Manager) ServeWS(c *gin.Context) {
 		m.setupBotsForRoom(ctx, roomCode, roomDetails)
 	}
 
+	dbpkg.LogPoolStats(l)
 	// if the game is a single player game since the user is ready and bots are ready as well
 	//  we automatically display the first question. in terms of multiplayer game a button needs to be triggered
 	// to start the game
@@ -610,6 +613,7 @@ func sendNextQuestion(ctx context.Context, manager *Manager, roomCode string) er
 			}
 		}
 
+		dbpkg.LogPoolStats(l)
 		return nil
 	}
 
@@ -1406,10 +1410,12 @@ func (m *Manager) writeUsersMessages(ctx context.Context, c *Client) {
 		case <-ticker.C:
 			log.Println("ping")
 			l.Sugar().Debugf("Sending ping to user %s", c.userID)
-			err := c.connection.WriteMessage(websocket.PingMessage, nil)
+			err := c.connection.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "ping failed"))
+			// err := c.connection.WriteMessage(websocket.PingMessage, nil)
 			if err != nil {
 				l.Sugar().Error("ping error", err)
-				ticker.Stop()
+				dbpkg.LogPoolStats(l)
+				// ticker.Stop()
 				c.manager.removeClient(c)
 				return
 			}

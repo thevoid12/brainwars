@@ -3,6 +3,7 @@ package routes
 import (
 	"brainwars/pkg/auth"
 	"brainwars/pkg/websocket"
+
 	"brainwars/web/middleware"
 	"brainwars/web/ui/handlers"
 	assests "brainwars/web/ui/utility"
